@@ -115,7 +115,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .leg-dot{width:10px;height:10px;border-radius:2px;}
 .chart-bars-wrap{overflow-x:auto;padding-bottom:4px;}
 .chart-bars{display:flex;align-items:flex-end;gap:6px;height:180px;min-width:600px;padding-top:10px;}
-.chart-col{display:flex;flex-direction:column;align-items:center;gap:0;min-width:44px;flex:1;}
+.chart-col{display:flex;flex-direction:column;align-items:center;gap:0;min-width:44px;flex:1;align-self:stretch;}
 .bar-wrap{flex:1;display:flex;align-items:flex-end;width:100%;gap:3px;justify-content:center;}
 .bar{border-radius:4px 4px 0 0;transition:height 0.6s cubic-bezier(0.16,1,0.3,1);min-height:2px;width:16px;cursor:pointer;position:relative;}
 .bar:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surf3);border:1px solid var(--b2);border-radius:6px;padding:5px 10px;font-size:11px;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10;}
@@ -537,7 +537,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
             <th class="num">Último precio ARS</th>
             <th class="num">Último precio USD</th>
             <th class="num">Última compra</th>
-            <th class="num"># OC</th>
+            <th class="num">Cant. de Compras</th>
           </tr>
         </thead>
         <tbody id="preciosBody"><tr><td colspan="9" class="empty-state">Cargando...</td></tr></tbody>
@@ -1111,10 +1111,17 @@ function applyResumen() {
 }
 
 function renderResumenKPIs(data) {
-  const totalOC   = data.length;
+  // Count unique OC numbers (one OC can have multiple line items / rows)
+  const uniqueOCs = new Set(data.map(r => String(r.oc)));
+  const totalOC   = uniqueOCs.size;
   const totalARS  = data.reduce((s,r) => s + (r.importe_ars||0), 0);
   const totalUSD  = data.reduce((s,r) => s + (r.importe_usd||0), 0);
-  const pendPago  = data.filter(r => { const p = r.pagado.toLowerCase(); return p !== 'si' && p !== 'sí' && p !== 's'; }).length;
+  // Pendientes pago: unique OCs where at least one row is not paid
+  const pendOCs = new Set(
+    data.filter(r => { const p = (r.pagado||'').toLowerCase(); return p !== 'si' && p !== 'sí' && p !== 's'; })
+        .map(r => String(r.oc))
+  );
+  const pendPago  = pendOCs.size;
   const conAtraso = data.filter(r => r.dias_atraso > 0).length;
   const sinFab    = data.filter(r => !r.fabrica).length;
 
@@ -1814,6 +1821,14 @@ function loadPrecios() {
   renderPreciosTable();
 }
 
+// Normalize a description for grouping: lowercase, hyphens/underscores → space, collapse spaces
+function normalizeDescKey(desc) {
+  return desc.toLowerCase()
+    .replace(/[-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function buildPreciosData() {
   // Load hidden prefs from localStorage
   const hidden = JSON.parse(localStorage.getItem('alamo_precios_hidden') || '{}');
@@ -1824,13 +1839,14 @@ function buildPreciosData() {
     return !PRECIOS_EXCLUDED_SUPPLIERS.some(ex => prov.includes(ex));
   });
 
-  // Group by descripción (normalized)
+  // Group by normalized descripción (handles "AZUL 294 PAPEL" == "AZUL 294-PAPEL")
   const groups = {};
   filtered.forEach(r => {
     const desc = (r.descripcion || '').trim();
     if (!desc) return;
-    const key = desc.toLowerCase();
+    const key = normalizeDescKey(desc);
     if (!groups[key]) groups[key] = { descripcion: desc, categoria: r.categoria, rows: [] };
+    // Keep the most frequent description variant as display name
     groups[key].rows.push(r);
   });
 
@@ -1848,18 +1864,35 @@ function buildPreciosData() {
       const provCounts = {};
       g.rows.forEach(r => { const p = r.proveedor||''; if(p) provCounts[p]=(provCounts[p]||0)+1; });
       const proveedor = Object.keys(provCounts).sort((a,b)=>provCounts[b]-provCounts[a])[0] || '—';
+      // Use most frequent description variant as display name
+      const descCounts = {};
+      g.rows.forEach(r => { const d = (r.descripcion||'').trim(); if(d) descCounts[d]=(descCounts[d]||0)+1; });
+      const displayDesc = Object.keys(descCounts).sort((a,b)=>descCounts[b]-descCounts[a])[0] || g.descripcion;
 
+      // Derive unit prices from importe totals / cantidad (most reliable method)
+      const latestQty = latest ? (latest.cantidad || 0) : 0;
+      const precioARS = (latestQty > 0 && latest)
+        ? latest.importe_ars / latestQty
+        : (latest ? latest.precio_unit * (latest.costo_usd || 1) : 0);
+      const precioUSD = (latestQty > 0 && latest)
+        ? latest.importe_usd / latestQty
+        : (latest ? latest.precio_unit : 0);
+
+      // Count unique OC numbers (not row count)
+      const uniqueOCset = new Set(g.rows.map(r => String(r.oc)));
+
+      const normalizedKey = normalizeDescKey(displayDesc);
       return {
-        key: g.descripcion.toLowerCase(),
-        descripcion: g.descripcion,
+        key: normalizedKey,
+        descripcion: displayDesc,
         categoria: g.categoria || '—',
         empresa,
         proveedor,
-        precio_ars: latest ? latest.precio_unit : 0,
-        precio_usd: latest ? latest.costo_usd : 0,
+        precio_ars: precioARS || 0,
+        precio_usd: precioUSD || 0,
         fecha_ultima: latest ? latest.fecha_raw : null,
-        n_oc: g.rows.length,
-        hidden: !!hidden[g.descripcion.toLowerCase()],
+        n_oc: uniqueOCset.size,
+        hidden: !!hidden[normalizedKey],
       };
     })
     .sort((a,b) => a.descripcion.localeCompare(b.descripcion, 'es'));
