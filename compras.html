@@ -531,7 +531,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
       </label>
     </div>
     <div style="margin-bottom:10px;padding:10px 14px;background:var(--surf);border:1px solid var(--b);border-radius:8px;font-size:12px;color:var(--t2);">
-      <strong style="color:var(--acc);">ℹ Últimos precios por insumo</strong> — Solo insumos comprados 2+ veces. Excluye Tintas (ver en Insumos), Fadebol, Polypel y Mateu. Usá el 👁 para ocultar insumos que no te interesan.
+      <strong style="color:var(--acc);">ℹ Últimos precios por insumo</strong> — Último precio por insumo — últimos 18 meses. Excluye Tintas (ver en Insumos), Fadebol, Polypel y Mateu. Usá el 👁 para ocultar insumos que no te interesan.
     </div>
     <div style="overflow-x:auto;">
       <table class="data-table" id="preciosTable">
@@ -2303,7 +2303,6 @@ function buildPreciosData() {
   });
 
   preciosData = Object.values(groups)
-    .filter(g => g.rows.length >= 2) // bought 2+ times
     .map(g => {
       // Sort rows by date descending to get latest
       const sorted = g.rows.filter(r => r.fecha).sort((a, b) => b.fecha - a.fecha);
