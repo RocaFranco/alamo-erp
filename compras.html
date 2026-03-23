@@ -528,7 +528,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
       </label>
     </div>
     <div style="margin-bottom:10px;padding:10px 14px;background:var(--surf);border:1px solid var(--b);border-radius:8px;font-size:12px;color:var(--t2);">
-      <strong style="color:var(--acc);">ℹ Últimos precios por insumo</strong> — Solo insumos comprados 2+ veces. Excluye compras de Fadebol, Polypel y Mateu. Usá el 👁 para ocultar insumos que no te interesan.
+      <strong style="color:var(--acc);">ℹ Últimos precios por insumo</strong> — Solo insumos comprados 2+ veces. Excluye Tintas (ver en Insumos), Fadebol, Polypel y Mateu. Usá el 👁 para ocultar insumos que no te interesan.
     </div>
     <div style="overflow-x:auto;">
       <table class="data-table" id="preciosTable">
@@ -2240,6 +2240,7 @@ function buildPapelUltimosPrecios(rows) {
 
 // ─── PRECIOS ──────────────────────────────────────────────────────────────────
 const PRECIOS_EXCLUDED_SUPPLIERS = ['fadebol', 'polypel', 'mateu'];
+const PRECIOS_EXCLUDED_CATS = ['tinta']; // Tintas ya tienen su lista de precios en Insumos
 let preciosLoaded = false;
 let preciosData = []; // computed once, re-filtered on render
 
@@ -2279,10 +2280,13 @@ function buildPreciosData() {
   // Load hidden prefs from localStorage
   const hidden = JSON.parse(localStorage.getItem('alamo_precios_hidden') || '{}');
 
-  // Filter out excluded suppliers
+  // Filter out excluded suppliers and excluded categories (tintas → ya tienen lista propia en Insumos)
   const filtered = allOrdenes.filter(r => {
     const prov = (r.proveedor || '').toLowerCase();
-    return !PRECIOS_EXCLUDED_SUPPLIERS.some(ex => prov.includes(ex));
+    const cat  = (r.categoria  || '').toLowerCase();
+    if (PRECIOS_EXCLUDED_SUPPLIERS.some(ex => prov.includes(ex))) return false;
+    if (PRECIOS_EXCLUDED_CATS.some(ex => cat.includes(ex))) return false;
+    return true;
   });
 
   // Group by normalized descripción (handles "AZUL 294 PAPEL" == "AZUL 294-PAPEL")
