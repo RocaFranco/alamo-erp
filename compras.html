@@ -2264,17 +2264,35 @@ function renderOtrasCatDetalle(catName) {
     `<tr><td class="mono">${y}</td><td class="num">${fmt(v.ocSet.size)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
   ).join('');
 
+  // Individual orders sorted by date desc
+  const ordsOrdenadas = [...ords].sort((a,b) => (b.fecha?.getTime()||0) - (a.fecha?.getTime()||0));
+  const ordRows = ordsOrdenadas.map(r => {
+    const cotizImplicita = (r.importe_ars > 0 && r.importe_usd > 0)
+      ? r.importe_ars / r.importe_usd : null;
+    const cotizSheet = r.costo_usd || 0;
+    const isSuspect = cotizImplicita !== null && cotizSheet > 0
+      && (Math.abs(cotizImplicita - cotizSheet) / cotizSheet > 0.20);
+    return `<tr style="${isSuspect ? 'background:rgba(255,60,60,0.08)' : ''}">
+      <td class="mono" style="font-size:10px;color:var(--t2)">${escH(String(r.oc))}</td>
+      <td class="mono" style="white-space:nowrap;font-size:10px">${fmtDate(r.fecha_raw)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${escH(r.descripcion||'')}</td>
+      <td style="font-size:11px">${escH(r.proveedor||'')}</td>
+      <td class="num" style="font-size:11px">${fmtARS(r.importe_ars)}</td>
+      <td class="num" style="font-size:11px">${fmtUSD(r.importe_usd, 2)}</td>
+      <td class="num mono" style="font-size:10px;color:var(--t3)">${cotizSheet > 0 ? fmt(cotizSheet,0) : '—'}</td>
+      <td class="num mono" style="font-size:10px;color:${isSuspect ? 'var(--danger)' : 'var(--t3)'}" title="${isSuspect ? '⚠ Cotización implícita no coincide con cotización del día' : ''}">${cotizImplicita !== null ? fmt(cotizImplicita,0) : '—'}${isSuspect ? ' ⚠' : ''}</td>
+    </tr>`;
+  }).join('');
+
   det.innerHTML = `
     <div class="section-head" style="margin-bottom:12px;">
       <span class="section-title">${escH(catName)}</span>
       <span class="section-sub">${fmt(new Set(ords.map(r=>String(r.oc))).size)} OC únicas — ${fmtARS(totalARS)} — ${fmtUSD(totalUSD)}</span>
     </div>
-    <div class="two-col" style="margin-bottom:0">
+    <div class="two-col" style="margin-bottom:16px">
       <div class="table-wrap" style="margin-bottom:0">
-        <div class="table-head-row">
-          <span>Proveedores</span>
-        </div>
-        <div class="table-scroll" style="max-height:300px">
+        <div class="table-head-row"><span>Proveedores</span></div>
+        <div class="table-scroll" style="max-height:260px">
           <table>
             <thead><tr><th>Proveedor</th><th class="num">Cant. OC</th><th class="num">ARS</th><th class="num">USD</th><th class="num">% total</th></tr></thead>
             <tbody>
@@ -2291,15 +2309,30 @@ function renderOtrasCatDetalle(catName) {
         </div>
       </div>
       <div class="table-wrap" style="margin-bottom:0">
-        <div class="table-head-row">
-          <span>Por año</span>
-        </div>
-        <div class="table-scroll" style="max-height:300px">
+        <div class="table-head-row"><span>Por año</span></div>
+        <div class="table-scroll" style="max-height:260px">
           <table>
             <thead><tr><th>Año</th><th class="num">Cant. OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
             <tbody>${yearRows || '<tr><td colspan="4" class="empty-state">Sin datos</td></tr>'}</tbody>
           </table>
         </div>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:0">
+      <div class="table-head-row">
+        <span>Historial de compras — ${escH(catName)}</span>
+        <span class="section-sub" style="font-size:10px;color:var(--t3)">⚠ rojo = cotización implícita difiere del día → posible error en el sheet</span>
+      </div>
+      <div class="table-scroll" style="max-height:400px">
+        <table style="font-size:11px">
+          <thead><tr>
+            <th>OC</th><th>Fecha</th><th>Descripción</th><th>Proveedor</th>
+            <th class="num">ARS</th><th class="num">USD</th>
+            <th class="num" title="Cotización del día (col K del sheet)">Cotiz. día</th>
+            <th class="num" title="ARS ÷ USD de esta fila">Cotiz. impl.</th>
+          </tr></thead>
+          <tbody>${ordRows || '<tr><td colspan="8" class="empty-state">Sin datos</td></tr>'}</tbody>
+        </table>
       </div>
     </div>`;
 }
