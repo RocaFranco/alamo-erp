@@ -624,9 +624,11 @@ let provSort = { col: 'nro', dir: 'asc' };
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function parseNum(v) {
   if (v === null || v === undefined || v === '') return 0;
+  // API UNFORMATTED_VALUE returns raw JS numbers — use directly, no format conversion
+  if (typeof v === 'number') return isNaN(v) ? 0 : v;
   const s = String(v).trim().replace(/[$\s%]/g, '');
   if (!s || s === '-') return 0;
-  // Argentine format: 1.234.567,89
+  // Argentine format string: 1.234.567,89
   if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
     return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
   }
@@ -808,7 +810,7 @@ function handleLogout() {
 }
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
-const CACHE_KEY = `alamo_compras_${SHEET_ID}`;
+const CACHE_KEY = `alamo_compras_v2_${SHEET_ID}`; // v2: fix parseNum float bug
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 horas
 const PROV_CATS_KEY = 'alamo_prov_cats';
 
