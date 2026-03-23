@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trazabilidad — Alamo ERP</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --bg:#0e0f11; --surf:#16181c; --surf2:#1e2127; --surf3:#23272f;
+  --b:#2a2d35; --b2:#353942;
+  --acc:#e8ff47; --acc2:#47c8ff; --acc3:#ff6b47;
+  --ok:#47ffb2; --warn:#ffb347; --text:#f0f2f5; --t2:#8b909e; --t3:#555b6a;
+  --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --disp:'Syne',sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ── LOGIN OVERLAY ── */
+#loginOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14,15,17,0.97);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+}
+.login-card {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-radius: 20px;
+  padding: 52px 60px;
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+}
+.login-logo {
+  font-family: var(--disp);
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--acc);
+  letter-spacing: -1px;
+  margin-bottom: 4px;
+}
+.login-logo span { color: var(--text); }
+.login-sub-title {
+  font-family: var(--disp);
+  font-size: 13px;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 32px;
+}
+.login-desc {
+  color: var(--t2);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 36px;
+}
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--text);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--sans);
+}
+.btn-google:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.btn-google svg { width: 20px; height: 20px; }
+
+/* ── HEADER ── */
+#header {
+  position: sticky;
+  top: 0;
+  height: 50px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--b);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  z-index: 100;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+}
+.pulse-dot {
+  width: 8px; height: 8px;
+  background: var(--ok);
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ok);
+  animation: pulse 2s ease-out infinite;
+}
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+.header-title {
+  font-family: var(--disp);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 1px;
+}
+.badge-live {
+  background: rgba(71,255,178,0.12);
+  color: var(--ok);
+  border: 1px solid rgba(71,255,178,0.25);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.header-tabs {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--t2);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text); background: var(--surf2); }
+.tab-btn.active { color: var(--acc); background: rgba(232,255,71,0.08); }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+  justify-content: flex-end;
+}
+.btn-icon {
+  background: var(--surf2);
+  border: 1px solid var(--b);
+  color: var(--t2);
+  border-radius: 7px;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 14px;
+}
+.btn-icon:hover { color: var(--text); border-color: var(--b2); background: var(--surf3); }
+.btn-icon.spinning svg { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-sm {
+  background: var(--surf2);
+  border: 1px solid var(--b);
+  color: var(--t2);
+  border-radius: 7px;
+  padding: 0 12px;
+  height: 32px;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--sans);
+  font-weight: 500;
+  transition: all 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-sm:hover { color: var(--text); border-color: var(--b2); }
+.btn-logout { color: var(--acc3); }
+.btn-logout:hover { border-color: var(--acc3); background: rgba(255,107,71,0.08); }
+
+/* ── APP CONTAINER ── */
+#app {
+  display: none;
+  flex-direction: column;
+  min-height: calc(100vh - 50px);
+}
+#app.visible { display: flex; }
+
+/* ── PANELS ── */
+.panel {
+  display: none;
+  padding: 28px 28px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+.panel.active { display: block; }
+
+/* ── KPI STRIP ── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-radius: 12px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.kpi-card:hover { border-color: var(--b2); }
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--acc);
+  opacity: 0.6;
+}
+.kpi-card:nth-child(2)::before { background: var(--acc2); }
+.kpi-card:nth-child(3)::before { background: var(--ok); }
+.kpi-card:nth-child(4)::before { background: var(--warn); }
+.kpi-card:nth-child(5)::before { background: var(--acc3); }
+.kpi-label {
+  font-size: 10px;
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-family: var(--mono);
+  margin-bottom: 10px;
+}
+.kpi-value {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.kpi-unit {
+  font-size: 11px;
+  color: var(--t3);
+  font-family: var(--mono);
+}
+
+/* ── SECTION HEADER ── */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-family: var(--disp);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.section-sub {
+  font-size: 12px;
+  color: var(--t2);
+  font-family: var(--mono);
+}
+
+/* ── CHART SECTION ── */
+.chart-wrap {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 24px;
+}
+.chart-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chart-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 130px;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+.chart-month {
+  font-size: 11px;
+  color: var(--t2);
+  font-family: var(--mono);
+  text-align: right;
+}
+.chart-month.current { color: var(--acc); font-weight: 500; }
+.chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.bar-track {
+  background: var(--surf3);
+  border-radius: 3px;
+  height: 9px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+.bar-mts { background: var(--acc); opacity: 0.85; }
+.bar-kg  { background: var(--acc2); opacity: 0.75; }
+.bar-fill.current-bar { opacity: 1; }
+.chart-vals {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--t2);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chart-vals span { display: block; }
+.chart-vals .v-mts { color: var(--acc); }
+.chart-vals .v-kg  { color: var(--acc2); }
+.chart-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--t2);
+  font-family: var(--mono);
+}
+.leg-dot {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+}
+
+/* ── DETAIL TABLES ── */
+.tables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.table-wrap {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.table-head-row {
+  background: var(--surf3);
+  padding: 12px 18px;
+  font-family: var(--disp);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  border-bottom: 1px solid var(--b);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+thead th {
+  background: var(--surf2);
+  padding: 9px 14px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: left;
+  border-bottom: 1px solid var(--b);
+}
+thead th:last-child { text-align: right; }
+thead th:nth-child(2) { text-align: right; }
+tbody td {
+  padding: 9px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(42,45,53,0.6);
+  color: var(--text);
+}
+tbody td:nth-child(2) { text-align: right; font-family: var(--mono); }
+tbody td:nth-child(3) { text-align: right; font-family: var(--mono); color: var(--t2); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+tr.total-row td {
+  background: rgba(232,255,71,0.05);
+  border-top: 1px solid rgba(232,255,71,0.15);
+  color: var(--acc);
+  font-weight: 500;
+  border-bottom: none;
+}
+tr.total-row td:first-child { font-family: var(--mono); font-size: 11px; text-transform: uppercase; }
+
+/* ── LOADING / ERROR ── */
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: var(--t2);
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 2px solid var(--b2);
+  border-top-color: var(--acc);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.error-box {
+  background: rgba(255,107,71,0.07);
+  border: 1px solid rgba(255,107,71,0.2);
+  border-radius: 12px;
+  padding: 24px;
+  color: var(--acc3);
+  text-align: center;
+}
+.error-box p { margin-bottom: 14px; font-size: 13px; }
+.btn-retry {
+  background: rgba(255,107,71,0.12);
+  border: 1px solid rgba(255,107,71,0.3);
+  color: var(--acc3);
+  border-radius: 7px;
+  padding: 8px 20px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.btn-retry:hover { background: rgba(255,107,71,0.2); }
+
+/* ── STOCK / ENTREGAS panels ── */
+.info-box {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-radius: 14px;
+  padding: 32px;
+  text-align: center;
+  color: var(--t2);
+}
+.info-box h3 { color: var(--text); margin-bottom: 10px; font-size: 16px; }
+.tabs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+.tab-badge {
+  background: var(--surf2);
+  border: 1px solid var(--b);
+  border-radius: 6px;
+  padding: 5px 13px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--t2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tab-badge:hover { color: var(--acc2); border-color: var(--acc2); }
+.tab-badge.match { color: var(--ok); border-color: rgba(71,255,178,0.3); background: rgba(71,255,178,0.06); }
+
+/* ── EXPLORADOR ── */
+.explorer-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.explorer-select {
+  background: var(--surf2);
+  border: 1px solid var(--b);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: var(--mono);
+  font-size: 13px;
+  flex: 1;
+  min-width: 150px;
+  cursor: pointer;
+}
+.explorer-select:focus { outline: none; border-color: var(--acc); }
+.explorer-input {
+  background: var(--surf2);
+  border: 1px solid var(--b);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: var(--mono);
+  font-size: 13px;
+  width: 160px;
+}
+.explorer-input:focus { outline: none; border-color: var(--acc2); }
+.btn-load {
+  background: var(--acc);
+  color: #0e0f11;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-load:hover { background: #f5ff6e; }
+.btn-load:disabled { opacity: 0.5; cursor: not-allowed; }
+.explorer-table-wrap {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-radius: 14px;
+  overflow: auto;
+  max-height: 70vh;
+}
+.explorer-table-wrap table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surf3);
+}
+.row-num {
+  color: var(--t3);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-align: right;
+  padding-right: 10px;
+  user-select: none;
+  border-right: 1px solid var(--b);
+}
+td.empty-cell { color: var(--t3); }
+
+/* ── STOCK TABLE wrap ── */
+.stock-table-wrap {
+  background: var(--surf);
+  border: 1px solid var(--b);
+  border-radius: 14px;
+  overflow: auto;
+  max-height: 70vh;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+  .tables-grid { grid-template-columns: 1fr; }
+  .header-tabs .tab-btn { padding: 6px 8px; font-size: 11px; }
+}
+@media (max-width: 600px) {
+  .kpi-strip { grid-template-columns: 1fr 1fr; }
+  #header { padding: 0 12px; gap: 8px; }
+  .header-left { min-width: auto; }
+  .header-right { min-width: auto; }
+  .badge-live { display: none; }
+  .panel { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">ALAMO<span>ERP</span></div>
+    <div class="login-sub-title">Sistema de Trazabilidad</div>
+    <p class="login-desc">Accedé con tu cuenta de Google para ver los datos de producción en tiempo real.</p>
+    <button class="btn-google" onclick="handleLogin()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Ingresar con Google
+    </button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="header-left">
+    <div class="pulse-dot"></div>
+    <span class="header-title">TRAZABILIDAD</span>
+    <span class="badge-live">PRODUCCIÓN EN VIVO</span>
+  </div>
+
+  <nav class="header-tabs">
+    <button class="tab-btn active" data-panel="produccion" onclick="switchTab('produccion')">Producción</button>
+    <button class="tab-btn" data-panel="stock" onclick="switchTab('stock')">Stock &amp; MP</button>
+    <button class="tab-btn" data-panel="entregas" onclick="switchTab('entregas')">Entregas</button>
+    <button class="tab-btn" data-panel="explorador" onclick="switchTab('explorador')">Explorador</button>
+  </nav>
+
+  <div class="header-right">
+    <button class="btn-icon" id="refreshBtn" onclick="doRefresh()" title="Actualizar datos">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+    </button>
+    <a class="btn-sm" href="https://docs.google.com/spreadsheets/d/1__VAhSwaLtF4xGjtuMI_Gw2yWpBzsNKZNy0tgBEAYJA/edit" target="_blank" title="Ver planilla">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Planilla
+    </a>
+    <button class="btn-sm btn-logout" id="logoutBtn" onclick="handleLogout()" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Salir
+    </button>
+    <a class="btn-sm" href="https://rocafranco.github.io/alamo-erp/" title="Volver al ERP">
+      ← ERP Home
+    </a>
+  </div>
+</header>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- PANEL: PRODUCCIÓN -->
+  <div class="panel active" id="panel-produccion">
+    <div id="kpiStrip" class="kpi-strip">
+      <div class="kpi-card"><div class="kpi-label">MTS este mes</div><div class="kpi-value" id="kpi-mts-mes">—</div><div class="kpi-unit">metros</div></div>
+      <div class="kpi-card"><div class="kpi-label">KG este mes</div><div class="kpi-value" id="kpi-kg-mes">—</div><div class="kpi-unit">kilogramos</div></div>
+      <div class="kpi-card"><div class="kpi-label">MTS este año</div><div class="kpi-value" id="kpi-mts-anio">—</div><div class="kpi-unit">acumulado</div></div>
+      <div class="kpi-card"><div class="kpi-label">KG este año</div><div class="kpi-value" id="kpi-kg-anio">—</div><div class="kpi-unit">acumulado</div></div>
+      <div class="kpi-card"><div class="kpi-label">Grumo laminado</div><div class="kpi-value" id="kpi-grumo">—</div><div class="kpi-unit">kg este mes</div></div>
+    </div>
+
+    <div id="chartSection" class="chart-wrap">
+      <div class="section-head">
+        <span class="section-title" id="chartTitle">Producción mensual</span>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--acc)"></div> Metros</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--acc2)"></div> Kg</div>
+        </div>
+      </div>
+      <div id="chartInner" class="chart-inner">
+        <div class="loading-box"><div class="spinner"></div><span>Cargando producción...</span></div>
+      </div>
+    </div>
+
+    <div id="detailTables" class="tables-grid">
+      <div class="table-wrap">
+        <div class="table-head-row">Metros por artículo — <span id="mesActualLabel">...</span></div>
+        <div id="tableMts"><div class="loading-box"><div class="spinner"></div></div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head-row">Kg por artículo — <span id="mesActualLabel2">...</span></div>
+        <div id="tableKg"><div class="loading-box"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: STOCK & MP -->
+  <div class="panel" id="panel-stock">
+    <div class="section-head" style="margin-bottom:18px">
+      <span class="section-title">Stock &amp; Materia Prima</span>
+      <span class="section-sub" id="stockTabsFound"></span>
+    </div>
+    <div id="stockContent">
+      <div class="loading-box"><div class="spinner"></div><span>Buscando pestañas de stock...</span></div>
+    </div>
+  </div>
+
+  <!-- PANEL: ENTREGAS -->
+  <div class="panel" id="panel-entregas">
+    <div class="section-head" style="margin-bottom:18px">
+      <span class="section-title">Entregas &amp; Pedidos</span>
+      <span class="section-sub" id="entregasTabsFound"></span>
+    </div>
+    <div id="entregasContent">
+      <div class="loading-box"><div class="spinner"></div><span>Buscando pestañas de entregas...</span></div>
+    </div>
+  </div>
+
+  <!-- PANEL: EXPLORADOR -->
+  <div class="panel" id="panel-explorador">
+    <div class="section-head" style="margin-bottom:16px">
+      <span class="section-title">Explorador de Planilla</span>
+      <span class="section-sub">Navega cualquier pestaña</span>
+    </div>
+    <div class="explorer-toolbar">
+      <select class="explorer-select" id="explorerSheet">
+        <option value="">— Seleccionar planilla —</option>
+        <option value="prod">Producción / Trazabilidad</option>
+        <option value="oc">Órdenes de Compra</option>
+      </select>
+      <select class="explorer-select" id="explorerTab" style="max-width:220px">
+        <option value="">— Seleccionar pestaña —</option>
+      </select>
+      <input class="explorer-input" id="explorerRange" value="A1:ZZ1000" placeholder="Rango (ej: A1:Z50)">
+      <button class="btn-load" onclick="loadExplorer()">Cargar</button>
+    </div>
+    <div id="explorerResult">
+      <div class="info-box">
+        <h3>Seleccioná una planilla y pestaña</h3>
+        <p style="margin-top:8px">Elegí la planilla y la pestaña que querés explorar, luego hacé clic en Cargar.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+const CLIENT_ID = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+const SHEET_IDS = {
+  prod: '1__VAhSwaLtF4xGjtuMI_Gw2yWpBzsNKZNy0tgBEAYJA',
+  oc:   '1EHWoF4WzSPypZ66zbs9JEjv4kzVKCcrwHdnHRDsHeJE',
+};
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const AÑO_ACTUAL = new Date().getFullYear();
+const MES_ACTUAL = new Date().getMonth(); // 0-indexed
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let accessToken = null;
+let tokenClient = null;
+let discoveredTabs = { prod: null, oc: null };
+let activeTab = 'produccion';
+let stockLoaded = false;
+let entregasLoaded = false;
+let explorerLoaded = false;
+let tokenRefreshTimer = null;
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+function mesCol(idx) { return String.fromCharCode(67 + idx); } // C=Enero(0)
+
+function parseNum(v) {
+  if (!v) return 0;
+  const s = String(v).trim().replace(/[$\s]/g, '');
+  if (!s || s === '-') return 0;
+  if (s.includes(',')) return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+  if (/^\d{1,3}(\.\d{3})+$/.test(s)) return parseFloat(s.replace(/\./g, '')) || 0;
+  return parseFloat(s.replace(/[^0-9.\-]/g, '')) || 0;
+}
+
+function fmt(n, dec = 0) {
+  if (isNaN(n)) return '—';
+  return n.toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function pct(part, total) {
+  if (!total) return '—';
+  return fmt((part / total) * 100, 1) + '%';
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+window.onload = function () {
+  // Wait for GSI to load
+  const initGSI = () => {
+    if (typeof google === 'undefined' || !google.accounts) {
+      setTimeout(initGSI, 200);
+      return;
+    }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: onTokenReceived,
+    });
+  };
+  initGSI();
+};
+
+function handleLogin() {
+  if (!tokenClient) { alert('Google Identity Services aún cargando, intentá de nuevo en un momento.'); return; }
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+function onTokenReceived(resp) {
+  if (resp.error) { console.error('Auth error:', resp); return; }
+  accessToken = resp.access_token;
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('logoutBtn').style.display = 'flex';
+  loadAll();
+  // Auto-refresh token every 55 min
+  if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+  tokenRefreshTimer = setInterval(() => {
+    tokenClient.requestAccessToken({ prompt: '' });
+  }, 55 * 60 * 1000);
+}
+
+function handleLogout() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('logoutBtn').style.display = 'none';
+  if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+}
+
+// ─── API CALLS ───────────────────────────────────────────────────────────────
+async function readSheet(sheetId, range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r.ok) throw new Error(`Sheet API error: ${r.status} — ${range}`);
+  const d = await r.json();
+  return d.values || [];
+}
+
+async function discoverSheets(sheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r.ok) throw new Error(`Discover error: ${r.status}`);
+  const d = await r.json();
+  return d.sheets.map(s => s.properties.title);
+}
+
+// ─── LOAD ALL ────────────────────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    // Discover tabs for both sheets
+    const [prodTabs, ocTabs] = await Promise.allSettled([
+      discoverSheets(SHEET_IDS.prod),
+      discoverSheets(SHEET_IDS.oc),
+    ]);
+    discoveredTabs.prod = prodTabs.status === 'fulfilled' ? prodTabs.value : [];
+    discoveredTabs.oc   = ocTabs.status === 'fulfilled'   ? ocTabs.value   : [];
+
+    // Populate explorer dropdowns
+    populateExplorerTabs();
+
+    // Load produccion always
+    await loadProduccion();
+
+    // Load active panel if not produccion
+    if (activeTab === 'stock') loadStock();
+    if (activeTab === 'entregas') loadEntregas();
+
+  } catch (e) {
+    console.error('loadAll error:', e);
+  }
+}
+
+// ─── TAB SWITCHING ───────────────────────────────────────────────────────────
+function switchTab(name) {
+  activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+  if (name === 'stock' && !stockLoaded && accessToken) loadStock();
+  if (name === 'entregas' && !entregasLoaded && accessToken) loadEntregas();
+}
+
+// ─── REFRESH ─────────────────────────────────────────────────────────────────
+async function doRefresh() {
+  if (!accessToken) return;
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  stockLoaded = false;
+  entregasLoaded = false;
+  try {
+    await loadAll();
+    if (activeTab === 'stock') loadStock();
+    if (activeTab === 'entregas') loadEntregas();
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+// ─── PRODUCCIÓN ──────────────────────────────────────────────────────────────
+async function loadProduccion() {
+  const lastCol = mesCol(MES_ACTUAL);
+  const mesName = MESES[MES_ACTUAL];
+
+  document.getElementById('mesActualLabel').textContent  = mesName;
+  document.getElementById('mesActualLabel2').textContent = mesName;
+  document.getElementById('chartTitle').textContent = `Producción mensual ${AÑO_ACTUAL}`;
+
+  try {
+    // Fetch all data in parallel
+    const [
+      rowMts,
+      rowKg,
+      grumoVal,
+      detailMts,
+      detailKg,
+    ] = await Promise.all([
+      readSheet(SHEET_IDS.prod, `Dinamica!C17:${lastCol}17`),
+      readSheet(SHEET_IDS.prod, `Dinamica!C34:${lastCol}34`),
+      readSheet(SHEET_IDS.prod, `Dinamica!${lastCol}50`),
+      readSheet(SHEET_IDS.prod, `Dinamica!B5:${lastCol}16`),
+      readSheet(SHEET_IDS.prod, `Dinamica!B22:${lastCol}33`),
+    ]);
+
+    // Parse monthly totals (C through lastCol = MES_ACTUAL+1 values)
+    const mtsArr = (rowMts[0] || []).map(parseNum);
+    const kgArr  = (rowKg[0]  || []).map(parseNum);
+
+    const mtsAnio = mtsArr.reduce((a, b) => a + b, 0);
+    const kgAnio  = kgArr.reduce((a, b) => a + b, 0);
+    const mtsMes  = mtsArr[MES_ACTUAL] ?? mtsArr[mtsArr.length - 1] ?? 0;
+    const kgMes   = kgArr[MES_ACTUAL]  ?? kgArr[kgArr.length - 1]   ?? 0;
+    const grumo   = parseNum((grumoVal[0] || [])[0]);
+
+    // KPIs
+    document.getElementById('kpi-mts-mes').textContent  = fmt(mtsMes);
+    document.getElementById('kpi-kg-mes').textContent   = fmt(kgMes);
+    document.getElementById('kpi-mts-anio').textContent = fmt(mtsAnio);
+    document.getElementById('kpi-kg-anio').textContent  = fmt(kgAnio);
+    document.getElementById('kpi-grumo').textContent    = fmt(grumo);
+
+    // Chart
+    renderChart(mtsArr, kgArr);
+
+    // Detail tables
+    renderDetailTable('tableMts', detailMts, MES_ACTUAL, 'mts');
+    renderDetailTable('tableKg',  detailKg,  MES_ACTUAL, 'kg');
+
+  } catch (e) {
+    console.error('loadProduccion error:', e);
+    document.getElementById('chartInner').innerHTML = errorHTML('Error cargando producción: ' + e.message, 'loadProduccion()');
+    document.getElementById('tableMts').innerHTML = '';
+    document.getElementById('tableKg').innerHTML  = '';
+  }
+}
+
+function renderChart(mtsArr, kgArr) {
+  const maxMts = Math.max(...mtsArr, 1);
+  const maxKg  = Math.max(...kgArr,  1);
+
+  let html = '';
+  for (let i = 0; i <= MES_ACTUAL; i++) {
+    const mts = mtsArr[i] || 0;
+    const kg  = kgArr[i]  || 0;
+    const isCurrent = (i === MES_ACTUAL);
+    const mtsW = (mts / maxMts * 100).toFixed(1);
+    const kgW  = (kg  / maxKg  * 100).toFixed(1);
+    html += `
+      <div class="chart-row">
+        <div class="chart-month ${isCurrent ? 'current' : ''}">${MESES[i].substring(0,3).toUpperCase()}</div>
+        <div class="chart-bars">
+          <div class="bar-track"><div class="bar-fill bar-mts ${isCurrent ? 'current-bar' : ''}" style="width:${mtsW}%"></div></div>
+          <div class="bar-track"><div class="bar-fill bar-kg  ${isCurrent ? 'current-bar' : ''}" style="width:${kgW}%"></div></div>
+        </div>
+        <div class="chart-vals">
+          <span class="v-mts">${fmt(mts)} mts</span>
+          <span class="v-kg">${fmt(kg)} kg</span>
+        </div>
+      </div>`;
+  }
+  document.getElementById('chartInner').innerHTML = html;
+}
+
+function renderDetailTable(containerId, data, mesIdx, unit) {
+  // data is rows: col0=label, colN=value for current month (last col)
+  if (!data || data.length === 0) {
+    document.getElementById(containerId).innerHTML = '<div class="loading-box" style="padding:24px"><span style="color:var(--t2)">Sin datos</span></div>';
+    return;
+  }
+
+  // The last column in each row is the current month
+  const rows = [];
+  let total = 0;
+
+  for (const row of data) {
+    const label = (row[0] || '').trim();
+    if (!label) continue;
+    const val = parseNum(row[row.length - 1]);
+    if (!val) continue;
+    rows.push({ label, val });
+    total += val;
+  }
+
+  if (!rows.length) {
+    document.getElementById(containerId).innerHTML = '<div class="loading-box" style="padding:24px"><span style="color:var(--t2)">Sin datos para este mes</span></div>';
+    return;
+  }
+
+  const unitLabel = unit === 'mts' ? 'mts' : 'kg';
+  let html = `<table><thead><tr>
+    <th>Artículo</th>
+    <th style="text-align:right">Cantidad</th>
+    <th style="text-align:right">% total</th>
+  </tr></thead><tbody>`;
+
+  for (const { label, val } of rows) {
+    html += `<tr><td>${label}</td><td>${fmt(val)} ${unitLabel}</td><td>${pct(val, total)}</td></tr>`;
+  }
+
+  html += `<tr class="total-row"><td>TOTAL</td><td>${fmt(total)} ${unitLabel}</td><td>100%</td></tr>`;
+  html += '</tbody></table>';
+  document.getElementById(containerId).innerHTML = html;
+}
+
+// ─── STOCK & MP ──────────────────────────────────────────────────────────────
+async function loadStock() {
+  stockLoaded = true;
+  const el = document.getElementById('stockContent');
+  el.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Buscando pestañas de stock...</span></div>';
+
+  const tabs = discoveredTabs.prod || [];
+  const keywords = /stock|mp|materia|prima|insumo/i;
+  const matches = tabs.filter(t => keywords.test(t));
+
+  document.getElementById('stockTabsFound').textContent = `${tabs.length} pestañas encontradas`;
+
+  if (!matches.length) {
+    el.innerHTML = renderNoTabFound('Stock / Materia Prima', tabs, ['stock', 'MP', 'materia', 'insumo']);
+    return;
+  }
+
+  // Load first match
+  const tabName = matches[0];
+  try {
+    const data = await readSheet(SHEET_IDS.prod, `'${tabName}'!A1:ZZ500`);
+    el.innerHTML = `
+      <div class="section-head" style="margin-bottom:12px">
+        <span style="color:var(--t2);font-size:12px;font-family:var(--mono)">Pestaña: <strong style="color:var(--ok)">${tabName}</strong></span>
+        <div class="tabs-list">${matches.map(m => `<span class="tab-badge match" onclick="loadStockTab('${m}')">${m}</span>`).join('')}</div>
+      </div>
+      <div class="stock-table-wrap" id="stockTable">${renderGenericTable(data)}</div>`;
+  } catch (e) {
+    el.innerHTML = errorHTML('Error cargando pestaña: ' + e.message, 'loadStock()');
+  }
+}
+
+async function loadStockTab(tabName) {
+  const el = document.getElementById('stockTable');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-box"><div class="spinner"></div></div>';
+  try {
+    const data = await readSheet(SHEET_IDS.prod, `'${tabName}'!A1:ZZ500`);
+    el.innerHTML = renderGenericTable(data);
+  } catch (e) {
+    el.innerHTML = errorHTML('Error: ' + e.message, 'loadStockTab()');
+  }
+}
+
+// ─── ENTREGAS ────────────────────────────────────────────────────────────────
+async function loadEntregas() {
+  entregasLoaded = true;
+  const el = document.getElementById('entregasContent');
+  el.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Buscando pestañas de entregas...</span></div>';
+
+  const prodTabs = discoveredTabs.prod || [];
+  const ocTabs   = discoveredTabs.oc   || [];
+  const allTabs  = [...prodTabs.map(t => ({t, sid: 'prod'})), ...ocTabs.map(t => ({t, sid: 'oc'}))];
+  const keywords = /entrega|pedido|remito|orden|oc\b/i;
+  const matches  = allTabs.filter(({t}) => keywords.test(t));
+
+  document.getElementById('entregasTabsFound').textContent = `${allTabs.length} pestañas revisadas`;
+
+  if (!matches.length) {
+    const combined = [...new Set([...prodTabs, ...ocTabs])];
+    el.innerHTML = renderNoTabFound('Entregas / Pedidos', combined, ['entrega', 'pedido', 'remito', 'orden']);
+    return;
+  }
+
+  const { t: tabName, sid } = matches[0];
+  try {
+    const data = await readSheet(SHEET_IDS[sid], `'${tabName}'!A1:ZZ500`);
+    el.innerHTML = `
+      <div class="section-head" style="margin-bottom:12px">
+        <span style="color:var(--t2);font-size:12px;font-family:var(--mono)">Pestaña: <strong style="color:var(--ok)">${tabName}</strong> (${sid === 'oc' ? 'OC' : 'Prod'})</span>
+        <div class="tabs-list">${matches.map(({t,sid:s}) => `<span class="tab-badge match" onclick="loadEntregasTab('${t}','${s}')">${t}</span>`).join('')}</div>
+      </div>
+      <div class="stock-table-wrap" id="entregasTable">${renderGenericTable(data)}</div>`;
+  } catch (e) {
+    el.innerHTML = errorHTML('Error cargando pestaña: ' + e.message, 'loadEntregas()');
+  }
+}
+
+async function loadEntregasTab(tabName, sid) {
+  const el = document.getElementById('entregasTable');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-box"><div class="spinner"></div></div>';
+  try {
+    const data = await readSheet(SHEET_IDS[sid], `'${tabName}'!A1:ZZ500`);
+    el.innerHTML = renderGenericTable(data);
+  } catch (e) {
+    el.innerHTML = errorHTML('Error: ' + e.message, '');
+  }
+}
+
+// ─── EXPLORADOR ──────────────────────────────────────────────────────────────
+function populateExplorerTabs() {
+  const sheetSel = document.getElementById('explorerSheet');
+  sheetSel.onchange = () => {
+    const sid = sheetSel.value;
+    const tabSel = document.getElementById('explorerTab');
+    tabSel.innerHTML = '<option value="">— Seleccionar pestaña —</option>';
+    if (!sid || !discoveredTabs[sid]) return;
+    for (const t of discoveredTabs[sid]) {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      tabSel.appendChild(opt);
+    }
+  };
+}
+
+async function loadExplorer() {
+  const sid     = document.getElementById('explorerSheet').value;
+  const tabName = document.getElementById('explorerTab').value;
+  const range   = document.getElementById('explorerRange').value.trim() || 'A1:ZZ1000';
+  const el      = document.getElementById('explorerResult');
+
+  if (!sid || !tabName) {
+    el.innerHTML = '<div class="info-box"><h3>Seleccioná planilla y pestaña primero</h3></div>';
+    return;
+  }
+
+  el.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Cargando datos...</span></div>';
+
+  try {
+    const data = await readSheet(SHEET_IDS[sid], `'${tabName}'!${range}`);
+    if (!data || !data.length) {
+      el.innerHTML = '<div class="info-box"><h3>Sin datos en ese rango</h3><p>Probá un rango diferente.</p></div>';
+      return;
+    }
+    el.innerHTML = `
+      <div style="margin-bottom:10px;font-size:12px;color:var(--t2);font-family:var(--mono)">
+        ${data.length} filas × ${Math.max(...data.map(r=>r.length),0)} columnas — <strong style="color:var(--text)">${tabName}</strong> [${range}]
+      </div>
+      <div class="explorer-table-wrap">${renderExplorerTable(data)}</div>`;
+  } catch (e) {
+    el.innerHTML = errorHTML('Error cargando datos: ' + e.message, 'loadExplorer()');
+  }
+}
+
+// ─── TABLE RENDERERS ─────────────────────────────────────────────────────────
+function renderGenericTable(data) {
+  if (!data || !data.length) return '<div class="loading-box" style="padding:30px"><span style="color:var(--t2)">Sin datos</span></div>';
+  const maxCols = Math.max(...data.map(r => r.length));
+  const header = data[0];
+  const rows   = data.slice(1);
+
+  let html = '<table><thead><tr>';
+  for (let c = 0; c < maxCols; c++) {
+    html += `<th>${header[c] || ''}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+  for (const row of rows) {
+    const isEmpty = row.every(c => !c || !String(c).trim());
+    if (isEmpty) continue;
+    html += '<tr>';
+    for (let c = 0; c < maxCols; c++) {
+      const v = row[c] || '';
+      html += `<td class="${v ? '' : 'empty-cell'}">${v || '—'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function renderExplorerTable(data) {
+  if (!data || !data.length) return '<div class="loading-box" style="padding:30px"><span style="color:var(--t2)">Sin datos</span></div>';
+  const maxCols = Math.max(...data.map(r => r.length));
+  const header = data[0];
+
+  let html = '<table><thead><tr><th class="row-num">#</th>';
+  for (let c = 0; c < maxCols; c++) {
+    const v = header[c] || '';
+    html += `<th>${v !== '' ? v : `Col ${c+1}`}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const isEmpty = (!row || row.length === 0 || row.every(c => !c || !String(c).trim()));
+    html += `<tr><td class="row-num">${i + 1}</td>`;
+    for (let c = 0; c < maxCols; c++) {
+      const v = (row && row[c] !== undefined) ? row[c] : '';
+      html += `<td class="${v !== '' ? '' : 'empty-cell'}">${v !== '' ? v : '—'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function renderNoTabFound(panelName, allTabs, keywords) {
+  const badges = allTabs.map(t => `<span class="tab-badge">${t}</span>`).join('');
+  return `
+    <div class="info-box">
+      <h3>No se encontró una pestaña de ${panelName}</h3>
+      <p style="margin-top:8px;font-size:13px">
+        No hay pestañas con palabras clave: <strong>${keywords.join(', ')}</strong><br>
+        Pestañas disponibles en la planilla:
+      </p>
+      <div class="tabs-list">${badges || '<span style="color:var(--t3)">Sin pestañas</span>'}</div>
+      <p style="margin-top:16px;font-size:12px;color:var(--t3)">Contactá al administrador para configurar los rangos correctos.</p>
+    </div>`;
+}
+
+function errorHTML(msg, retryFn) {
+  const retry = retryFn ? `<button class="btn-retry" onclick="${retryFn}">Reintentar</button>` : '';
+  return `<div class="error-box"><p>${msg}</p>${retry}</div>`;
+}
+</script>
+</body>
+</html>
