@@ -583,6 +583,40 @@ td.empty-cell { color: var(--t3); }
   max-height: 70vh;
 }
 
+/* ── ACCESS DENIED OVERLAY ── */
+#accessDenied {
+  display: none;
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+}
+.denied-card {
+  background: var(--surf);
+  border: 1px solid rgba(255,107,71,.3);
+  border-radius: 16px;
+  padding: 48px 40px;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.denied-icon { width: 56px; height: 56px; color: var(--acc3); }
+.denied-title { font-family: var(--disp); font-size: 20px; font-weight: 800; color: var(--acc3); }
+.denied-msg { color: var(--t2); font-size: 13px; line-height: 1.6; }
+.denied-email { font-family: var(--mono); font-size: 11px; color: var(--t3); background: var(--surf2); padding: 6px 12px; border-radius: 6px; }
+.denied-back { color: var(--acc2); font-size: 12px; text-decoration: none; margin-top: 4px; }
+.denied-back:hover { text-decoration: underline; }
+
+/* ── USER BADGE ── */
+.user-badge {
+  display: none;
+  align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--t2);
+  background: var(--surf2); border: 1px solid var(--b);
+  padding: 4px 10px; border-radius: 20px;
+}
+.user-dot { width: 6px; height: 6px; background: var(--ok); border-radius: 50%; }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   .kpi-strip { grid-template-columns: repeat(3, 1fr); }
@@ -600,6 +634,20 @@ td.empty-cell { color: var(--t3); }
 </style>
 </head>
 <body>
+
+<!-- ACCESS DENIED OVERLAY -->
+<div id="accessDenied" style="display:none; position:fixed; inset:0; z-index:9999; background:var(--bg); align-items:center; justify-content:center; flex-direction:column;">
+  <div class="denied-card">
+    <svg class="denied-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    <div class="denied-title">Acceso no autorizado</div>
+    <div class="denied-msg">Tu cuenta de Google no tiene permiso para acceder a este sistema. Contactá al administrador del ERP Alamo para solicitar acceso.</div>
+    <div class="denied-email" id="deniedEmail"></div>
+    <a class="denied-back" href="https://rocafranco.github.io/alamo-erp/">← Volver al ERP Home</a>
+  </div>
+</div>
 
 <!-- LOGIN OVERLAY -->
 <div id="loginOverlay">
@@ -645,6 +693,10 @@ td.empty-cell { color: var(--t3); }
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Planilla
     </a>
+    <div class="user-badge" id="userBadge">
+      <div class="user-dot"></div>
+      <span id="userEmailLabel"></span>
+    </div>
     <button class="btn-sm btn-logout" id="logoutBtn" onclick="handleLogout()" style="display:none">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Salir
@@ -788,6 +840,13 @@ function pct(part, total) {
   return fmt((part / total) * 100, 1) + '%';
 }
 
+// ─── CONTROL DE ACCESO ───────────────────────────────────────────────────────
+// Agregar emails autorizados acá
+const EMAILS_AUTORIZADOS = [
+  'franco.bauer98@gmail.com',
+  // 'otro@empresa.com',
+];
+
 // ─── AUTH ────────────────────────────────────────────────────────────────────
 window.onload = function () {
   // Wait for GSI to load
@@ -810,9 +869,38 @@ function handleLogin() {
   tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
-function onTokenReceived(resp) {
+async function onTokenReceived(resp) {
   if (resp.error) { console.error('Auth error:', resp); return; }
   accessToken = resp.access_token;
+
+  // ── Verificar email autorizado ──
+  try {
+    const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const uData = await uResp.json();
+    const email = uData.email || '';
+
+    if (!EMAILS_AUTORIZADOS.includes(email.toLowerCase())) {
+      // No autorizado — revocar y mostrar pantalla de bloqueo
+      google.accounts.oauth2.revoke(accessToken, () => {});
+      accessToken = null;
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('deniedEmail').textContent = email;
+      const ad = document.getElementById('accessDenied');
+      ad.style.display = 'flex';
+      return;
+    }
+
+    // Autorizado — mostrar email en header
+    const badge = document.getElementById('userBadge');
+    document.getElementById('userEmailLabel').textContent = email;
+    badge.style.display = 'flex';
+
+  } catch (e) {
+    console.warn('No se pudo verificar el email, se permite el acceso:', e);
+  }
+
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('logoutBtn').style.display = 'flex';
@@ -830,6 +918,8 @@ function handleLogout() {
   document.getElementById('loginOverlay').style.display = 'flex';
   document.getElementById('app').classList.remove('visible');
   document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('userBadge').style.display = 'none';
+  document.getElementById('userEmailLabel').textContent = '';
   if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
 }
 
