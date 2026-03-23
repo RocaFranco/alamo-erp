@@ -367,7 +367,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
               <tr>
                 <th>#</th>
                 <th>Proveedor</th>
-                <th class="num">OC</th>
+                <th class="num">Cant. OC</th>
                 <th class="num" id="topArsHeader">ARS</th>
                 <th class="num" id="topUsdHeader">USD</th>
                 <th class="num">% Total</th>
@@ -633,11 +633,11 @@ function parseNum(v) {
 }
 
 function parseDate(v) {
-  if (!v) return null;
-  // Google Sheets serial date number (returned by UNFORMATTED_VALUE for date cells)
-  // Excel epoch is Dec 30, 1899; Unix epoch offset = 25569 days
-  if (typeof v === 'number' && v > 40000 && v < 75000) {
-    return new Date(Math.round((v - 25569) * 86400 * 1000));
+  if (!v && v !== 0) return null;
+  // Handle both number AND numeric-string serial dates (Google Sheets UNFORMATTED_VALUE)
+  const numV = Number(v);
+  if (!isNaN(numV) && numV > 40000 && numV < 75000) {
+    return new Date(Math.round((numV - 25569) * 86400 * 1000));
   }
   const s = String(v).trim();
   // dd-mm-yyyy or dd/mm/yyyy
@@ -790,6 +790,7 @@ function handleLogout() {
 // ─── CACHE ───────────────────────────────────────────────────────────────────
 const CACHE_KEY = `alamo_compras_${SHEET_ID}`;
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 horas
+const PROV_CATS_KEY = 'alamo_prov_cats';
 
 function getCachedData() {
   try {
@@ -914,24 +915,83 @@ function parseOrdenes(rows) {
   }).filter(r => r.oc || r.proveedor); // skip empty rows
 }
 
+function getProvCatsOverrides() {
+  try { return JSON.parse(localStorage.getItem(PROV_CATS_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveProvCatOverride(nombre, catsStr) {
+  const overrides = getProvCatsOverrides();
+  if (catsStr.trim() === '') {
+    delete overrides[nombre];
+  } else {
+    overrides[nombre] = catsStr.trim();
+  }
+  localStorage.setItem(PROV_CATS_KEY, JSON.stringify(overrides));
+  // Also update in-memory proveedor object
+  const p = allProveedores.find(x => x.nombre === nombre);
+  if (p) applyProvCatToObject(p, overrides[nombre] || null);
+}
+function applyProvCatToObject(p, catsStr) {
+  if (catsStr === null || catsStr === undefined) {
+    // revert to original sheet cats — stored in p._origCats
+    const orig = p._origCats || ['','','',''];
+    p.cat1 = orig[0]; p.cat2 = orig[1]; p.cat3 = orig[2]; p.cat4 = orig[3];
+  } else {
+    const parts = catsStr.split(',').map(s => s.trim());
+    p.cat1 = parts[0] || ''; p.cat2 = parts[1] || ''; p.cat3 = parts[2] || ''; p.cat4 = parts[3] || '';
+  }
+}
+function applyAllProvCatOverrides() {
+  const overrides = getProvCatsOverrides();
+  allProveedores.forEach(p => {
+    if (overrides[p.nombre] !== undefined) {
+      applyProvCatToObject(p, overrides[p.nombre]);
+    }
+  });
+}
+function editProvCat(nombre, cellEl) {
+  const p = allProveedores.find(x => x.nombre === nombre);
+  if (!p) return;
+  const cats = [p.cat1, p.cat2, p.cat3, p.cat4].filter(Boolean);
+  const currentVal = cats.join(', ');
+
+  cellEl.innerHTML = `<input type="text" id="provCatInput-${p.nro}"
+    value="${escH(currentVal)}"
+    placeholder="Ej: Insumos, Tinta"
+    style="width:100%;font-size:11px;padding:3px 6px;border:1px solid var(--acc);border-radius:4px;background:var(--bg);color:var(--text);outline:none;"
+    onclick="event.stopPropagation()"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();commitProvCat('${escH(nombre.replace(/'/g,"\\'"))}','${p.nro}');}if(event.key==='Escape'){event.preventDefault();sortAndRenderProveedores();}"
+    onblur="commitProvCat('${escH(nombre.replace(/'/g,"\\'"))}','${p.nro}')"
+  >`;
+  const inp = document.getElementById(`provCatInput-${p.nro}`);
+  if (inp) { inp.focus(); inp.select(); }
+}
+function commitProvCat(nombre, nro) {
+  const inp = document.getElementById(`provCatInput-${nro}`);
+  if (!inp) return;
+  const val = inp.value;
+  saveProvCatOverride(nombre, val);
+  sortAndRenderProveedores();
+}
+
 function parseProveedores(rows) {
   if (!rows || rows.length < 2) { allProveedores = []; return; }
   allProveedores = rows.slice(1).map(r => {
     const raw = (i) => (r[i] !== undefined && r[i] !== null) ? r[i] : '';
+    const c1 = String(raw(3)).trim(), c2 = String(raw(4)).trim(),
+          c3 = String(raw(5)).trim(), c4 = String(raw(6)).trim();
     return {
       nro:    raw(0),
       nombre: String(raw(1)).trim(),
       moneda: String(raw(2)).trim(),
-      cat1:   String(raw(3)).trim(),
-      cat2:   String(raw(4)).trim(),
-      cat3:   String(raw(5)).trim(),
-      cat4:   String(raw(6)).trim(),
+      cat1:   c1, cat2: c2, cat3: c3, cat4: c4,
+      _origCats: [c1, c2, c3, c4],
       // computed after join
       totalOC:  0,
       totalARS: 0,
       totalUSD: 0,
     };
   }).filter(r => r.nombre);
+  applyAllProvCatOverrides();
   joinProveedoresData();
 }
 
@@ -1064,10 +1124,20 @@ function renderResumenKPIs(data) {
 }
 
 function renderChart(data, f) {
-  // Build last 18 months
+  // Determine reference date: most recent order date in current data, or today
+  let refDate = new Date();
+  if (data.length > 0) {
+    const maxTs = Math.max(...data.map(r => r.fecha ? r.fecha.getTime() : 0).filter(t => t > 0));
+    if (maxTs > 0) refDate = new Date(maxTs);
+  }
+  const refYear = refDate.getFullYear();
+  const refMonth = refDate.getMonth();
+
+  // Build last 36 months from most recent data date
+  const NMONTHS = 36;
   const months = [];
-  for (let i = 17; i >= 0; i--) {
-    const d = new Date(AÑO_ACTUAL, MES_ACTUAL - i, 1);
+  for (let i = NMONTHS - 1; i >= 0; i--) {
+    const d = new Date(refYear, refMonth - i, 1);
     months.push({
       key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
       label: MESES_SHORT[d.getMonth()],
@@ -1090,7 +1160,7 @@ function renderChart(data, f) {
   const maxARS = Math.max(...months.map(m => m.ars), 1);
   const maxUSD = Math.max(...months.map(m => m.usd), 1);
 
-  const yearLabel = f.year === 'all' ? 'últimos 18 meses' : f.year;
+  const yearLabel = f.year === 'all' ? 'últimos 36 meses' : f.year;
   document.getElementById('chartTitle').textContent = `Compras mensuales — ${yearLabel}`;
 
   document.getElementById('chartBars').innerHTML = months.map(m => {
@@ -1438,7 +1508,11 @@ function renderInsumo(tipo, rows) {
               <tr>${headers.map(h => `<th>${escH(String(h))}</th>`).join('')}</tr>
             </thead>
             <tbody>
-              ${dataRows.map(row => `<tr>${headers.map((_,i) => `<td>${escH(String(row[i]||''))}</td>`).join('')}</tr>`).join('')}
+              ${dataRows.map(row => `<tr>${headers.map((h,i) => {
+                const val = row[i] || '';
+                const isDateCol = /fecha/i.test(String(h));
+                return `<td>${escH(isDateCol ? fmtDate(val) : String(val))}</td>`;
+              }).join('')}</tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -1474,7 +1548,7 @@ function renderInsumo(tipo, rows) {
             <thead>
               <tr>
                 <th>Proveedor</th>
-                <th class="num">OC</th>
+                <th class="num">Cant. OC</th>
                 <th class="num">ARS</th>
                 <th class="num">USD</th>
                 <th class="num">% total</th>
@@ -1500,7 +1574,7 @@ function renderInsumo(tipo, rows) {
         </div>
         <div class="table-scroll" style="max-height:350px">
           <table>
-            <thead><tr><th>Año</th><th class="num">OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
+            <thead><tr><th>Año</th><th class="num">Cant. OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
             <tbody>
               ${(() => {
                 const byYear = {};
@@ -1583,7 +1657,11 @@ function sortAndRenderProveedores() {
         <td class="mono muted" style="font-size:11px">${escH(String(p.nro))}</td>
         <td style="font-weight:500">${escH(p.nombre)}</td>
         <td>${monedaChip}</td>
-        <td style="font-size:11px;color:var(--t2)">${cats.map(c=>`<span style="margin-right:6px">${escH(c)}</span>`).join('') || '—'}</td>
+        <td style="font-size:11px;color:var(--t2);cursor:text" title="Click para editar categorías"
+            onclick="event.stopPropagation(); editProvCat('${escH(p.nombre.replace(/'/g,"\\'"))}', this)">
+          ${cats.map(c=>`<span style="margin-right:6px">${escH(c)}</span>`).join('')}
+          <span style="color:var(--t3);font-size:10px;margin-left:2px" title="Editar">✏️</span>
+        </td>
         <td class="num">${p.totalOC > 0 ? fmt(p.totalOC) : '<span style="color:var(--t3)">0</span>'}</td>
         <td class="num">${p.totalARS > 0 ? fmtARS(p.totalARS) : '<span style="color:var(--t3)">—</span>'}</td>
         <td class="num">${p.totalUSD > 0 ? fmtUSD(p.totalUSD) : '<span style="color:var(--t3)">—</span>'}</td>
@@ -1903,7 +1981,7 @@ function renderOtrasCatDetalle(catName) {
         </div>
         <div class="table-scroll" style="max-height:300px">
           <table>
-            <thead><tr><th>Año</th><th class="num">OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
+            <thead><tr><th>Año</th><th class="num">Cant. OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
             <tbody>${yearRows || '<tr><td colspan="4" class="empty-state">Sin datos</td></tr>'}</tbody>
           </table>
         </div>
