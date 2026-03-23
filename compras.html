@@ -323,6 +323,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
         <option value="Pitec">Pitec</option>
         <option value="Alamo">Alamo</option>
         <option value="Mantenimiento Alamo">Mantenimiento Alamo</option>
+        <option value="Mantenimiento Pitec">Mantenimiento Pitec</option>
         <option value="sin">Sin asignar</option>
       </select>
       <span class="filter-label">Categoría</span>
@@ -403,6 +404,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
         <option value="Pitec">Pitec</option>
         <option value="Alamo">Alamo</option>
         <option value="Mantenimiento Alamo">Mant. Alamo</option>
+        <option value="Mantenimiento Pitec">Mant. Pitec</option>
         <option value="sin">Sin asignar</option>
       </select>
       <span class="filter-label">Cat.</span>
@@ -465,6 +467,8 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
         <button class="sub-btn active" id="btnTinta" onclick="switchInsumo('tinta')">Tintas</button>
         <button class="sub-btn" id="btnPapel" onclick="switchInsumo('papel')">Papel</button>
         <button class="sub-btn" id="btnOtras" onclick="switchInsumo('otras')">Otras categorías</button>
+        <button class="sub-btn" id="btnMantAlamo" onclick="switchInsumo('mant-alamo')">Mant. Alamo</button>
+        <button class="sub-btn" id="btnMantPitec" onclick="switchInsumo('mant-pitec')">Mant. Pitec</button>
       </div>
     </div>
 
@@ -685,9 +689,10 @@ function fmtMoneda(ars, usd) {
 
 function fabricaChip(fab) {
   const f = String(fab || '').trim();
-  if (f === 'Pitec')              return `<span class="chip chip-pitec">Pitec</span>`;
-  if (f === 'Alamo')              return `<span class="chip chip-alamo">Alamo</span>`;
-  if (f === 'Mantenimiento Alamo')return `<span class="chip chip-mant">Mant. Alamo</span>`;
+  if (f === 'Pitec')               return `<span class="chip chip-pitec">Pitec</span>`;
+  if (f === 'Alamo')               return `<span class="chip chip-alamo">Alamo</span>`;
+  if (f === 'Mantenimiento Alamo') return `<span class="chip chip-mant">Mant. Alamo</span>`;
+  if (f === 'Mantenimiento Pitec') return `<span class="chip chip-pitec" style="opacity:0.75">Mant. Pitec</span>`;
   return `<span class="chip chip-empty">—</span>`;
 }
 
@@ -1136,28 +1141,46 @@ function renderResumenKPIs(data) {
 }
 
 function renderChart(data, f) {
-  // Determine reference date: most recent order date in current data, or today
-  let refDate = new Date();
-  if (data.length > 0) {
-    const maxTs = Math.max(...data.map(r => r.fecha ? r.fecha.getTime() : 0).filter(t => t > 0));
-    if (maxTs > 0) refDate = new Date(maxTs);
-  }
-  const refYear = refDate.getFullYear();
-  const refMonth = refDate.getMonth();
-
-  // Build last 36 months from most recent data date
-  const NMONTHS = 36;
   const months = [];
-  for (let i = NMONTHS - 1; i >= 0; i--) {
-    const d = new Date(refYear, refMonth - i, 1);
-    months.push({
-      key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
-      label: MESES_SHORT[d.getMonth()],
-      year: d.getFullYear(),
-      isCurrent: d.getFullYear() === AÑO_ACTUAL && d.getMonth() === MES_ACTUAL,
-      ars: 0, usd: 0, oc: 0,
-    });
+  const MIN_YEAR = 2018;
+
+  if (f.year !== 'all') {
+    // Show only the 12 months of the selected year
+    const yr = parseInt(f.year);
+    for (let m = 0; m < 12; m++) {
+      const d = new Date(yr, m, 1);
+      months.push({
+        key: `${yr}-${String(m+1).padStart(2,'0')}`,
+        label: MESES_SHORT[m],
+        year: yr,
+        isCurrent: yr === AÑO_ACTUAL && m === MES_ACTUAL,
+        ars: 0, usd: 0, oc: 0,
+      });
+    }
+  } else {
+    // Show up to 36 months from most recent data date, not before MIN_YEAR
+    let refDate = new Date();
+    if (data.length > 0) {
+      const maxTs = Math.max(...data.map(r => r.fecha ? r.fecha.getTime() : 0).filter(t => t > 0));
+      if (maxTs > 0) refDate = new Date(maxTs);
+    }
+    const refYear = refDate.getFullYear();
+    const refMonth = refDate.getMonth();
+    const NMONTHS = 36;
+    const minDate = new Date(MIN_YEAR, 0, 1);
+    for (let i = NMONTHS - 1; i >= 0; i--) {
+      const d = new Date(refYear, refMonth - i, 1);
+      if (d < minDate) continue;
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+        label: MESES_SHORT[d.getMonth()],
+        year: d.getFullYear(),
+        isCurrent: d.getFullYear() === AÑO_ACTUAL && d.getMonth() === MES_ACTUAL,
+        ars: 0, usd: 0, oc: 0,
+      });
+    }
   }
+
   const mMap = {};
   months.forEach(m => { mMap[m.key] = m; });
 
@@ -1443,6 +1466,8 @@ function switchInsumo(tipo) {
   document.getElementById('btnTinta').classList.toggle('active', tipo === 'tinta');
   document.getElementById('btnPapel').classList.toggle('active', tipo === 'papel');
   document.getElementById('btnOtras').classList.toggle('active', tipo === 'otras');
+  document.getElementById('btnMantAlamo').classList.toggle('active', tipo === 'mant-alamo');
+  document.getElementById('btnMantPitec').classList.toggle('active', tipo === 'mant-pitec');
   loadInsumos();
 }
 
@@ -1474,6 +1499,10 @@ async function loadInsumos() {
       }
     }
     renderInsumo('papel', papelData);
+  } else if (insumoActivo === 'mant-alamo') {
+    renderMantenimiento('Mantenimiento Alamo');
+  } else if (insumoActivo === 'mant-pitec') {
+    renderMantenimiento('Mantenimiento Pitec');
   } else {
     // otras categorías
     renderOtrasCategorias();
@@ -1490,18 +1519,20 @@ function renderInsumo(tipo, rows) {
   const ordenesInsumo = allOrdenes.filter(r => r.categoria.toLowerCase().includes(catKey));
   const totalARS = ordenesInsumo.reduce((s,r) => s+(r.importe_ars||0),0);
   const totalUSD = ordenesInsumo.reduce((s,r) => s+(r.importe_usd||0),0);
-  const totalOC  = ordenesInsumo.length;
+  const totalOC  = new Set(ordenesInsumo.map(r => String(r.oc))).size;
 
-  // Group by proveedor
+  // Group by proveedor — count unique OCs
   const byProv = {};
   ordenesInsumo.forEach(r => {
     const p = r.proveedor || '(Sin proveedor)';
-    if (!byProv[p]) byProv[p] = { oc:0, ars:0, usd:0 };
-    byProv[p].oc++;
+    if (!byProv[p]) byProv[p] = { ocSet: new Set(), ars:0, usd:0 };
+    byProv[p].ocSet.add(String(r.oc));
     byProv[p].ars += r.importe_ars||0;
     byProv[p].usd += r.importe_usd||0;
   });
-  const provList = Object.entries(byProv).map(([n,v]) => ({nombre:n,...v})).sort((a,b) => b.ars - a.ars);
+  const provList = Object.entries(byProv)
+    .map(([n,v]) => ({nombre:n, oc:v.ocSet.size, ars:v.ars, usd:v.usd}))
+    .sort((a,b) => b.ars - a.ars);
 
   // Build sheet table
   let sheetHTML = '';
@@ -1608,13 +1639,13 @@ function renderInsumo(tipo, rows) {
               ${(() => {
                 const byYear = {};
                 ordenesInsumo.forEach(r => {
-                  if (!byYear[r.año]) byYear[r.año] = { oc:0, ars:0, usd:0 };
-                  byYear[r.año].oc++;
+                  if (!byYear[r.año]) byYear[r.año] = { ocSet: new Set(), ars:0, usd:0 };
+                  byYear[r.año].ocSet.add(String(r.oc));
                   byYear[r.año].ars += r.importe_ars||0;
                   byYear[r.año].usd += r.importe_usd||0;
                 });
                 return Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([y,v]) =>
-                  `<tr><td class="mono">${y}</td><td class="num">${fmt(v.oc)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
+                  `<tr><td class="mono">${y}</td><td class="num">${fmt(v.ocSet.size)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
                 ).join('') || '<tr><td colspan="4" class="empty-state">Sin datos</td></tr>';
               })()}
             </tbody>
@@ -1760,6 +1791,8 @@ function toggleCurrency() {
     if (insumoActivo === 'tinta' && tintaLoaded) renderInsumo('tinta', tintaData);
     if (insumoActivo === 'papel' && papelLoaded) renderInsumo('papel', papelData);
     if (insumoActivo === 'otras' && otrasLoaded) renderOtrasCategorias();
+    if (insumoActivo === 'mant-alamo') renderMantenimiento('Mantenimiento Alamo');
+    if (insumoActivo === 'mant-pitec') renderMantenimiento('Mantenimiento Pitec');
   }
   if (activeTab === 'proveedores') sortAndRenderProveedores();
 }
@@ -1898,6 +1931,169 @@ function buildPreciosData() {
     .sort((a,b) => a.descripcion.localeCompare(b.descripcion, 'es'));
 }
 
+// ─── MANTENIMIENTO (Alamo / Pitec) ───────────────────────────────────────────
+let mantSelectedCat = {};  // keyed by fabrica string
+
+function renderMantenimiento(fabrica) {
+  const cont = document.getElementById('insumosContent');
+  const label = fabrica === 'Mantenimiento Alamo' ? 'Mant. Alamo' : 'Mant. Pitec';
+  const color = fabrica === 'Mantenimiento Alamo' ? 'var(--acc)' : 'var(--acc3)';
+  const tabKey = fabrica === 'Mantenimiento Alamo' ? 'mant-alamo' : 'mant-pitec';
+
+  const ords = allOrdenes.filter(r => (r.fabrica || '').trim() === fabrica);
+  if (!ords.length) {
+    cont.innerHTML = `<div class="empty-state" style="padding:40px">No hay órdenes con fábrica "${fabrica}".<br><span style="font-size:11px;color:var(--t3)">Verificá que el nombre en el sheet coincida exactamente.</span></div>`;
+    return;
+  }
+
+  const totalOC  = new Set(ords.map(r => String(r.oc))).size;
+  const totalARS = ords.reduce((s,r) => s+(r.importe_ars||0),0);
+  const totalUSD = ords.reduce((s,r) => s+(r.importe_usd||0),0);
+
+  // Group by category
+  const catMap = {};
+  ords.forEach(r => {
+    const cat = (r.categoria || '(Sin categoría)').trim();
+    if (!catMap[cat]) catMap[cat] = { ocSet: new Set(), ars:0, usd:0 };
+    catMap[cat].ocSet.add(String(r.oc));
+    catMap[cat].ars += r.importe_ars||0;
+    catMap[cat].usd += r.importe_usd||0;
+  });
+  const cats = Object.entries(catMap)
+    .map(([name,v]) => ({name, oc:v.ocSet.size, ars:v.ars, usd:v.usd}))
+    .sort((a,b) => b.ars - a.ars);
+
+  // Auto-select first category if none selected
+  if (!mantSelectedCat[tabKey] || !catMap[mantSelectedCat[tabKey]]) {
+    mantSelectedCat[tabKey] = cats[0]?.name || '';
+  }
+
+  const cardsHTML = cats.map(c => `
+    <div class="cat-card${c.name === mantSelectedCat[tabKey] ? ' active' : ''}"
+         data-catname="${escH(c.name)}" data-tabkey="${escH(tabKey)}"
+         onclick="selectMantCat(this)">
+      <div class="cat-card-name">${escH(c.name)}</div>
+      <div class="cat-card-stats">
+        <div class="cat-card-stat">Cant. OC: <span>${fmt(c.oc)}</span></div>
+        <div class="cat-card-stat">ARS: <span>${fmtARS(c.ars)}</span></div>
+        ${c.usd > 0 ? `<div class="cat-card-stat">USD: <span>${fmtUSD(c.usd)}</span></div>` : ''}
+      </div>
+    </div>`).join('');
+
+  cont.innerHTML = `
+    <div class="insumos-kpi">
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Total OC — ${label}</div>
+        <div class="mini-kpi-val" style="color:${color}">${fmt(totalOC)}</div>
+      </div>
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Gasto ARS</div>
+        <div class="mini-kpi-val">${fmtARS(totalARS)}</div>
+      </div>
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Gasto USD</div>
+        <div class="mini-kpi-val" style="color:var(--acc2)">${fmtUSD(totalUSD)}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:12px;">
+        ${cats.length} categorías — click en una para ver detalles
+      </div>
+      <div class="otras-grid">${cardsHTML}</div>
+    </div>
+    <div id="mantDetalle-${tabKey}"></div>`;
+
+  renderMantDetalle(tabKey, fabrica, mantSelectedCat[tabKey]);
+}
+
+function selectMantCat(cardEl) {
+  const tabKey = cardEl.getAttribute('data-tabkey') || '';
+  const tmp = document.createElement('textarea');
+  tmp.innerHTML = cardEl.getAttribute('data-catname') || '';
+  mantSelectedCat[tabKey] = tmp.value;
+  document.querySelectorAll('.cat-card').forEach(el => {
+    el.classList.toggle('active', el === cardEl);
+  });
+  // Determine fabrica from tabKey
+  const fabrica = tabKey === 'mant-alamo' ? 'Mantenimiento Alamo' : 'Mantenimiento Pitec';
+  renderMantDetalle(tabKey, fabrica, mantSelectedCat[tabKey]);
+}
+
+function renderMantDetalle(tabKey, fabrica, catName) {
+  const det = document.getElementById(`mantDetalle-${tabKey}`);
+  if (!det || !catName) return;
+
+  const ords = allOrdenes.filter(r =>
+    (r.fabrica||'').trim() === fabrica && (r.categoria||'').trim() === catName
+  );
+  if (!ords.length) { det.innerHTML = ''; return; }
+
+  const totalARS = ords.reduce((s,r) => s+(r.importe_ars||0),0);
+  const totalUSD = ords.reduce((s,r) => s+(r.importe_usd||0),0);
+  const totalUniqueOC = new Set(ords.map(r=>String(r.oc))).size;
+
+  // By proveedor
+  const byProv = {};
+  ords.forEach(r => {
+    const p = r.proveedor || '(Sin proveedor)';
+    if (!byProv[p]) byProv[p] = { ocSet: new Set(), ars:0, usd:0 };
+    byProv[p].ocSet.add(String(r.oc));
+    byProv[p].ars += r.importe_ars||0;
+    byProv[p].usd += r.importe_usd||0;
+  });
+  const provList = Object.entries(byProv)
+    .map(([n,v]) => ({nombre:n, oc:v.ocSet.size, ars:v.ars, usd:v.usd}))
+    .sort((a,b) => b.ars - a.ars);
+
+  // By year
+  const byYear = {};
+  ords.forEach(r => {
+    if (!r.año) return;
+    if (!byYear[r.año]) byYear[r.año] = { ocSet: new Set(), ars:0, usd:0 };
+    byYear[r.año].ocSet.add(String(r.oc));
+    byYear[r.año].ars += r.importe_ars||0;
+    byYear[r.año].usd += r.importe_usd||0;
+  });
+  const yearRows = Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([y,v]) =>
+    `<tr><td class="mono">${y}</td><td class="num">${fmt(v.ocSet.size)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
+  ).join('');
+
+  det.innerHTML = `
+    <div class="section-head" style="margin-bottom:12px;">
+      <span class="section-title">${escH(catName)}</span>
+      <span class="section-sub">${fmt(totalUniqueOC)} OC — ${fmtARS(totalARS)} — ${fmtUSD(totalUSD)}</span>
+    </div>
+    <div class="two-col" style="margin-bottom:0">
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row"><span>Proveedores</span></div>
+        <div class="table-scroll" style="max-height:300px">
+          <table>
+            <thead><tr><th>Proveedor</th><th class="num">Cant. OC</th><th class="num">ARS</th><th class="num">USD</th><th class="num">% total</th></tr></thead>
+            <tbody>
+              ${provList.map(p => `
+                <tr>
+                  <td>${escH(p.nombre)}</td>
+                  <td class="num">${fmt(p.oc)}</td>
+                  <td class="num">${fmtARS(p.ars)}</td>
+                  <td class="num">${fmtUSD(p.usd)}</td>
+                  <td class="num muted">${totalARS > 0 ? fmt((p.ars/totalARS)*100,1)+'%' : '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row"><span>Por año</span></div>
+        <div class="table-scroll" style="max-height:300px">
+          <table>
+            <thead><tr><th>Año</th><th class="num">Cant. OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
+            <tbody>${yearRows || '<tr><td colspan="4" class="empty-state">Sin datos</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+}
+
 // ─── OTRAS CATEGORÍAS ────────────────────────────────────────────────────────
 let otrasSelectedCat = null;
 
@@ -1914,14 +2110,14 @@ function renderOtrasCategorias() {
     const cat = (r.categoria || '').trim();
     if (!cat) return;
     if (EXCLUDED.some(ex => cat.toLowerCase().includes(ex))) return;
-    if (!catMap[cat]) catMap[cat] = { oc: 0, ars: 0, usd: 0 };
-    catMap[cat].oc++;
+    if (!catMap[cat]) catMap[cat] = { ocSet: new Set(), ars: 0, usd: 0 };
+    catMap[cat].ocSet.add(String(r.oc));
     catMap[cat].ars += r.importe_ars || 0;
     catMap[cat].usd += r.importe_usd || 0;
   });
 
   const cats = Object.entries(catMap)
-    .map(([name, v]) => ({ name, ...v }))
+    .map(([name, v]) => ({ name, oc: v.ocSet.size, ars: v.ars, usd: v.usd }))
     .sort((a, b) => b.ars - a.ars);
 
   if (!cats.length) {
@@ -1980,34 +2176,36 @@ function renderOtrasCatDetalle(catName) {
   const totalARS = ords.reduce((s,r) => s+(r.importe_ars||0), 0);
   const totalUSD = ords.reduce((s,r) => s+(r.importe_usd||0), 0);
 
-  // Group by proveedor
+  // Group by proveedor — count unique OCs
   const byProv = {};
   ords.forEach(r => {
     const p = r.proveedor || '(Sin proveedor)';
-    if (!byProv[p]) byProv[p] = { oc:0, ars:0, usd:0 };
-    byProv[p].oc++;
+    if (!byProv[p]) byProv[p] = { ocSet: new Set(), ars:0, usd:0 };
+    byProv[p].ocSet.add(String(r.oc));
     byProv[p].ars += r.importe_ars||0;
     byProv[p].usd += r.importe_usd||0;
   });
-  const provList = Object.entries(byProv).map(([n,v]) => ({nombre:n,...v})).sort((a,b) => b.ars - a.ars);
+  const provList = Object.entries(byProv)
+    .map(([n,v]) => ({nombre:n, oc:v.ocSet.size, ars:v.ars, usd:v.usd}))
+    .sort((a,b) => b.ars - a.ars);
 
-  // Group by year
+  // Group by year — count unique OCs
   const byYear = {};
   ords.forEach(r => {
     if (!r.año) return;
-    if (!byYear[r.año]) byYear[r.año] = { oc:0, ars:0, usd:0 };
-    byYear[r.año].oc++;
+    if (!byYear[r.año]) byYear[r.año] = { ocSet: new Set(), ars:0, usd:0 };
+    byYear[r.año].ocSet.add(String(r.oc));
     byYear[r.año].ars += r.importe_ars||0;
     byYear[r.año].usd += r.importe_usd||0;
   });
   const yearRows = Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([y,v]) =>
-    `<tr><td class="mono">${y}</td><td class="num">${fmt(v.oc)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
+    `<tr><td class="mono">${y}</td><td class="num">${fmt(v.ocSet.size)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
   ).join('');
 
   det.innerHTML = `
     <div class="section-head" style="margin-bottom:12px;">
       <span class="section-title">${escH(catName)}</span>
-      <span class="section-sub">${fmt(ords.length)} OC — ${fmtARS(totalARS)} — ${fmtUSD(totalUSD)}</span>
+      <span class="section-sub">${fmt(new Set(ords.map(r=>String(r.oc))).size)} OC únicas — ${fmtARS(totalARS)} — ${fmtUSD(totalUSD)}</span>
     </div>
     <div class="two-col" style="margin-bottom:0">
       <div class="table-wrap" style="margin-bottom:0">
