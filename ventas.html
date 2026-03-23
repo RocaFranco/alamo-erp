@@ -4,655 +4,788 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ventas — Alamo ERP</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
 :root {
-  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2127; --border:#2a2d35;
-  --border2:#353942; --accent:#e8ff47; --accent2:#47c8ff; --accent3:#ff6b47;
-  --text:#f0f2f5; --text2:#8b909e; --text3:#555b6a;
-  --success:#47ffb2; --warning:#ffb347; --danger:#ff4747;
-  --radius:10px; --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --display:'Syne',sans-serif;
+  --bg:#0e0f11; --surf:#16181c; --surf2:#1e2127; --surf3:#23272f;
+  --b:#2a2d35; --b2:#353942;
+  --acc:#e8ff47; --acc2:#47c8ff; --acc3:#ff6b47;
+  --ok:#47ffb2; --warn:#ffb347; --text:#f0f2f5; --t2:#8b909e; --t3:#555b6a;
+  --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --disp:'Syne',sans-serif;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;line-height:1.6;}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;overflow-x:hidden;}
+
+/* ── ACCESS DENIED ── */
+#accessDenied{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;}
+.denied-card{background:var(--surf);border:1px solid rgba(255,107,71,.3);border-radius:16px;padding:48px 40px;max-width:380px;width:90%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.denied-icon{width:56px;height:56px;color:var(--acc3);}
+.denied-title{font-family:var(--disp);font-size:20px;font-weight:800;color:var(--acc3);}
+.denied-msg{color:var(--t2);font-size:13px;line-height:1.6;}
+.denied-email{font-family:var(--mono);font-size:11px;color:var(--t3);background:var(--surf2);padding:6px 12px;border-radius:6px;}
+.denied-back{color:var(--acc2);font-size:12px;text-decoration:none;margin-top:4px;}
+.denied-back:hover{text-decoration:underline;}
+
+/* ── LOGIN OVERLAY ── */
+#loginOverlay{position:fixed;inset:0;background:rgba(14,15,17,0.97);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(8px);}
+.login-card{background:var(--surf);border:1px solid var(--b);border-radius:20px;padding:52px 60px;text-align:center;max-width:420px;width:90%;box-shadow:0 40px 120px rgba(0,0,0,0.6);}
+.login-logo{font-family:var(--disp);font-size:36px;font-weight:800;color:var(--acc);letter-spacing:-1px;margin-bottom:4px;}
+.login-logo span{color:var(--text);}
+.login-sub-title{font-family:var(--disp);font-size:13px;color:var(--t2);text-transform:uppercase;letter-spacing:3px;margin-bottom:32px;}
+.login-desc{color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:36px;}
+.btn-google{display:inline-flex;align-items:center;gap:12px;background:var(--text);color:#1a1a1a;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:var(--sans);}
+.btn-google:hover{background:#fff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.btn-google svg{width:20px;height:20px;}
 
 /* ── HEADER ── */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:50px;position:sticky;top:0;z-index:100;gap:12px;}
-.logo{font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;white-space:nowrap;}
-.pulse{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.8);}}
-.header-tabs{display:flex;gap:4px;}
-.htab{background:none;border:1px solid var(--border);border-radius:7px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:6px 14px;transition:all .2s;text-transform:uppercase;}
-.htab.active{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);}
-.htab:hover:not(.active){border-color:var(--border2);color:var(--text);}
-.header-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
-.home-link{color:var(--text3);font-family:var(--mono);font-size:10px;text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;transition:all .2s;}
-.home-link:hover{border-color:var(--border2);color:var(--text2);}
+#header{position:sticky;top:0;height:50px;background:var(--surf);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100;}
+.header-left{display:flex;align-items:center;gap:10px;min-width:180px;}
+.pulse-dot{width:8px;height:8px;background:var(--ok);border-radius:50%;position:relative;flex-shrink:0;}
+.pulse-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:1.5px solid var(--ok);animation:pulse 2s ease-out infinite;}
+@keyframes pulse{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(2.2);}}
+.header-title{font-family:var(--disp);font-size:16px;font-weight:800;color:var(--text);letter-spacing:1px;}
+.badge-mod{background:rgba(232,255,71,0.1);color:var(--acc);border:1px solid rgba(232,255,71,0.25);border-radius:4px;padding:1px 7px;font-size:9px;font-family:var(--mono);font-weight:500;letter-spacing:1px;text-transform:uppercase;}
+.header-tabs{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;}
+.tab-btn{background:none;border:none;color:var(--t2);font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);background:var(--surf2);}
+.tab-btn.active{color:var(--acc);background:rgba(232,255,71,0.08);}
+.header-right{display:flex;align-items:center;gap:8px;min-width:280px;justify-content:flex-end;}
+.btn-sm{background:var(--surf2);border:1px solid var(--b);color:var(--t2);border-radius:7px;padding:0 12px;height:32px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--sans);font-weight:500;transition:all 0.15s;text-decoration:none;white-space:nowrap;}
+.btn-sm:hover{color:var(--text);border-color:var(--b2);}
+.btn-logout{color:var(--acc3);}
+.btn-logout:hover{border-color:var(--acc3);background:rgba(255,107,71,0.08);}
+.btn-apikey{color:var(--acc2);}
+.btn-apikey:hover{border-color:var(--acc2);background:rgba(71,200,255,0.08);}
+.user-badge{display:none;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--t2);background:var(--surf2);border:1px solid var(--b);padding:4px 10px;border-radius:20px;}
+.user-dot{width:6px;height:6px;background:var(--ok);border-radius:50%;}
 
-/* ── PANELS ── */
-.panel{display:none;min-height:calc(100vh - 50px);}
+/* ── APP ── */
+#app{display:none;flex-direction:column;min-height:calc(100vh - 50px);}
+#app.visible{display:flex;}
+.panel{display:none;padding:24px 28px;width:100%;margin:0 auto;}
 .panel.active{display:block;}
 
-/* ── HISTORIAL PLACEHOLDER ── */
-.hist-wrap{max-width:700px;margin:80px auto;text-align:center;padding:0 24px;}
-.hist-icon{font-size:56px;margin-bottom:20px;opacity:.4;}
-.hist-title{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.03em;margin-bottom:10px;}
-.hist-sub{color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:32px;}
-.hist-badge{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px 20px;font-family:var(--mono);font-size:11px;color:var(--text3);}
-.hist-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--warning);animation:pulse 2s ease-in-out infinite;}
+/* ── NOTIF TOAST ── */
+#notif{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surf3);border:1px solid var(--b2);border-radius:10px;padding:11px 20px;font-size:12px;font-family:var(--mono);color:var(--text);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+#notif.show{opacity:1;}
 
-/* ══════════════════════════════════════════════
-   COTIZADOR STYLES (todo el bloque original)
-══════════════════════════════════════════════ */
-.cot-wrap{display:block;min-height:calc(100vh - 50px);}
-.cot-main{padding:28px 32px;max-width:780px;margin:0 auto;}
-.section-title{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.03em;margin-bottom:3px;display:flex;align-items:center;gap:10px;}
-.tag{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--accent);background:rgba(232,255,71,.1);border:1px solid rgba(232,255,71,.2);padding:2px 8px;border-radius:4px;letter-spacing:.08em;}
-.section-sub{color:var(--text2);font-size:12px;margin-bottom:22px;}
-.progress-bar{height:2px;background:var(--border);border-radius:2px;margin-bottom:22px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .4s ease;width:0%;}
-.step-indicator{display:flex;gap:5px;align-items:center;}
-.step-dot{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--text3);transition:all .3s;cursor:pointer;}
-.step-dot.active{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.08);}
-.step-dot.done{border-color:var(--success);background:rgba(71,255,178,.12);color:var(--success);}
-.step-line{width:18px;height:1px;background:var(--border);}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;transition:border-color .2s;}
-.card:hover{border-color:var(--border2);}
-.card-title{font-family:var(--display);font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:7px;margin-bottom:16px;}
-.card-title .icon{width:20px;height:20px;background:var(--surface2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+/* ══════════════════════════════════════════════════════
+   COTIZADOR STYLES
+══════════════════════════════════════════════════════ */
+.cot-wrapper{padding:0;max-width:780px;margin:0 auto;}
+.progress-bar{height:2px;background:var(--b);border-radius:2px;margin-bottom:22px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .4s ease;width:0%;}
+.card{background:var(--surf);border:1px solid var(--b);border-radius:10px;padding:20px;margin-bottom:14px;transition:border-color .2s;}
+.card:hover{border-color:var(--b2);}
+.card-title{font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--t2);display:flex;align-items:center;gap:7px;margin-bottom:16px;}
+.card-title .icon{width:20px;height:20px;background:var(--surf2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;}
 .fg{display:grid;gap:12px;}
 .fg.c2{grid-template-columns:1fr 1fr;}
 .fg.c3{grid-template-columns:1fr 1fr 1fr;}
 .fg.c4{grid-template-columns:1fr 1fr 1fr 1fr;}
 .field{display:flex;flex-direction:column;gap:5px;}
-.field label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
-.field label .req{color:var(--accent3);margin-left:2px;}
-input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px;transition:border-color .2s,box-shadow .2s;outline:none;width:100%;}
-input:focus,select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(71,200,255,.1);}
-input::placeholder{color:var(--text3);}
-select option{background:var(--surface2);}
+.field label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);}
+.field label .req{color:var(--acc3);margin-left:2px;}
+.cot-input,.cot-select,.cot-textarea{background:var(--surf2);border:1px solid var(--b);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px;transition:border-color .2s,box-shadow .2s;outline:none;width:100%;}
+.cot-input:focus,.cot-select:focus{border-color:var(--acc2);box-shadow:0 0 0 3px rgba(71,200,255,.1);}
+.cot-input::placeholder{color:var(--t3);}
+.cot-select option{background:var(--surf2);}
 .iu{position:relative;}
-.iu input{padding-right:40px;}
-.iu .unit{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--text3);pointer-events:none;}
+.iu .cot-input{padding-right:40px;}
+.iu .unit{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--t3);pointer-events:none;}
+/* bolsa selector */
 .bolsa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
-.bo{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:13px 10px;cursor:pointer;transition:all .2s;text-align:center;user-select:none;}
-.bo:hover{border-color:var(--border2);}
-.bo.selected{border-color:var(--accent);background:rgba(232,255,71,.06);}
+.bo{background:var(--surf2);border:1.5px solid var(--b);border-radius:8px;padding:13px 10px;cursor:pointer;transition:all .2s;text-align:center;user-select:none;}
+.bo:hover{border-color:var(--b2);}
+.bo.selected{border-color:var(--acc);background:rgba(232,255,71,.06);}
 .bo .bo-icon{font-size:20px;margin-bottom:5px;}
-.bo .bo-name{font-family:var(--display);font-weight:600;font-size:12px;color:var(--text);margin-bottom:1px;}
-.bo .bo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);}
-.bo.selected .bo-name{color:var(--accent);}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);}
+.bo .bo-name{font-family:var(--disp);font-weight:600;font-size:12px;color:var(--text);margin-bottom:1px;}
+.bo .bo-sub{font-size:10px;color:var(--t3);font-family:var(--mono);}
+.bo.selected .bo-name{color:var(--acc);}
+/* toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--b);}
 .toggle-row:last-child{border-bottom:none;}
 .tl{font-size:13px;color:var(--text);}
-.tl small{display:block;font-size:10px;color:var(--text3);font-family:var(--mono);}
+.tl small{display:block;font-size:10px;color:var(--t3);font-family:var(--mono);}
 .toggle{position:relative;width:38px;height:21px;cursor:pointer;flex-shrink:0;}
 .toggle input{opacity:0;width:0;height:0;position:absolute;}
-.toggle-track{position:absolute;inset:0;background:var(--surface2);border:1.5px solid var(--border2);border-radius:11px;transition:all .2s;}
-.toggle input:checked+.toggle-track{background:rgba(232,255,71,.15);border-color:var(--accent);}
-.toggle-thumb{position:absolute;top:3px;left:3px;width:13px;height:13px;background:var(--text3);border-radius:50%;transition:all .2s;pointer-events:none;}
-.toggle input:checked~.toggle-thumb{left:20px;background:var(--accent);}
+.toggle-track{position:absolute;inset:0;background:var(--surf2);border:1.5px solid var(--b2);border-radius:11px;transition:all .2s;}
+.toggle input:checked+.toggle-track{background:rgba(232,255,71,.15);border-color:var(--acc);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:13px;height:13px;background:var(--t3);border-radius:50%;transition:all .2s;pointer-events:none;}
+.toggle input:checked~.toggle-thumb{left:20px;background:var(--acc);}
+/* cond */
 .cond{display:none;}
 .cond.on{display:block;animation:fi .2s ease;}
 @keyframes fi{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-.color-row{display:grid;grid-template-columns:26px 1fr 100px 70px 70px 28px;align-items:center;gap:8px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;transition:border-color .2s;}
-.color-row:hover{border-color:var(--border2);}
-.color-row.analyzed{border-color:rgba(71,255,178,.3);}
-.color-swatch{width:24px;height:24px;border-radius:5px;border:1px solid var(--border2);flex-shrink:0;cursor:pointer;}
-.color-row .rm{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:2px;border-radius:4px;line-height:1;text-align:center;}
-.color-row .rm:hover{color:var(--accent3);}
-.color-row .pct-val{font-family:var(--mono);font-size:12px;color:var(--accent2);text-align:center;padding:0 4px;}
-.color-row .pct-val.empty{color:var(--text3);}
-.color-row .area-val{font-family:var(--mono);font-size:11px;color:var(--text3);text-align:right;padding:0 4px;}
-.pantone-combo{display:grid;grid-template-columns:1fr 90px;gap:6px;}
-.add-btn{background:none;border:1.5px dashed var(--border2);border-radius:7px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:9px;width:100%;transition:all .2s;text-transform:uppercase;}
-.add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.04);}
-.add-btn:disabled{opacity:.3;cursor:not-allowed;}
-.cob-result{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:14px;}
-.cob-item .cob-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
-.cob-item .cob-val{font-family:var(--mono);font-size:16px;font-weight:500;}
-.cob-item .cob-val.ok{color:var(--success);}
-.cob-item .cob-val.warn{color:var(--warning);}
-.cob-item .cob-val.hi{color:var(--accent);}
-.analyze-btn{background:rgba(71,255,178,.08);border:1px solid rgba(71,255,178,.25);border-radius:7px;color:var(--success);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:9px 14px;width:100%;transition:all .2s;text-transform:uppercase;margin-top:10px;}
-.analyze-btn:hover{background:rgba(71,255,178,.16);border-color:var(--success);}
-.analyze-btn:disabled{opacity:.4;cursor:not-allowed;}
-.arte-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .25s;background:var(--surface2);position:relative;overflow:hidden;}
-.arte-zone:hover,.arte-zone.drag-over{border-color:var(--accent2);background:rgba(71,200,255,.04);}
-.arte-zone.has-file{border-color:var(--success);border-style:solid;background:rgba(71,255,178,.03);}
-.arte-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.analyzing{display:none;align-items:center;gap:9px;padding:11px 14px;background:rgba(71,200,255,.06);border:1px solid rgba(71,200,255,.2);border-radius:8px;margin-top:10px;}
-.analyzing.on{display:flex;}
-.spin{width:15px;height:15px;border:2px solid rgba(71,200,255,.2);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.det-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;display:none;}
-.det-box.on{display:block;}
-.det-title{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.det-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);}
-.det-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:10px;}
-.det-item{background:var(--surface);border-radius:6px;padding:9px 11px;border:1px solid var(--border);}
-.det-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;}
-.det-value{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--accent2);}
-.det-value .u{font-size:9px;color:var(--text3);margin-left:2px;}
-.apply-btn{background:rgba(71,200,255,.1);border:1px solid rgba(71,200,255,.3);border-radius:7px;color:var(--accent2);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:8px 14px;width:100%;transition:all .2s;text-transform:uppercase;}
-.apply-btn:hover{background:rgba(71,200,255,.18);border-color:var(--accent2);}
-.arte-canvas-preview{display:none;margin-top:10px;border-radius:7px;overflow:hidden;border:1px solid var(--border);max-height:180px;}
-.arte-canvas-preview.on{display:block;}
-.arte-canvas-preview canvas{width:100%;display:block;}
-.impacto-clise{background:rgba(255,107,71,.06);border:1px solid rgba(255,107,71,.2);border-radius:7px;padding:12px 14px;margin-top:10px;display:none;}
-.impacto-clise.on{display:block;}
-.ic-label{font-family:var(--mono);font-size:9px;color:var(--accent3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
-.ic-val{font-family:var(--mono);font-size:18px;color:var(--accent3);font-weight:500;}
-.ic-sub{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px;}
-.pallet-result{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:12px;}
-.pr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.pr-item .pr-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
-.pr-item .pr-val{font-family:var(--mono);font-size:16px;color:var(--accent);font-weight:500;}
-.pr-item .pr-sub{font-family:var(--mono);font-size:9px;color:var(--text3);}
-.fab{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#0e0f11;border:none;border-radius:50px;font-family:var(--display);font-weight:700;font-size:13px;padding:14px 22px;cursor:pointer;box-shadow:0 6px 24px rgba(232,255,71,.35);display:flex;align-items:center;gap:9px;transition:all .25s;z-index:200;}
+/* nav btns */
+.nav-btns{display:flex;gap:9px;margin-top:6px;padding-bottom:60px;}
+.btn-primary{background:var(--acc);border:none;border-radius:8px;color:#0e0f11;cursor:pointer;font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:.02em;padding:12px;width:100%;transition:all .2s;text-transform:uppercase;}
+.btn-primary:hover{background:#f5ff7a;transform:translateY(-1px);}
+.btn-secondary{background:none;border:1.5px solid var(--b2);border-radius:8px;color:var(--t2);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:10px;width:100%;transition:all .2s;text-transform:uppercase;}
+.btn-secondary:hover{border-color:var(--acc2);color:var(--acc2);}
+/* step indicator */
+.step-indicators{display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+.step-dot{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--t3);transition:all .3s;cursor:pointer;}
+.step-dot.active{border-color:var(--acc);color:var(--acc);background:rgba(232,255,71,.08);}
+.step-dot.done{border-color:var(--ok);background:rgba(71,255,178,.12);color:var(--ok);}
+.step-line{flex:1;height:1px;background:var(--b);}
+/* FAB */
+.fab{position:fixed;bottom:28px;right:28px;background:var(--acc);color:#0e0f11;border:none;border-radius:50px;font-family:var(--disp);font-weight:700;font-size:13px;padding:14px 22px;cursor:pointer;box-shadow:0 6px 24px rgba(232,255,71,.35);display:none;align-items:center;gap:9px;transition:all .25s;z-index:200;}
+.fab.visible{display:flex;}
 .fab:hover{background:#f5ff7a;transform:translateY(-2px);box-shadow:0 10px 30px rgba(232,255,71,.4);}
 .fab .fab-price{font-family:var(--mono);font-size:15px;font-weight:500;}
-.fab .fab-label{font-size:11px;opacity:.7;}
+/* DRAWER */
 .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;opacity:0;pointer-events:none;transition:opacity .3s;}
 .drawer-overlay.open{opacity:1;pointer-events:all;}
-.sidebar{position:fixed;top:0;right:0;bottom:0;width:370px;background:var(--surface);border-left:1px solid var(--border);padding:22px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;z-index:400;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+.sidebar{position:fixed;top:0;right:0;bottom:0;width:370px;background:var(--surf);border-left:1px solid var(--b);padding:22px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;z-index:400;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
 .sidebar.open{transform:translateX(0);}
-.drawer-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:11px;border-bottom:1px solid var(--border);}
-.drawer-close{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--text2);cursor:pointer;font-size:16px;padding:4px 10px;transition:all .2s;}
-.drawer-close:hover{border-color:var(--accent3);color:var(--accent3);}
-.drawer-title{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);}
-.cost-section-title{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:7px;}
-.cost-line{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.cost-line{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b);font-size:12px;}
 .cost-line:last-child{border-bottom:none;}
-.cost-line .cn{color:var(--text2);}
+.cost-line .cn{color:var(--t2);}
 .cost-line .cv{font-family:var(--mono);font-size:11px;color:var(--text);}
-.cost-line.warn .cv{color:var(--accent3);}
-.cdiv{height:1px;background:var(--border2);margin:8px 0;}
-.cost-total{display:flex;justify-content:space-between;align-items:flex-end;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2);}
-.ct-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);}
-.ct-val{font-family:var(--display);font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.03em;}
-.ct-sub{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:1px;}
-.margin-row{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);}
-.margin-row label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);flex:1;}
-.margin-row input{width:58px;text-align:center;font-family:var(--mono);font-size:12px;padding:6px 7px;}
+.cost-total{display:flex;justify-content:space-between;align-items:flex-end;padding:12px;background:var(--surf2);border-radius:8px;border:1px solid var(--b2);}
+.ct-val{font-family:var(--disp);font-size:22px;font-weight:800;color:var(--acc);letter-spacing:-.03em;}
 .price-final{background:linear-gradient(135deg,rgba(232,255,71,.08),rgba(71,200,255,.05));border:1px solid rgba(232,255,71,.2);border-radius:9px;padding:14px;text-align:center;}
-.pf-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px;}
-.pf-total{font-family:var(--display);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:-.04em;}
-.pf-unit{font-family:var(--mono);font-size:10px;color:var(--text2);margin-top:2px;}
-.skel{background:var(--surface2);border-radius:3px;height:12px;width:60px;animation:shimmer 1.5s ease-in-out infinite;display:inline-block;}
+.pf-total{font-family:var(--disp);font-size:28px;font-weight:800;color:var(--acc);letter-spacing:-.04em;}
+.skel{background:var(--surf2);border-radius:3px;height:12px;width:60px;animation:shimmer 1.5s ease-in-out infinite;display:inline-block;}
 @keyframes shimmer{0%,100%{opacity:.3;}50%{opacity:.7;}}
-.cta-group{display:flex;flex-direction:column;gap:7px;margin-top:auto;}
-.btn-primary{background:var(--accent);border:none;border-radius:8px;color:#0e0f11;cursor:pointer;font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.02em;padding:12px;width:100%;transition:all .2s;text-transform:uppercase;}
-.btn-primary:hover{background:#f5ff7a;transform:translateY(-1px);}
-.btn-secondary{background:none;border:1.5px solid var(--border2);border-radius:8px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:10px;width:100%;transition:all .2s;text-transform:uppercase;}
-.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2);}
-.nav-btns{display:flex;gap:9px;margin-top:6px;padding-bottom:28px;}
-.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:12px 16px;font-size:12px;color:var(--text);box-shadow:0 8px 28px rgba(0,0,0,.4);opacity:0;transition:all .3s;z-index:999;max-width:300px;white-space:nowrap;}
-.notif.show{transform:translateX(-50%) translateY(0);opacity:1;}
-.notif.success{border-color:rgba(71,255,178,.4);}
-.notif.error{border-color:rgba(255,71,71,.4);}
-.notif.warn{border-color:rgba(255,179,71,.4);}
-.res-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
-.res-row .rk{color:var(--text3);}
-.res-row .rv{color:var(--text);font-family:var(--mono);font-size:11px;}
-
-/* API key config banner */
-.api-banner{background:rgba(255,107,71,.06);border:1px solid rgba(255,107,71,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;color:var(--accent3);}
-.api-banner input{flex:1;font-size:11px;padding:6px 10px;}
-.api-banner button{background:rgba(255,107,71,.15);border:1px solid rgba(255,107,71,.3);border-radius:6px;color:var(--accent3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:6px 12px;white-space:nowrap;}
-
-/* ── AUTH OVERLAYS ── */
-#loginOverlay{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center;}
-.login-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:48px 40px;max-width:360px;width:90%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
-.login-logo{height:52px;object-fit:contain;background:white;border-radius:8px;padding:6px 16px;margin-bottom:4px;}
-.login-title{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.03em;}
-.login-sub{color:var(--text2);font-size:12px;line-height:1.6;}
-.login-btn{background:var(--accent);border:none;border-radius:8px;color:#0e0f11;cursor:pointer;font-family:var(--display);font-weight:700;font-size:13px;padding:13px 24px;width:100%;transition:all .2s;}
-.login-btn:hover{background:#f5ff7a;transform:translateY(-1px);}
-.login-checking{display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text2);}
-.login-checking.on{display:flex;}
-#accessDenied{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;}
-.denied-card{background:var(--surface);border:1px solid rgba(255,107,71,.3);border-radius:16px;padding:48px 40px;max-width:380px;width:90%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
-.denied-icon{width:56px;height:56px;color:var(--accent3);}
-.denied-title{font-family:var(--display);font-weight:800;font-size:20px;color:var(--accent3);}
-.denied-sub{color:var(--text2);font-size:12px;line-height:1.7;}
-.denied-email{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;word-break:break-all;}
-.denied-back{color:var(--accent2);font-family:var(--mono);font-size:11px;text-decoration:none;margin-top:4px;}
-#app-ventas{display:none;}
-#app-ventas.visible{display:block;}
-.user-badge-v{display:none;align-items:center;gap:6px;background:rgba(71,255,178,.08);border:1px solid rgba(71,255,178,.2);border-radius:20px;padding:4px 10px;}
-.user-badge-v .dot-green{width:6px;height:6px;border-radius:50%;background:var(--success);}
-.user-badge-v span{font-family:var(--mono);font-size:10px;color:var(--success);}
-.logout-btn-v{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:4px 10px;transition:all .2s;}
-.logout-btn-v:hover{border-color:var(--accent3);color:var(--accent3);}
+/* Arte zone */
+.arte-zone{border:2px dashed var(--b2);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .25s;background:var(--surf2);position:relative;overflow:hidden;}
+.arte-zone:hover,.arte-zone.drag-over{border-color:var(--acc2);background:rgba(71,200,255,.04);}
+.arte-zone.has-file{border-color:var(--ok);border-style:solid;background:rgba(71,255,178,.03);}
+.arte-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.color-row{display:grid;grid-template-columns:26px 1fr 100px 70px 70px 28px;align-items:center;gap:8px;padding:9px 11px;background:var(--surf2);border:1px solid var(--b);border-radius:8px;margin-bottom:7px;}
+.color-swatch{width:24px;height:24px;border-radius:5px;border:1px solid var(--b2);cursor:pointer;}
+.add-btn{background:none;border:1.5px dashed var(--b2);border-radius:7px;color:var(--t3);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:9px;width:100%;transition:all .2s;text-transform:uppercase;}
+.add-btn:hover{border-color:var(--acc);color:var(--acc);}
+.analyzing{display:none;align-items:center;gap:9px;padding:11px 14px;background:rgba(71,200,255,.06);border:1px solid rgba(71,200,255,.2);border-radius:8px;margin-top:10px;}
+.analyzing.on{display:flex;}
+.spin{width:15px;height:15px;border:2px solid rgba(71,200,255,.2);border-top-color:var(--acc2);border-radius:50%;animation:cot-spin .8s linear infinite;}
+@keyframes cot-spin{to{transform:rotate(360deg);}}
+.det-box{background:var(--surf2);border:1px solid var(--b);border-radius:8px;padding:14px;margin-top:10px;display:none;}
+.det-box.on{display:block;}
+.pallet-result{background:var(--surf2);border:1px solid var(--b);border-radius:8px;padding:14px;margin-top:12px;}
+.impacto-clise{background:rgba(255,107,71,.06);border:1px solid rgba(255,107,71,.2);border-radius:7px;padding:12px 14px;margin-top:10px;display:none;}
+.impacto-clise.on{display:block;}
+/* API key modal */
+.apikey-modal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;}
+.apikey-modal.open{display:flex;}
+.apikey-card{background:var(--surf);border:1px solid var(--b2);border-radius:16px;padding:32px;max-width:440px;width:90%;}
+.apikey-title{font-family:var(--disp);font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px;}
+.apikey-desc{font-size:12px;color:var(--t2);margin-bottom:18px;line-height:1.6;}
+.apikey-btns{display:flex;gap:8px;margin-top:18px;}
+/* Historial placeholder */
+.hist-placeholder{max-width:580px;margin:60px auto;background:var(--surf);border:2px dashed rgba(71,200,255,.25);border-radius:16px;padding:48px 40px;text-align:center;}
+.hist-icon{font-size:40px;margin-bottom:16px;}
+.hist-title{font-family:var(--disp);font-size:20px;font-weight:800;color:var(--acc2);margin-bottom:10px;}
+.hist-sub{color:var(--t2);font-size:13px;margin-bottom:20px;line-height:1.7;}
+.hist-list{list-style:none;text-align:left;display:inline-block;}
+.hist-list li{font-size:12px;color:var(--t2);font-family:var(--mono);padding:4px 0;}
+.hist-list li::before{content:'• ';color:var(--acc2);}
+/* Resumen step */
+.resumen-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.res-item{background:var(--surf2);border:1px solid var(--b);border-radius:8px;padding:12px 14px;}
+.res-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:4px;}
+.res-val{font-size:13px;color:var(--text);}
+/* Responsive */
+@media(max-width:600px){
+  .bolsa-grid{grid-template-columns:repeat(2,1fr);}
+  .fg.c3{grid-template-columns:1fr 1fr;}
+  .fg.c4{grid-template-columns:1fr 1fr;}
+  .color-row{grid-template-columns:26px 1fr 28px;}
+  .color-row .cot-select,.color-row input:nth-child(4),.color-row input:nth-child(5){display:none;}
+  .sidebar{width:100%;}
+  .panel{padding:16px;}
+  #header{padding:0 12px;gap:8px;}
+  .badge-mod{display:none;}
+  .resumen-grid{grid-template-columns:1fr;}
+}
 </style>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
+<!-- ACCESS DENIED -->
+<div id="accessDenied" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;">
+  <div class="denied-card">
+    <svg class="denied-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    <div class="denied-title">Acceso no autorizado</div>
+    <div class="denied-msg">Tu cuenta de Google no tiene permiso para acceder a este módulo. Contactá al administrador del ERP Alamo para solicitar acceso.</div>
+    <div class="denied-email" id="deniedEmail"></div>
+    <a class="denied-back" href="https://rocafranco.github.io/alamo-erp/">← Volver al ERP Home</a>
+  </div>
+</div>
 
 <!-- LOGIN OVERLAY -->
 <div id="loginOverlay">
   <div class="login-card">
-    <img src="logo.jpg" alt="Alamo" class="login-logo">
-    <div class="login-title">Ventas — Cotizador</div>
-    <div class="login-sub">Iniciá sesión con tu cuenta Google autorizada para acceder al módulo de Ventas.</div>
-    <button class="login-btn" onclick="handleLogin()">Ingresar con Google</button>
-    <div class="login-checking" id="loginChecking"><div class="spin" style="width:14px;height:14px;border:2px solid rgba(71,200,255,.2);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite;"></div><span>Verificando permisos...</span></div>
+    <div class="login-logo">ALAMO<span>ERP</span></div>
+    <div class="login-sub-title">Módulo de Ventas</div>
+    <p class="login-desc">Accedé con tu cuenta de Google para usar el cotizador de bolsas y el historial de ventas.</p>
+    <button class="btn-google" onclick="handleLogin()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Ingresar con Google
+    </button>
   </div>
 </div>
 
-<!-- ACCESS DENIED OVERLAY -->
-<div id="accessDenied" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;">
-  <div class="denied-card">
-    <svg class="denied-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-    <div class="denied-title">Acceso denegado</div>
-    <div class="denied-sub">Tu cuenta no tiene permisos para acceder al módulo de Ventas. Contactá al administrador del sistema.</div>
-    <div class="denied-email" id="deniedEmail">—</div>
-    <a href="https://rocafranco.github.io/alamo-erp/" class="denied-back">← Volver al ERP</a>
+<!-- HEADER -->
+<header id="header">
+  <div class="header-left">
+    <div class="pulse-dot"></div>
+    <span class="header-title">VENTAS</span>
+    <span class="badge-mod">ALAMO ERP</span>
   </div>
-</div>
 
-<div id="app-ventas">
+  <nav class="header-tabs">
+    <button class="tab-btn active" data-panel="cotizador" onclick="switchTab('cotizador')">Cotizador</button>
+    <button class="tab-btn" data-panel="historial" onclick="switchTab('historial')">Historial</button>
+  </nav>
 
-<header>
-  <div class="logo"><div class="pulse"></div>VENTAS</div>
-  <div class="header-tabs">
-    <button class="htab active" onclick="switchTab('cotizador')">Cotizador</button>
-    <button class="htab" onclick="switchTab('historial')">Historial</button>
-  </div>
   <div class="header-right">
-    <div class="user-badge-v" id="userBadgeV"><div class="dot-green"></div><span id="userEmailV">—</span></div>
-    <button class="logout-btn-v" id="logoutBtnV" style="display:none;" onclick="handleLogout()">Salir</button>
-    <a href="https://rocafranco.github.io/alamo-erp/" class="home-link">← ERP Home</a>
+    <button class="btn-sm btn-apikey" onclick="showApiKeyModal()" title="Configurar API Key de Claude">
+      ⚙ API Key
+    </button>
+    <div class="user-badge" id="userBadge">
+      <div class="user-dot"></div>
+      <span id="userEmailLabel"></span>
+    </div>
+    <button class="btn-sm btn-logout" id="logoutBtn" onclick="handleLogout()" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Salir
+    </button>
+    <a class="btn-sm" href="https://rocafranco.github.io/alamo-erp/" title="Volver al ERP">← ERP Home</a>
   </div>
 </header>
 
-<!-- ══════ TAB: COTIZADOR ══════ -->
-<div class="panel active" id="panel-cotizador">
-<div class="cot-wrap">
-<div class="cot-main" id="mainArea">
+<!-- APP -->
+<div id="app">
 
-<!-- API key config (shown only if not set) -->
-<div class="api-banner" id="apiBanner">
-  <span>🔑 API Key Claude (para análisis de arte):</span>
-  <input type="password" id="apiKeyInput" placeholder="sk-ant-..." value="">
-  <button onclick="saveApiKey()">Guardar</button>
-</div>
+  <!-- ══ PANEL: COTIZADOR ══ -->
+  <div class="panel active" id="panel-cotizador">
+    <div class="cot-wrapper">
 
-<!-- Step indicator (inside main, not header) -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">COTIZADOR BOLSAS v2</div>
-  <div class="step-indicator">
-    <div class="step-dot active" id="sd1" onclick="goSec(0)">1</div><div class="step-line"></div>
-    <div class="step-dot" id="sd2" onclick="goSec(1)">2</div><div class="step-line"></div>
-    <div class="step-dot" id="sd3" onclick="goSec(2)">3</div><div class="step-line"></div>
-    <div class="step-dot" id="sd4" onclick="goSec(3)">4</div>
-  </div>
-</div>
+      <!-- Step indicators -->
+      <div class="step-indicators">
+        <div class="step-dot active" id="sdot0" onclick="cotGoSec(0)" title="Datos del pedido">1</div>
+        <div class="step-line"></div>
+        <div class="step-dot" id="sdot1" onclick="cotGoSec(1)" title="Arte e impresión">2</div>
+        <div class="step-line"></div>
+        <div class="step-dot" id="sdot2" onclick="cotGoSec(2)" title="Insumos y terminación">3</div>
+        <div class="step-line"></div>
+        <div class="step-dot" id="sdot3" onclick="cotGoSec(3)" title="Resumen">4</div>
+      </div>
 
-<div class="progress-bar"><div class="progress-fill" id="pFill"></div></div>
+      <!-- Progress bar -->
+      <div class="progress-bar"><div class="progress-fill" id="cotProgress"></div></div>
 
-<!-- ════ PASO 1 ════ -->
-<div id="sec0">
-  <div class="section-title">Datos del pedido <span class="tag">PASO 1</span></div>
-  <div class="section-sub">Cliente, cantidad y tipo de bolsa</div>
-  <div class="card">
-    <div class="card-title"><span class="icon">👤</span>Cliente</div>
-    <div class="fg c2">
-      <div class="field"><label>Razón social <span class="req">*</span></label><input id="cliente" placeholder="Nombre del cliente" oninput="recalc()"></div>
-      <div class="field"><label>Nro. pedido / ref.</label><input id="nroPedido" placeholder="PED-2026-001"></div>
-      <div class="field"><label>Cantidad de bolsas <span class="req">*</span></label><div class="iu"><input type="number" id="cantidad" placeholder="0" min="1" oninput="recalc()"><span class="unit">UND</span></div></div>
-      <div class="field"><label>Fecha de entrega</label><input type="date" id="fechaEntrega"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title"><span class="icon">🗂️</span>Tipo de bolsa <span class="req">*</span></div>
-    <div class="bolsa-grid">
-      <div class="bo" onclick="selBolsa('papel','Papel multicapa',this)"><div class="bo-icon">📄</div><div class="bo-name">Papel multicapa</div><div class="bo-sub">1–5 hojas, plano</div></div>
-      <div class="bo" onclick="selBolsa('polipapel','Polipapel',this)"><div class="bo-icon">🔗</div><div class="bo-name">Polipapel</div><div class="bo-sub">Rafipel — plano</div></div>
-      <div class="bo" onclick="selBolsa('rafia_conv','Rafia convencional',this)"><div class="bo-icon">🧵</div><div class="bo-name">Rafia conv.</div><div class="bo-sub">Tubular sin laminar</div></div>
-      <div class="bo" onclick="selBolsa('rafia_lam','Rafia laminada',this)"><div class="bo-icon">✨</div><div class="bo-name">Rafia laminada</div><div class="bo-sub">Tubular con laminado</div></div>
-      <div class="bo" onclick="selBolsa('biopp','BioPP',this)"><div class="bo-icon">🌿</div><div class="bo-name">BioPP</div><div class="bo-sub">Polipropileno bio</div></div>
-    </div>
-  </div>
-  <div class="card cond" id="secDim">
-    <div class="card-title"><span class="icon">📐</span>Dimensiones</div>
-    <div class="fg c3" style="align-items:end;">
-      <div class="field"><label>Largo <span class="req">*</span></label><div class="iu"><input type="number" id="dLargo" placeholder="0" step="0.1" oninput="recalc()"><span class="unit">cm</span></div></div>
-      <div class="field"><label>Ancho (1 cara) <span class="req">*</span></label><div class="iu"><input type="number" id="dAncho" placeholder="0" step="0.1" oninput="recalc()"><span class="unit">cm</span></div></div>
-      <div class="field"><label>Fuelle</label><div class="iu"><input type="number" id="dFuelle" placeholder="0" step="0.1" min="0" oninput="recalc()"><span class="unit">cm</span></div></div>
-    </div>
-    <div id="dimCalcBox" style="display:none;margin-top:12px;padding:11px 13px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Dimensiones reales del ARTE</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="dimCalcGrid"></div>
-    </div>
-    <div class="cond" id="secRafiaLam" style="margin-top:14px;">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Laminado</div>
-      <div class="fg c2">
-        <div class="field"><label>Gramaje final laminado (g/m²)</label><div class="iu"><input type="number" id="rafiaGramajeFinal" value="70" min="55" max="150" step="1" oninput="recalc()"><span class="unit">g/m²</span></div><span style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:3px;">Base 55 g/m² · laminado = final − 55</span></div>
-        <div class="field"><label>¿Laminado con color?</label><select id="rafiaMasterbatch" onchange="recalc()"><option value="no">No — transparente</option><option value="si">Sí — con pigmento</option></select></div>
-      </div>
-      <div id="rafiaLamResult" style="display:none;margin-top:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Por bolsa</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA BASE</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="rafiaBaseKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LAMINADO (PP+PE)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="rafiaLamKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaLamTotal">—</div></div>
-        </div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 6px;">Total pedido (incl. 5% desp.)</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="rafiaBaseTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LAMINADO (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="rafiaLamTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaLamTotalPedido">—</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="cond" id="secRafiaConv" style="margin-top:14px;">
-      <div id="rafiaConvResult" style="display:none;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA RAFIA (65 g/m²)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="rafiaConvKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaConvTotal">—</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="rafiaConvTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaConvTotalPedido">—</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="cond" id="secBiopp" style="margin-top:14px;">
-      <div id="bioppResult" style="display:none;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (55 g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="bioppRafiaKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LÁM. BIOPP (25 g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="bioppLaminaKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA PP+PE (15)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="bioppMezclaKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="bioppTotal">—</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="bioppRafiaTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LÁM. BIOPP (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="bioppLaminaTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="bioppMezclaTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="bioppTotalPedido">—</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="cond" id="secPolipapel" style="margin-top:14px;">
-      <div id="polipapelResult" style="display:none;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">PAPEL (g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="polipapelPapelKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (55 g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="polipapelRafiaKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA PP+PE (15)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="polipapelMezclaKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="polipapelTotal">—</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">PAPEL (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="polipapelPapelTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="polipapelRafiaTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="polipapelMezclaTotalKg">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="polipapelTotalPedido">—</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="cond" id="secCapas" style="margin-top:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Capas de papel</span>
-        <div style="display:flex;gap:6px;">
-          <button onclick="addCapa()" style="background:none;border:1px solid var(--border2);border-radius:5px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:4px 10px;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">+ capa</button>
-          <button onclick="rmCapa()" style="background:none;border:1px solid var(--border2);border-radius:5px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:4px 10px;" onmouseover="this.style.borderColor='var(--accent3)';this.style.color='var(--accent3)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">− capa</button>
-        </div>
-      </div>
-      <div id="capasList"></div>
-      <div id="papelTotalBox" style="display:none;margin-top:8px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL G/BOLSA</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="papelTotalGBolsa">—</div></div>
-          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL KG PEDIDO (incl. 5%)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="papelTotalKgPedido">—</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+      <!-- ══ STEP 1: Datos del pedido ══ -->
+      <div id="sec0">
+        <div class="card">
+          <div class="card-title"><span class="icon">📦</span> Datos del pedido</div>
+          <div class="fg c2" style="margin-bottom:12px;">
+            <div class="field">
+              <label>Cliente <span class="req">*</span></label>
+              <input class="cot-input" id="cotCliente" placeholder="Nombre del cliente" oninput="cotRecalc()">
+            </div>
+            <div class="field">
+              <label>Cantidad <span class="req">*</span></label>
+              <div class="iu">
+                <input class="cot-input" id="cotCantidad" type="number" min="1" placeholder="ej: 50000" oninput="cotRecalc()">
+                <span class="unit">unid</span>
+              </div>
+            </div>
+          </div>
 
-<!-- ════ PASO 2 ════ -->
-<div id="sec1" style="display:none;">
-  <div class="section-title">Arte e impresión <span class="tag">PASO 2</span></div>
-  <div class="section-sub">El PDF del arte se analiza con IA para detectar dimensiones y pantones</div>
-  <div class="card">
-    <div class="card-title"><span class="icon">🎨</span>Arte (PDF o imagen)</div>
-    <div class="arte-zone" id="arteZone">
-      <input type="file" accept=".pdf,image/*" id="arteFile" onchange="handleArte(event)">
-      <div id="arteEmpty"><div style="font-size:28px;margin-bottom:8px;opacity:.4;">⬆</div><div style="font-family:var(--display);font-weight:600;font-size:13px;margin-bottom:3px;">Arrastrá el PDF del arte acá</div><div style="color:var(--text2);font-size:11px;">PDF vectorial, JPG o PNG — se analiza automáticamente</div></div>
-      <div id="arteLoaded" style="display:none;"><div style="font-size:24px;margin-bottom:5px;">✅</div><div style="font-family:var(--display);font-weight:600;font-size:13px;" id="arteFileName">—</div><div style="color:var(--text2);font-size:11px;">Archivo cargado</div></div>
-    </div>
-    <div class="analyzing" id="analyzingBox"><div class="spin"></div><span style="font-family:var(--mono);font-size:10px;color:var(--accent2);letter-spacing:.06em;" id="analyzingText">ANALIZANDO ARTE CON IA...</span></div>
-    <div class="arte-canvas-preview" id="canvasPreview"><canvas id="arteCanvas"></canvas></div>
-    <div class="det-box" id="detBox">
-      <div class="det-title">Datos detectados del arte</div>
-      <div class="det-grid">
-        <div class="det-item"><div class="det-label">Largo</div><div class="det-value" id="detL">—</div></div>
-        <div class="det-item"><div class="det-label">Ancho (1 cara)</div><div class="det-value" id="detA">—</div></div>
-        <div class="det-item"><div class="det-label">Fuelle</div><div class="det-value" id="detF">—</div></div>
-        <div class="det-item"><div class="det-label">Colores</div><div class="det-value" id="detC">—</div></div>
-      </div>
-      <button class="apply-btn" onclick="applyDetected()" style="margin-bottom:8px;">↳ Aplicar dimensiones al formulario</button>
-      <button class="analyze-btn" id="analyzeCobBtn" onclick="analyzeCoverageWithAI()" disabled>🔬 Calcular cobertura real por color</button>
-    </div>
-  </div>
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <div class="card-title" style="margin-bottom:0;"><span class="icon">🖨️</span>Colores de impresión <small style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:5px;">MÁX. 6</small></div>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);" id="colorCount">0 colores</span>
-    </div>
-    <div style="display:grid;grid-template-columns:26px 1fr 100px 70px 70px 28px;gap:8px;padding:0 11px;margin-bottom:5px;">
-      <span></span><span style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;">Nombre · Nro. pantone</span><span style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;text-align:center;">% cob.</span><span style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;text-align:right;">cm²</span><span></span><span></span>
-    </div>
-    <div id="colorList"></div>
-    <button class="add-btn" id="addColorBtn" onclick="addColor()">+ Agregar pantone</button>
-    <div class="cob-result" id="cobResult" style="display:none;">
-      <div class="cob-item"><div class="cob-label">Área impresa</div><div class="cob-val hi" id="cobAreaVal">—</div></div>
-      <div class="cob-item"><div class="cob-label">% del arte</div><div class="cob-val ok" id="cobPctVal">—</div></div>
-      <div class="cob-item"><div class="cob-label">Área libre</div><div class="cob-val" id="cobLibreVal" style="color:var(--text2);">—</div></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🔲</span>Clisé</div>
-    <div class="toggle-row">
-      <div class="tl">¿Requiere clisé nuevo?<small>Vida útil 6–8 años si no cambia la imagen</small></div>
-      <label class="toggle"><input type="checkbox" id="tieneClise" onchange="onClise()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-    </div>
-    <div class="cond" id="cliseOpts" style="margin-top:11px;">
-      <div class="fg c2">
-        <div class="field"><label>Costo del clisé ($) <span class="req">*</span></label><input type="number" id="costoClise" placeholder="0" oninput="recalc()"></div>
-        <div class="field"><label>¿Quién absorbe?</label><select id="cobraClise" onchange="recalc()"><option value="cliente">Cliente — se suma al precio</option><option value="fabrica">Fábrica — impacto en margen</option><option value="parcial">Parcialmente (50% c/u)</option></select></div>
-      </div>
-      <div class="impacto-clise" id="impactoClise"><div class="ic-label">⚠ Impacto en costo si fábrica absorbe</div><div class="ic-val" id="icVal">—</div><div class="ic-sub" id="icSub">por bolsa</div></div>
-    </div>
-  </div>
-</div>
+          <div class="field" style="margin-bottom:12px;">
+            <label>Tipo de bolsa <span class="req">*</span></label>
+          </div>
+          <div class="bolsa-grid" id="bolsaGrid">
+            <div class="bo" data-tipo="saco_rafia" onclick="cotSelBolsa(this)">
+              <div class="bo-icon">🧵</div>
+              <div class="bo-name">Saco Rafia</div>
+              <div class="bo-sub">PP woven</div>
+            </div>
+            <div class="bo" data-tipo="saco_papel" onclick="cotSelBolsa(this)">
+              <div class="bo-icon">📄</div>
+              <div class="bo-name">Saco Papel</div>
+              <div class="bo-sub">kraft / multiwall</div>
+            </div>
+            <div class="bo" data-tipo="bolsa_pe" onclick="cotSelBolsa(this)">
+              <div class="bo-icon">🫙</div>
+              <div class="bo-name">Bolsa PE</div>
+              <div class="bo-sub">polietileno</div>
+            </div>
+            <div class="bo" data-tipo="big_bag" onclick="cotSelBolsa(this)">
+              <div class="bo-icon">🏗️</div>
+              <div class="bo-name">Big Bag</div>
+              <div class="bo-sub">FIBC / jumbo</div>
+            </div>
+            <div class="bo" data-tipo="bolsa_valvula" onclick="cotSelBolsa(this)">
+              <div class="bo-icon">🔧</div>
+              <div class="bo-name">Bolsa Válvula</div>
+              <div class="bo-sub">con válvula</div>
+            </div>
+            <div class="bo" data-tipo="otro" onclick="cotSelBolsa(this)">
+              <div class="bo-icon">✏️</div>
+              <div class="bo-name">Otro</div>
+              <div class="bo-sub">personalizado</div>
+            </div>
+          </div>
+        </div>
 
-<!-- ════ PASO 3 ════ -->
-<div id="sec2" style="display:none;">
-  <div class="section-title">Insumos y terminación <span class="tag">PASO 3</span></div>
-  <div class="section-sub">Polietileno, costura, paletizado y logística</div>
-  <div class="card cond" id="secPE">
-    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🧴</span>Polietileno</div>
-    <div class="toggle-row">
-      <div class="tl">¿Lleva lámina PE?<small>tubera papel</small></div>
-      <label class="toggle"><input type="checkbox" id="tienelamina" onchange="toggleSub('laminaOpts',this)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-    </div>
-    <div class="cond" id="laminaOpts" style="margin-top:10px;">
-      <div class="fg c2">
-        <div class="field"><label>Formato lámina (cm)</label><div class="iu"><input type="number" id="laminaFto" placeholder="91" oninput="recalc()"><span class="unit">cm</span></div></div>
-        <div class="field"><label>Micronaje</label><div class="iu"><input type="number" id="laminaMic" placeholder="14" oninput="recalc()"><span class="unit">mic</span></div></div>
-      </div>
-    </div>
-    <div class="toggle-row" style="margin-top:6px;">
-      <div class="tl">¿Lleva bolsa PE interior?<small>manga PE</small></div>
-      <label class="toggle"><input type="checkbox" id="tieneBolsaPE" onchange="toggleSub('bolsaPEOpts',this)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-    </div>
-    <div class="cond" id="bolsaPEOpts" style="margin-top:10px;">
-      <div class="fg c4">
-        <div class="field"><label>Ancho (cm)</label><input type="number" id="bpeAncho" placeholder="58" oninput="recalc()"></div>
-        <div class="field"><label>Largo (cm)</label><input type="number" id="bpeLargo" placeholder="110" oninput="recalc()"></div>
-        <div class="field"><label>Micronaje</label><input type="number" id="bpeMic" placeholder="50" oninput="recalc()"></div>
-        <div class="field"><label>Densidad</label><select id="bpeDensidad" onchange="recalc()"><option value="0.92">Baja — 0.92</option><option value="0.95">Alta — 0.95</option></select></div>
-      </div>
-    </div>
-  </div>
-  <div class="card cond" id="secCrepe">
-    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🎀</span>Crepe</div>
-    <div class="toggle-row">
-      <div class="tl">¿Lleva crepe?<small>papel y polipapel</small></div>
-      <label class="toggle"><input type="checkbox" id="tieneCrepe" onchange="toggleSub('crepeOpts',this);recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
-    </div>
-    <div class="cond" id="crepeOpts" style="margin-top:10px;">
-      <div class="field"><label>Color de crepe</label><select id="crepeColor" onchange="recalc()"><option value="natural">Natural</option><option value="blanco">Blanco</option><option value="azul">Azul</option><option value="rojo">Rojo</option><option value="verde">Verde</option></select></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🧶</span>Costura y empaque</div>
-    <div class="fg c2">
-      <div class="field"><label>Abre fácil</label><select id="abreFacil" onchange="recalc()"><option value="no">No</option><option value="si">Sí</option></select></div>
-      <div class="field"><label>Bolsas por paquete</label><div class="iu"><input type="number" id="bolsasPaquete" placeholder="25" min="1" oninput="recalc();calcPallet();const d=document.getElementById('bxpDisplay');if(d)d.textContent=this.value||'—'"><span class="unit">und</span></div></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title" style="margin-bottom:14px;"><span class="icon">📦</span>Paletizado</div>
-    <div class="fg c2">
-      <div class="field"><label>Bolsas por paquete</label><div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:var(--mono);font-size:13px;color:var(--text3);" id="bxpDisplay">— (completar arriba)</div></div>
-      <div class="field"><label>Máx. bolsas por pallet</label><div class="iu"><input type="number" id="maxBolsasPallet" placeholder="500" min="1" oninput="calcPallet()"><span class="unit">und</span></div></div>
-    </div>
-    <div style="margin-top:12px;">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Opciones de armado</div>
-      <div class="fg c3">
-        <div class="toggle-row" style="border:none;padding:0;align-items:center;gap:8px;flex-direction:row-reverse;justify-content:flex-end;"><div class="tl">Rack</div><label class="toggle"><input type="checkbox" id="tieneRack" onchange="recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
-        <div class="toggle-row" style="border:none;padding:0;align-items:center;gap:8px;flex-direction:row-reverse;justify-content:flex-end;"><div class="tl">Corralito</div><label class="toggle"><input type="checkbox" id="tieneCorralito" onchange="recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
-        <div class="toggle-row" style="border:none;padding:0;align-items:center;gap:8px;flex-direction:row-reverse;justify-content:flex-end;"><div class="tl">Tapa</div><label class="toggle"><input type="checkbox" id="tieneTapa" onchange="recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
-      </div>
-      <div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--text3);padding:7px 10px;background:var(--surface2);border-radius:5px;border:1px solid var(--border);">🎬 Film stretch incluido en todos los pallets como costo fijo</div>
-    </div>
-    <div class="pallet-result" id="palletResult" style="display:none;">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;">Cálculo de pallets</div>
-      <div class="pr-grid">
-        <div class="pr-item"><div class="pr-label">Paquetes totales</div><div class="pr-val" id="prPaquetes">—</div></div>
-        <div class="pr-item"><div class="pr-label">Pallets totales</div><div class="pr-val" id="prPallets">—</div></div>
-        <div class="pr-item"><div class="pr-label">Vol. estimado</div><div class="pr-val" id="prM3">—</div><div class="pr-sub">m³ aprox.</div></div>
-      </div>
-    </div>
-    <div style="margin-top:12px;">
-      <div class="field"><label>Costo logístico ($)</label><div class="iu"><input type="number" id="costoLog" placeholder="0" oninput="recalc()"><span class="unit">ARS</span></div></div>
-    </div>
-  </div>
-</div>
+        <!-- Dimensiones -->
+        <div class="card">
+          <div class="card-title"><span class="icon">📐</span> Dimensiones</div>
+          <div class="fg c3" style="margin-bottom:12px;">
+            <div class="field">
+              <label>Ancho <span class="req">*</span></label>
+              <div class="iu">
+                <input class="cot-input" id="cotAncho" type="number" placeholder="ej: 500" oninput="cotCalcDim()">
+                <span class="unit">mm</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Largo <span class="req">*</span></label>
+              <div class="iu">
+                <input class="cot-input" id="cotLargo" type="number" placeholder="ej: 800" oninput="cotCalcDim()">
+                <span class="unit">mm</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Fuelle</label>
+              <div class="iu">
+                <input class="cot-input" id="cotFuelle" type="number" placeholder="0" oninput="cotCalcDim()">
+                <span class="unit">mm</span>
+              </div>
+            </div>
+          </div>
 
-<!-- ════ PASO 4 ════ -->
-<div id="sec3" style="display:none;">
-  <div class="section-title">Resumen del pedido <span class="tag">PASO 4</span></div>
-  <div class="section-sub">Revisá todo antes de guardar la cotización</div>
-  <div class="card"><div id="resumenContent" style="color:var(--text2);font-size:12px;">Completá los pasos anteriores.</div></div>
-</div>
+          <!-- Params rafia -->
+          <div class="cond" id="cond-rafia">
+            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px;">Parámetros de tejido</div>
+            <div class="fg c3" style="margin-bottom:12px;">
+              <div class="field">
+                <label>Trama (tiras/cm)</label>
+                <input class="cot-input" id="cotTrama" type="number" placeholder="10" oninput="cotCalcDim()">
+              </div>
+              <div class="field">
+                <label>Urdimbre (tiras/cm)</label>
+                <input class="cot-input" id="cotUrdimbre" type="number" placeholder="10" oninput="cotCalcDim()">
+              </div>
+              <div class="field">
+                <label>Peso tira (dtex)</label>
+                <input class="cot-input" id="cotDtex" type="number" placeholder="900" oninput="cotCalcDim()">
+              </div>
+            </div>
+          </div>
 
-<div class="nav-btns" id="navBtns">
-  <button class="btn-secondary" id="btnBack" onclick="prevSec()" style="display:none;">← Anterior</button>
-  <button class="btn-primary" id="btnNext" onclick="nextSec()" style="margin-left:auto;">Continuar →</button>
-</div>
-</div><!-- /cot-main -->
+          <!-- Params papel -->
+          <div class="cond" id="cond-papel">
+            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px;">Parámetros de papel</div>
+            <div class="fg c2" style="margin-bottom:12px;">
+              <div class="field">
+                <label>Capas de papel</label>
+                <select class="cot-select" id="cotCapas" onchange="cotUpdateCapas()">
+                  <option value="1">1 capa</option>
+                  <option value="2">2 capas</option>
+                  <option value="3" selected>3 capas</option>
+                  <option value="4">4 capas</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Gramaje base (g/m²)</label>
+                <input class="cot-input" id="cotGramaje" type="number" placeholder="80" oninput="cotCalcDim()">
+              </div>
+            </div>
+            <div id="capasContainer"></div>
+          </div>
 
-<!-- FLOATING BUTTON -->
-<button class="fab" onclick="toggleDrawer()" id="fabBtn" style="display:none;">
-  <span>💰</span>
-  <div><div class="fab-label">Ver costo</div><div class="fab-price" id="fabPrice">$—</div></div>
+          <div id="cotDimResult" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surf2);border-radius:7px;border:1px solid var(--b);">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--t2);">Área unitaria: </span>
+            <span style="font-family:var(--mono);font-size:12px;color:var(--text);" id="cotAreaVal">—</span>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--t2);margin-left:16px;">Peso estimado: </span>
+            <span style="font-family:var(--mono);font-size:12px;color:var(--text);" id="cotPesoVal">—</span>
+          </div>
+        </div>
+
+        <div class="nav-btns">
+          <button class="btn-primary" onclick="cotNextSec()">Siguiente — Arte e impresión →</button>
+        </div>
+      </div><!-- /sec0 -->
+
+      <!-- ══ STEP 2: Arte e impresión ══ -->
+      <div id="sec1" style="display:none;">
+        <div class="card">
+          <div class="card-title"><span class="icon">🎨</span> Arte e impresión</div>
+
+          <div class="field" style="margin-bottom:14px;">
+            <label>Tipo de impresión</label>
+            <select class="cot-select" id="cotTipoImpresion" onchange="cotOnImpresionChange()">
+              <option value="sin">Sin impresión</option>
+              <option value="flexo">Flexografía</option>
+              <option value="serigrafia">Serigrafía</option>
+              <option value="rotograbado">Rotograbado</option>
+            </select>
+          </div>
+
+          <div class="cond" id="cond-impresion">
+            <div class="field" style="margin-bottom:14px;">
+              <label>Subir PDF del arte (opcional — requiere API Key de Claude)</label>
+              <div class="arte-zone" id="arteZone"
+                ondragover="event.preventDefault();this.classList.add('drag-over')"
+                ondragleave="this.classList.remove('drag-over')"
+                ondrop="cotHandleArteDrop(event)">
+                <input type="file" id="arteFile" accept=".pdf,image/*" onchange="cotHandleArte(event)">
+                <div id="arteZoneContent">
+                  <div style="font-size:28px;margin-bottom:8px;">📄</div>
+                  <div style="font-size:13px;color:var(--t2);">Arrastrá o hacé click para subir PDF / imagen del arte</div>
+                  <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:4px;">PDF, PNG, JPG — máx 10MB</div>
+                </div>
+              </div>
+              <div class="analyzing" id="cotAnalyzing">
+                <div class="spin"></div>
+                <span style="font-size:12px;color:var(--acc2);">Analizando arte con Claude IA…</span>
+              </div>
+              <div class="det-box" id="cotDetBox">
+                <div style="font-size:10px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Análisis del arte (IA)</div>
+                <div id="cotDetContent" style="font-size:12px;color:var(--t2);line-height:1.6;"></div>
+              </div>
+            </div>
+
+            <div style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:8px;">Colores / tintas</div>
+            <div style="display:grid;grid-template-columns:26px 1fr 100px 70px 70px 28px;gap:8px;padding:4px 11px;margin-bottom:4px;">
+              <span></span>
+              <span style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;">Nombre tinta</span>
+              <span style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;">Sistema</span>
+              <span style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;">Cob %</span>
+              <span style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;">g/m²</span>
+              <span></span>
+            </div>
+            <div id="cotColoresContainer"></div>
+            <button class="add-btn" onclick="cotAddColor()">+ Agregar color</button>
+
+            <div style="margin-top:14px;">
+              <div class="toggle-row" style="padding-top:14px;">
+                <div class="tl">Cliché nuevo
+                  <small>Fotopolímero o grabado de película</small>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="cotCliche" onchange="cotOnClicheChange()">
+                  <div class="toggle-track"></div>
+                  <div class="toggle-thumb"></div>
+                </label>
+              </div>
+              <div class="cond" id="cond-cliche-params">
+                <div class="fg c2" style="margin-top:10px;">
+                  <div class="field">
+                    <label>Cant. fotopolímeros</label>
+                    <input class="cot-input" id="cotCantCliche" type="number" placeholder="1" oninput="cotRecalc()">
+                  </div>
+                  <div class="field">
+                    <label>Costo por cliché ($)</label>
+                    <input class="cot-input" id="cotCostoCliche" type="number" placeholder="15000" oninput="cotRecalc()">
+                  </div>
+                </div>
+                <div class="impacto-clise" id="cotImpactoCliche">
+                  <div style="font-size:10px;font-family:var(--mono);color:var(--acc3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Impacto en precio unitario</div>
+                  <div id="cotImpactoVal" style="font-size:13px;color:var(--text);font-family:var(--mono);"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-btns">
+          <button class="btn-secondary" onclick="cotPrevSec()">← Volver</button>
+          <button class="btn-primary" onclick="cotNextSec()">Siguiente — Insumos →</button>
+        </div>
+      </div><!-- /sec1 -->
+
+      <!-- ══ STEP 3: Insumos y terminación ══ -->
+      <div id="sec2" style="display:none;">
+        <div class="card">
+          <div class="card-title"><span class="icon">⚙️</span> Insumos y terminación</div>
+
+          <div class="toggle-row">
+            <div class="tl">Film PE interno
+              <small>Bolsa interior de polietileno</small>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="cotPE" onchange="cotTogglePE()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="cond" id="cond-pe" style="padding:10px 0 4px;">
+            <div class="fg c3">
+              <div class="field">
+                <label>Espesor (micrones)</label>
+                <input class="cot-input" id="cotPEEspesor" type="number" placeholder="50" oninput="cotRecalc()">
+              </div>
+              <div class="field">
+                <label>Ancho film (mm)</label>
+                <input class="cot-input" id="cotPEAncho" type="number" placeholder="600" oninput="cotRecalc()">
+              </div>
+              <div class="field">
+                <label>Largo film (mm)</label>
+                <input class="cot-input" id="cotPELargo" type="number" placeholder="900" oninput="cotRecalc()">
+              </div>
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="tl">Cinta crepe / adhesiva
+              <small>Cierre, refuerzo o sellado</small>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="cotCrepe" onchange="cotToggleCrepe()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="cond" id="cond-crepe" style="padding:10px 0 4px;">
+            <div class="fg c2">
+              <div class="field">
+                <label>Ancho cinta (mm)</label>
+                <input class="cot-input" id="cotCrepeAncho" type="number" placeholder="50" oninput="cotRecalc()">
+              </div>
+              <div class="field">
+                <label>Metros por bolsa (m)</label>
+                <input class="cot-input" id="cotCrepeMetros" type="number" step="0.01" placeholder="0.15" oninput="cotRecalc()">
+              </div>
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="tl">Costura en fondo
+              <small>Máquina de coser automática</small>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="cotCostura" onchange="cotRecalc()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="tl">Paletizado
+              <small>Film stretch + pallet de madera</small>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="cotPaletizado" onchange="cotTogglePaletizado()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="cond" id="cond-palet" style="padding:10px 0 4px;">
+            <div class="fg c3">
+              <div class="field">
+                <label>Bolsas por pallet</label>
+                <input class="cot-input" id="cotBolsasPallet" type="number" placeholder="500" oninput="cotCalcPallet()">
+              </div>
+              <div class="field">
+                <label>Peso bolsa llena (kg)</label>
+                <input class="cot-input" id="cotPesoBolsaLlena" type="number" placeholder="25" oninput="cotCalcPallet()">
+              </div>
+              <div class="field">
+                <label>Altura pallet (cm)</label>
+                <input class="cot-input" id="cotAltPallet" type="number" placeholder="120" oninput="cotCalcPallet()">
+              </div>
+            </div>
+            <div class="pallet-result" id="cotPalletResult" style="display:none;">
+              <div style="font-size:10px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Cálculo de pallets</div>
+              <div id="cotPalletInfo" style="font-size:12px;color:var(--t2);line-height:1.6;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">🚚</span> Logística y otros gastos</div>
+          <div class="fg c2">
+            <div class="field">
+              <label>Flete estimado ($ total)</label>
+              <input class="cot-input" id="cotFlete" type="number" placeholder="0" oninput="cotRecalc()">
+            </div>
+            <div class="field">
+              <label>Otros gastos ($)</label>
+              <input class="cot-input" id="cotOtros" type="number" placeholder="0" oninput="cotRecalc()">
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-btns">
+          <button class="btn-secondary" onclick="cotPrevSec()">← Volver</button>
+          <button class="btn-primary" onclick="cotNextSec()">Ver resumen →</button>
+        </div>
+      </div><!-- /sec2 -->
+
+      <!-- ══ STEP 4: Resumen ══ -->
+      <div id="sec3" style="display:none;">
+        <div class="card">
+          <div class="card-title"><span class="icon">📋</span> Resumen del pedido</div>
+          <div class="resumen-grid" id="cotResumenGrid">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">💰</span> Precio final</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--surf2);border-radius:7px;">
+              <span style="font-size:12px;color:var(--t2);">Costo total estimado</span>
+              <span style="font-family:var(--mono);font-size:13px;color:var(--text);" id="cotResumenCostoTotal">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--surf2);border-radius:7px;">
+              <span style="font-size:12px;color:var(--t2);">Costo por unidad</span>
+              <span style="font-family:var(--mono);font-size:13px;color:var(--text);" id="cotResumenCostoUnit">—</span>
+            </div>
+            <div style="border-top:1px solid var(--b);padding-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <div class="field" style="min-width:140px;flex:1;">
+                <label>Margen de ganancia (%)</label>
+                <div class="iu">
+                  <input class="cot-input" id="cotMargen" type="number" placeholder="30" min="0" max="500" value="30" oninput="cotRecalc()">
+                  <span class="unit">%</span>
+                </div>
+              </div>
+              <div style="flex:2;min-width:200px;">
+                <div class="price-final">
+                  <div style="font-size:10px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Precio de venta sugerido</div>
+                  <div class="pf-total" id="cotPrecioFinal">—</div>
+                  <div style="font-size:11px;font-family:var(--mono);color:var(--t2);margin-top:4px;" id="cotPrecioUnitFinal">— por unidad</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--surf2);border-radius:7px;">
+              <span style="font-size:12px;color:var(--t2);">Peso total del pedido (KG est.)</span>
+              <span style="font-family:var(--mono);font-size:13px;color:var(--text);" id="cotKgTotal">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-btns">
+          <button class="btn-secondary" onclick="cotPrevSec()">← Volver</button>
+          <button class="btn-primary" onclick="cotNuevaCotizacion()" style="background:var(--ok);color:#0e0f11;">✓ Nueva cotización</button>
+        </div>
+      </div><!-- /sec3 -->
+
+    </div><!-- /cot-wrapper -->
+  </div><!-- /panel-cotizador -->
+
+  <!-- ══ PANEL: HISTORIAL ══ -->
+  <div class="panel" id="panel-historial">
+    <div class="hist-placeholder">
+      <div class="hist-icon">📊</div>
+      <div class="hist-title">Historial de Ventas</div>
+      <div class="hist-sub">Próximamente — En esta sección vas a poder cargar y analizar el historial completo de ventas.</div>
+      <ul class="hist-list">
+        <li>Ventas por cliente y por período</li>
+        <li>Análisis por tipo de bolsa</li>
+        <li>Evolución de precios de venta</li>
+        <li>Comparación con costos</li>
+        <li>Exportación a PDF/Excel</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- FAB -->
+<button class="fab" id="cotFab" onclick="cotToggleDrawer(true)">
+  💰 <span>Ver costos</span> <span class="fab-price" id="cotFabPrice">—</span>
 </button>
 
-<!-- OVERLAY + SIDEBAR -->
-<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
-<div class="sidebar" id="sidebar">
-  <div class="drawer-header">
-    <div class="drawer-title">Resumen de costo</div>
-    <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="cotDrawerOverlay" onclick="cotToggleDrawer(false)"></div>
+
+<!-- SIDEBAR DRAWER -->
+<div class="sidebar" id="cotSidebar">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+    <span style="font-family:var(--disp);font-size:15px;font-weight:800;color:var(--text);">Desglose de costos</span>
+    <button onclick="cotToggleDrawer(false)" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:20px;line-height:1;padding:0 4px;">×</button>
   </div>
-  <div>
-    <div class="cost-section-title">Materias primas</div>
-    <div class="cost-line"><span class="cn">Papel / sustrato</span><span class="cv" id="sPapel"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Rafia / tela</span><span class="cv" id="sRafia"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Lám. BioPP / mezcla</span><span class="cv" id="sMezcla"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Tinta</span><span class="cv" id="sTinta"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">PE / lámina</span><span class="cv" id="sPE"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Crepe / hilo</span><span class="cv" id="sCrepe"><span class="skel"></span></span></div>
-  </div>
-  <div class="cdiv"></div>
-  <div>
-    <div class="cost-section-title">Proceso fabril</div>
-    <div class="cost-line"><span class="cn">Impresión</span><span class="cv" id="sImp"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Laminadora</span><span class="cv" id="sLam"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Tubera</span><span class="cv" id="sTub"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Costura</span><span class="cv" id="sCos"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Paletizado</span><span class="cv" id="sPal"><span class="skel"></span></span></div>
-  </div>
-  <div class="cdiv"></div>
-  <div>
-    <div class="cost-section-title">Otros costos</div>
-    <div class="cost-line"><span class="cn">Clisé absorbido</span><span class="cv warn" id="sClise"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Costos fijos (30%)</span><span class="cv" id="sFijos"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Film stretch</span><span class="cv" id="sFilm"><span class="skel"></span></span></div>
-    <div class="cost-line"><span class="cn">Logística</span><span class="cv" id="sLog"><span class="skel"></span></span></div>
-  </div>
-  <div class="cdiv"></div>
+
+  <div id="cotCostLines" style="display:flex;flex-direction:column;"></div>
+
   <div class="cost-total">
-    <div><div class="ct-label">Costo fabril / bolsa</div><div class="ct-sub" id="ctSub">total: —</div></div>
-    <div style="text-align:right;"><div class="ct-val" id="ctVal">$—</div></div>
+    <div>
+      <div style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Costo total</div>
+      <div class="ct-val" id="cotDrawerTotal">—</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Por unidad</div>
+      <div style="font-family:var(--mono);font-size:14px;color:var(--text);" id="cotDrawerUnit">—</div>
+    </div>
   </div>
-  <div class="margin-row">
-    <label>Margen ganancia</label>
-    <div class="iu" style="width:65px;"><input type="number" id="margenPct" value="25" min="0" max="300" step="1" oninput="recalc()"><span class="unit">%</span></div>
+
+  <div>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Margen de ganancia</div>
+    <div class="iu">
+      <input class="cot-input" id="cotDrawerMargen" type="number" placeholder="30" min="0" max="500" value="30" oninput="cotSyncMargen(this.value)">
+      <span class="unit">%</span>
+    </div>
   </div>
+
   <div class="price-final">
-    <div class="pf-label">Precio de venta sugerido</div>
-    <div class="pf-total" id="pfTotal">$—</div>
-    <div class="pf-unit" id="pfUnit">por bolsa · total: $—</div>
+    <div style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Precio de venta sugerido</div>
+    <div class="pf-total" id="cotDrawerPrecio">—</div>
+    <div style="font-size:11px;font-family:var(--mono);color:var(--t2);margin-top:4px;" id="cotDrawerPrecioUnit">— por unidad</div>
   </div>
-  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:9px;">KG por pedido (incl. 5% desperdicio)</div>
-    <div id="kgPedidoList" style="font-family:var(--mono);font-size:11px;color:var(--text2);">—</div>
-  </div>
-  <div style="flex:1;"></div>
-  <div class="cta-group">
-    <button class="btn-primary" onclick="genCotizacion()">Guardar cotización</button>
-    <button class="btn-secondary" onclick="limpiar()">Nuevo pedido</button>
+
+  <div style="padding:10px 12px;background:var(--surf2);border-radius:7px;border:1px solid var(--b);">
+    <div style="font-size:9px;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Peso total pedido (estimado)</div>
+    <div style="font-family:var(--mono);font-size:14px;color:var(--text);" id="cotDrawerKg">— KG</div>
   </div>
 </div>
-</div><!-- /cot-wrap -->
-</div><!-- /panel-cotizador -->
 
-<!-- ══════ TAB: HISTORIAL ══════ -->
-<div class="panel" id="panel-historial">
-  <div class="hist-wrap">
-    <div class="hist-icon">📊</div>
-    <div class="hist-title">Historial de Ventas</div>
-    <div class="hist-sub">
-      Próximamente podrás cargar el historial completo de ventas para análisis de datos:<br>
-      evolución de precios, clientes top, mix de productos, márgenes por tipo de bolsa y más.
+<!-- API KEY MODAL -->
+<div class="apikey-modal" id="apikeyModal">
+  <div class="apikey-card">
+    <div class="apikey-title">🔑 API Key de Anthropic</div>
+    <div class="apikey-desc">Ingresá tu API Key de Anthropic (Claude) para habilitar el análisis automático de artes en PDF e imágenes. La clave se guarda únicamente en tu navegador (localStorage) y nunca se envía a servidores de terceros.</div>
+    <div class="field">
+      <label>Anthropic API Key</label>
+      <input class="cot-input" id="apikeyInput" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
     </div>
-    <div class="hist-badge">
-      <div class="dot"></div>
-      EN DESARROLLO — próxima fase
+    <div id="apikeyStatus" style="font-size:11px;font-family:var(--mono);color:var(--t3);margin-top:8px;"></div>
+    <div class="apikey-btns">
+      <button class="btn-secondary" onclick="closeApiKeyModal()" style="flex:1;">Cancelar</button>
+      <button class="btn-primary" onclick="saveApiKey()" style="flex:2;">Guardar clave</button>
     </div>
   </div>
 </div>
 
-</div><!-- /app-ventas -->
-
-<div class="notif" id="notif"></div>
+<!-- NOTIF TOAST -->
+<div id="notif"></div>
 
 <script>
-if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
+// ══════════════════════════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════════════════════════
+const CLIENT_ID  = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
+const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email';
+const PROD_SHEET_ID_PERMISOS = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
+const MODULE_KEY = 'Ventas';
 
-// ─── AUTH ────────────────────────────────────────────────────────────────────
-const CLIENT_ID_V = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
-const SCOPES_V    = 'https://www.googleapis.com/auth/spreadsheets.readonly';
-const PROD_SHEET_ID_PERMISOS = '1__VAhSwaLtF4xGjtuMI_Gw2yWpBzsNKZNy0tgBEAYJA';
-const MODULE_KEY  = 'Ventas';
-let tokenClientV = null, accessTokenV = null, tokenRefreshTimerV = null;
+let accessToken       = null;
+let tokenClient       = null;
+let tokenRefreshTimer = null;
 
 async function checkPermission(token, email) {
   try {
@@ -678,596 +811,841 @@ async function checkPermission(token, email) {
   }
 }
 
-window.onload = function () {
+window.addEventListener('load', () => {
   const initGSI = () => {
     if (typeof google === 'undefined' || !google.accounts) { setTimeout(initGSI, 200); return; }
-    tokenClientV = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID_V, scope: SCOPES_V, callback: onTokenReceivedV,
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: onTokenReceived,
     });
   };
   initGSI();
-};
+  // Show current API key status in modal if opened
+  const key = localStorage.getItem('alamo_anthropic_key');
+  if (key) {
+    const st = document.getElementById('apikeyStatus');
+    if (st) st.textContent = 'Clave guardada: ' + key.substring(0, 12) + '…';
+  }
+});
 
 function handleLogin() {
-  if (!tokenClientV) { alert('Google Identity Services cargando, intentá de nuevo.'); return; }
-  tokenClientV.requestAccessToken({ prompt: 'select_account' });
+  if (!tokenClient) { alert('Google Identity Services aún cargando, intentá de nuevo.'); return; }
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
-async function onTokenReceivedV(resp) {
+async function onTokenReceived(resp) {
   if (resp.error) { console.error('Auth error:', resp); return; }
-  accessTokenV = resp.access_token;
-  document.getElementById('loginChecking').classList.add('on');
+  accessToken = resp.access_token;
+
   try {
     const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessTokenV}` }
+      headers: { Authorization: `Bearer ${accessToken}` }
     });
     const uData = await uResp.json();
     const email = (uData.email || '').toLowerCase();
-    const hasAccess = await checkPermission(accessTokenV, email);
+
+    const hasAccess = await checkPermission(accessToken, email);
     if (!hasAccess) {
-      google.accounts.oauth2.revoke(accessTokenV, () => {});
-      accessTokenV = null;
+      google.accounts.oauth2.revoke(accessToken, () => {});
+      accessToken = null;
       document.getElementById('loginOverlay').style.display = 'none';
-      document.getElementById('loginChecking').classList.remove('on');
       document.getElementById('deniedEmail').textContent = uData.email || email;
-      document.getElementById('accessDenied').style.display = 'flex';
+      const ad = document.getElementById('accessDenied');
+      ad.style.display = 'flex';
       return;
     }
-    document.getElementById('userEmailV').textContent = uData.email || email;
-    document.getElementById('userBadgeV').style.display = 'flex';
-    document.getElementById('logoutBtnV').style.display = 'block';
-  } catch (e) {
-    console.warn('No se pudo verificar permisos:', e);
+
+    document.getElementById('userEmailLabel').textContent = uData.email || email;
+    document.getElementById('userBadge').style.display = 'flex';
+  } catch(e) {
+    console.warn('No se pudo verificar email:', e);
   }
-  document.getElementById('loginChecking').classList.remove('on');
+
   document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('app-ventas').classList.add('visible');
-  if (tokenRefreshTimerV) clearInterval(tokenRefreshTimerV);
-  tokenRefreshTimerV = setInterval(() => { tokenClientV.requestAccessToken({ prompt: '' }); }, 55 * 60 * 1000);
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('logoutBtn').style.display = 'flex';
+  cotUpdateFABVisibility();
+
+  if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+  tokenRefreshTimer = setInterval(() => {
+    tokenClient.requestAccessToken({ prompt: '' });
+  }, 55 * 60 * 1000);
 }
 
 function handleLogout() {
-  if (accessTokenV) google.accounts.oauth2.revoke(accessTokenV, () => {});
-  accessTokenV = null;
-  if (tokenRefreshTimerV) clearInterval(tokenRefreshTimerV);
-  document.getElementById('app-ventas').classList.remove('visible');
-  document.getElementById('userBadgeV').style.display = 'none';
-  document.getElementById('logoutBtnV').style.display = 'none';
+  if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+  if (accessToken) { google.accounts.oauth2.revoke(accessToken, () => {}); accessToken = null; }
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('userBadge').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('cotFab').classList.remove('visible');
 }
 
-// ── API KEY ───────────────────────────────────────────────────────────────────
-let ANTHROPIC_KEY = localStorage.getItem('alamo_api_key') || '';
-function saveApiKey() {
-  const v = document.getElementById('apiKeyInput').value.trim();
-  if (v) { ANTHROPIC_KEY = v; localStorage.setItem('alamo_api_key', v); document.getElementById('apiBanner').style.display = 'none'; notify('API Key guardada ✓', 'success'); }
-}
-function initApiBanner() {
-  if (ANTHROPIC_KEY) { document.getElementById('apiBanner').style.display = 'none'; }
-  else { document.getElementById('apiKeyInput').value = ''; }
-}
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════════════════════
+let activeTab = 'cotizador';
 
-// ── TAB SWITCH ────────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  document.querySelectorAll('.htab').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(tab === 'cotizador' ? 'cotiz' : 'histor')));
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === tab));
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
-  const fab = document.getElementById('fabBtn');
-  if (fab) fab.style.display = tab === 'cotizador' ? 'flex' : 'none';
+  cotUpdateFABVisibility();
 }
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-const S = { sec: 0, tipoBolsa: null, tipoNombre: '', capas: [], detected: null, artBase64: null, artMediaType: null, cobPct: null };
-const SECS = ['sec0','sec1','sec2','sec3'];
-
-function goSec(i) {
-  SECS.forEach((id, j) => document.getElementById(id).style.display = j === i ? 'block' : 'none');
-  S.sec = i; updDots(); updNav();
-  document.getElementById('pFill').style.width = ((i + 1) / 4 * 100) + '%';
-  if (i === 3) buildResumen();
-}
-function nextSec() { if (S.sec < 3) goSec(S.sec + 1); }
-function prevSec() { if (S.sec > 0) goSec(S.sec - 1); }
-function updDots() {
-  for (let i = 1; i <= 4; i++) {
-    const d = document.getElementById('sd' + i);
-    d.className = 'step-dot';
-    if (i - 1 < S.sec) d.classList.add('done');
-    else if (i - 1 === S.sec) d.classList.add('active');
+function cotUpdateFABVisibility() {
+  const fab = document.getElementById('cotFab');
+  if (activeTab === 'cotizador' && document.getElementById('app').classList.contains('visible')) {
+    fab.classList.add('visible');
+  } else {
+    fab.classList.remove('visible');
   }
 }
-function updNav() {
-  document.getElementById('btnBack').style.display = S.sec > 0 ? 'block' : 'none';
-  const nb = document.getElementById('btnNext');
-  nb.textContent = S.sec === 3 ? 'Guardar cotización ✓' : 'Continuar →';
-  nb.onclick = S.sec === 3 ? genCotizacion : nextSec;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NOTIF TOAST
+// ══════════════════════════════════════════════════════════════════════════════
+let _notifTimer = null;
+function cotNotify(msg, borderColor) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.style.borderColor = borderColor || 'var(--b2)';
+  el.classList.add('show');
+  if (_notifTimer) clearTimeout(_notifTimer);
+  _notifTimer = setTimeout(() => el.classList.remove('show'), 3200);
 }
 
-// ── TIPO DE BOLSA ─────────────────────────────────────────────────────────────
-function selBolsa(tipo, nombre, el) {
-  S.tipoBolsa = tipo; S.tipoNombre = nombre;
+// ══════════════════════════════════════════════════════════════════════════════
+// API KEY MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function showApiKeyModal() {
+  const current = localStorage.getItem('alamo_anthropic_key') || '';
+  document.getElementById('apikeyInput').value = current;
+  const st = document.getElementById('apikeyStatus');
+  st.textContent = current ? 'Clave actual: ' + current.substring(0, 12) + '…' : 'No hay clave guardada.';
+  document.getElementById('apikeyModal').classList.add('open');
+}
+
+function closeApiKeyModal() {
+  document.getElementById('apikeyModal').classList.remove('open');
+}
+
+function saveApiKey() {
+  const val = document.getElementById('apikeyInput').value.trim();
+  if (!val) {
+    localStorage.removeItem('alamo_anthropic_key');
+    cotNotify('API Key eliminada', 'var(--warn)');
+  } else {
+    localStorage.setItem('alamo_anthropic_key', val);
+    cotNotify('API Key guardada ✓', 'var(--ok)');
+  }
+  closeApiKeyModal();
+}
+
+document.getElementById('apikeyModal').addEventListener('click', function(e) {
+  if (e.target === this) closeApiKeyModal();
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — STATE
+// ══════════════════════════════════════════════════════════════════════════════
+const COT_S = {
+  sec: 0,
+  tipoBolsa: null,
+  tipoNombre: '',
+  artBase64: null,
+  artMediaType: null,
+  costos: {},
+  _kgMaterial: 0,
+  _total: 0
+};
+
+// Placeholder prices (ARS)
+const COT_PR = {
+  rafia_kg:        1800,   // $/kg rafia PP woven
+  papel_kg:        1200,   // $/kg papel kraft
+  pe_kg:           2100,   // $/kg PE
+  tinta_kg:        4500,   // $/kg tinta flexo
+  crepe_m:          45,    // $/m cinta crepe
+  costura_u:         8,    // $/bolsa costura
+  palet_u:        2200,    // $/pallet madera
+  film_stretch_kg: 1600,   // $/kg film stretch
+  mano_obra_u:      12,    // $/bolsa mano de obra
+  overhead_pct:   0.08,    // 8% overhead
+};
+
+let cotColorCount = 0;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — NAVIGATION
+// ══════════════════════════════════════════════════════════════════════════════
+function cotGoSec(n) {
+  if (n > COT_S.sec && !cotValidateSec(COT_S.sec)) return;
+  document.getElementById('sec' + COT_S.sec).style.display = 'none';
+  COT_S.sec = n;
+  document.getElementById('sec' + n).style.display = 'block';
+  cotUpdateStepUI();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (n === 3) cotBuildResumen();
+}
+
+function cotNextSec() {
+  if (!cotValidateSec(COT_S.sec)) return;
+  if (COT_S.sec >= 3) return;
+  cotGoSec(COT_S.sec + 1);
+}
+
+function cotPrevSec() {
+  if (COT_S.sec <= 0) return;
+  cotGoSec(COT_S.sec - 1);
+}
+
+function cotValidateSec(n) {
+  if (n === 0) {
+    if (!document.getElementById('cotCliente').value.trim()) {
+      cotNotify('Ingresá el nombre del cliente', 'var(--acc3)'); return false;
+    }
+    const qty = parseFloat(document.getElementById('cotCantidad').value);
+    if (!qty || qty < 1) {
+      cotNotify('Ingresá la cantidad de bolsas', 'var(--acc3)'); return false;
+    }
+    if (!COT_S.tipoBolsa) {
+      cotNotify('Seleccioná el tipo de bolsa', 'var(--acc3)'); return false;
+    }
+  }
+  return true;
+}
+
+function cotUpdateStepUI() {
+  for (let i = 0; i <= 3; i++) {
+    const dot = document.getElementById('sdot' + i);
+    dot.className = 'step-dot';
+    if (i < COT_S.sec) dot.classList.add('done');
+    else if (i === COT_S.sec) dot.classList.add('active');
+  }
+  const pct = (COT_S.sec / 3) * 100;
+  document.getElementById('cotProgress').style.width = pct + '%';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — BOLSA SELECTOR
+// ══════════════════════════════════════════════════════════════════════════════
+function cotSelBolsa(el) {
   document.querySelectorAll('.bo').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
-  show('secDim', true);
-  show('secRafiaLam',  tipo === 'rafia_lam');
-  show('secRafiaConv', tipo === 'rafia_conv');
-  show('secBiopp',     tipo === 'biopp');
-  show('secPolipapel', tipo === 'polipapel');
-  show('secCapas',     tipo === 'papel');
-  show('secPE',        tipo === 'papel');
-  show('secCrepe',     ['papel','polipapel'].includes(tipo));
-  if (tipo === 'papel' && S.capas.length === 0) initCapas(3);
-  if (tipo === 'polipapel' && S.capas.length === 0) initCapas(1);
-  // Show FAB
-  document.getElementById('fabBtn').style.display = 'flex';
-  recalc();
-  notify('Tipo: ' + nombre, 'success');
+  COT_S.tipoBolsa = el.dataset.tipo;
+  COT_S.tipoNombre = el.querySelector('.bo-name').textContent;
+  const isRafia = COT_S.tipoBolsa === 'saco_rafia' || COT_S.tipoBolsa === 'big_bag';
+  const isPapel = COT_S.tipoBolsa === 'saco_papel';
+  cotSetCond('rafia', isRafia);
+  cotSetCond('papel', isPapel);
+  cotRecalc();
 }
 
-// ── CAPAS PAPEL ───────────────────────────────────────────────────────────────
-const GRAMAJES_DEFAULT = [80, 70, 70, 60, 60];
-let capaCount = 0;
-function initCapas(n) {
-  S.capas = []; document.getElementById('capasList').innerHTML = '';
-  for (let i = 0; i < n; i++) addCapaRow(i);
-}
-function addCapa() {
-  if (S.capas.length >= 5) { notify('Máximo 5 capas', 'warn'); return; }
-  addCapaRow(S.capas.length); recalc();
-}
-function rmCapa() {
-  if (S.capas.length <= 1) { notify('Mínimo 1 capa', 'warn'); return; }
-  const list = document.getElementById('capasList');
-  list.removeChild(list.lastChild); S.capas.pop(); recalc();
-}
-function addCapaRow(i) {
-  const id = 'capa_' + capaCount++;
-  S.capas.push(id);
-  const row = document.createElement('div');
-  row.id = id;
-  row.style.cssText = 'display:grid;grid-template-columns:28px 1fr 90px 60px;gap:6px;align-items:center;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;';
-  row.innerHTML = `<span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;">${i+1}</span>
-    <select onchange="recalc()" style="font-size:12px;padding:7px 9px;"><option value="blanco" ${i===0?'selected':''}>Blanco</option><option value="natural">Natural (Kraft)</option><option value="marron_cal">Marrón Calandrado</option></select>
-    <div style="position:relative;"><input type="number" value="${GRAMAJES_DEFAULT[i]||80}" min="40" max="150" style="padding-right:38px;" oninput="recalc()"><span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--text3);">g/m²</span></div>
-    <div style="font-family:var(--mono);font-size:11px;color:var(--accent2);padding:0 6px;text-align:center;" class="capa-kg-${i}">—</div>`;
-  document.getElementById('capasList').appendChild(row);
+function cotSetCond(id, show) {
+  const el = document.getElementById('cond-' + id);
+  if (el) el.classList.toggle('on', !!show);
 }
 
-// ── DIMENSIONES ───────────────────────────────────────────────────────────────
-function calcDim() {
-  const largo  = parseFloat(document.getElementById('dLargo').value)  || 0;
-  const ancho  = parseFloat(document.getElementById('dAncho').value)  || 0;
-  const fuelle = parseFloat(document.getElementById('dFuelle').value) || 0;
-  if (!largo || !ancho) { document.getElementById('dimCalcBox').style.display = 'none'; return null; }
-  const isPapel = ['papel','polipapel'].includes(S.tipoBolsa);
-  const anchoReal = isPapel ? (ancho*2)+(fuelle*2)+3 : (ancho*2)+fuelle;
-  const areaArte = largo * anchoReal;
-  const areaM2   = areaArte / 10000;
-  document.getElementById('dimCalcBox').style.display = 'block';
-  document.getElementById('dimCalcGrid').innerHTML = `
-    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">LARGO</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent2)">${largo.toFixed(1)} cm</div></div>
-    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">ANCHO REAL</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent2)">${anchoReal.toFixed(1)} cm</div></div>
-    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">ÁREA ARTE</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent)">${areaArte.toFixed(0)} cm²</div></div>
-    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">ÁREA M²</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent)">${areaM2.toFixed(4)} m²</div></div>`;
-  return { largo, ancho, anchoReal, fuelle, areaArte, areaM2 };
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — DIMENSIONS
+// ══════════════════════════════════════════════════════════════════════════════
+function cotCalcDim() {
+  const ancho  = parseFloat(document.getElementById('cotAncho').value)  || 0;
+  const largo  = parseFloat(document.getElementById('cotLargo').value)  || 0;
+  const fuelle = parseFloat(document.getElementById('cotFuelle').value) || 0;
+  if (!ancho || !largo) {
+    document.getElementById('cotDimResult').style.display = 'none';
+    cotRecalc();
+    return;
+  }
+  const areaM2 = ((ancho + fuelle) * 2 * largo) / 1e6;
+  let pesoEst = null;
+  if (COT_S.tipoBolsa === 'saco_rafia' || COT_S.tipoBolsa === 'big_bag') {
+    const trama    = parseFloat(document.getElementById('cotTrama').value)    || 10;
+    const urdimbre = parseFloat(document.getElementById('cotUrdimbre').value) || 10;
+    const dtex     = parseFloat(document.getElementById('cotDtex').value)     || 900;
+    const gm2 = (trama + urdimbre) * dtex / 10000;
+    pesoEst = areaM2 * gm2 * 1000; // grams
+  } else if (COT_S.tipoBolsa === 'saco_papel') {
+    const gramaje = parseFloat(document.getElementById('cotGramaje').value) || 80;
+    const capas   = parseInt(document.getElementById('cotCapas').value)     || 3;
+    pesoEst = areaM2 * gramaje * capas;
+  } else if (COT_S.tipoBolsa === 'bolsa_pe') {
+    const esp = 50; // default micrones
+    pesoEst = areaM2 * esp * 0.00092 * 1000; // g
+  }
+  document.getElementById('cotDimResult').style.display = 'block';
+  document.getElementById('cotAreaVal').textContent = areaM2.toFixed(4) + ' m²';
+  document.getElementById('cotPesoVal').textContent = pesoEst !== null ? pesoEst.toFixed(1) + ' g/bolsa' : '—';
+  cotRecalc();
 }
 
-// ── ARTE / PDF ────────────────────────────────────────────────────────────────
-async function handleArte(e) {
-  const file = e.target.files[0]; if (!file) return;
-  document.getElementById('arteEmpty').style.display = 'none';
-  document.getElementById('arteLoaded').style.display = 'block';
-  document.getElementById('arteFileName').textContent = file.name;
-  document.getElementById('arteZone').classList.add('has-file');
-  document.getElementById('analyzingBox').classList.add('on');
-  document.getElementById('detBox').classList.remove('on');
-  S.artBase64 = null; S.artMediaType = null;
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — CAPAS DE PAPEL
+// ══════════════════════════════════════════════════════════════════════════════
+function cotUpdateCapas() {
+  const n = parseInt(document.getElementById('cotCapas').value) || 3;
+  const cont = document.getElementById('capasContainer');
+  cont.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const gram = [80, 90, 70, 80][i] || 80;
+    cont.innerHTML += `
+      <div class="fg c3" style="margin-bottom:8px;">
+        <div class="field">
+          <label>Capa ${i+1} — Tipo</label>
+          <select class="cot-select" onchange="cotRecalc()">
+            <option value="kraft">Kraft</option>
+            <option value="extensible">Extensible</option>
+            <option value="crepe">Crepe</option>
+            <option value="pe_lam">PE laminado</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Gramaje (g/m²)</label>
+          <input class="cot-input" type="number" placeholder="${gram}" oninput="cotRecalc()">
+        </div>
+        <div class="field">
+          <label>Micrones (si aplica)</label>
+          <input class="cot-input" type="number" placeholder="—" oninput="cotRecalc()">
+        </div>
+      </div>`;
+  }
+  cotRecalc();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — IMPRESION TOGGLE
+// ══════════════════════════════════════════════════════════════════════════════
+function cotOnImpresionChange() {
+  const val = document.getElementById('cotTipoImpresion').value;
+  cotSetCond('impresion', val !== 'sin');
+  cotRecalc();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — ARTE UPLOAD
+// ══════════════════════════════════════════════════════════════════════════════
+function cotHandleArteDrop(e) {
+  e.preventDefault();
+  document.getElementById('arteZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) cotProcessArteFile(file);
+}
+
+function cotHandleArte(e) {
+  const file = e.target.files[0];
+  if (file) cotProcessArteFile(file);
+}
+
+async function cotProcessArteFile(file) {
+  if (file.size > 10 * 1024 * 1024) {
+    cotNotify('El archivo supera 10MB', 'var(--acc3)'); return;
+  }
+  const zone = document.getElementById('arteZone');
+  const content = document.getElementById('arteZoneContent');
+  zone.classList.add('has-file');
+  content.innerHTML = `
+    <div style="font-size:13px;color:var(--ok);">✓ ${file.name}</div>
+    <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:4px;">${(file.size/1024).toFixed(0)} KB — listo para analizar</div>`;
   try {
     if (file.type === 'application/pdf') {
-      const ab = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({data: ab}).promise;
-      const page = await pdf.getPage(1);
-      const vp = page.getViewport({scale: 1.5});
-      const canvas = document.getElementById('arteCanvas');
-      canvas.width = vp.width; canvas.height = vp.height;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({canvasContext: ctx, viewport: vp}).promise;
-      document.getElementById('canvasPreview').classList.add('on');
-      S.artBase64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-      S.artMediaType = 'image/jpeg';
+      await cotExtractPDFPage(file);
     } else {
-      const b64url = await toBase64(file);
-      S.artBase64 = b64url.split(',')[1]; S.artMediaType = file.type;
-      const img = document.createElement('img');
-      img.src = b64url; img.style.cssText = 'width:100%;display:block;';
-      const cp = document.getElementById('canvasPreview');
-      cp.innerHTML = ''; cp.appendChild(img); cp.classList.add('on');
+      await cotReadImageFile(file);
     }
-    if (!ANTHROPIC_KEY) { notify('Configurá la API Key para análisis IA', 'warn'); return; }
-    await analyzeDimensions(S.artBase64, S.artMediaType);
-    enableAnalyzeBtn();
-  } catch(err) {
-    console.error(err);
-    const m = file.name.match(/(\d+)[x×_](\d+)[x×_](\d+)/i);
-    if (m) { S.detected = {largo:+m[1], ancho:+m[2], fuelle:+m[3]}; showDetected(S.detected); }
-    else notify('No se pudo analizar. Ingresá los datos manualmente.', 'error');
-  } finally { document.getElementById('analyzingBox').classList.remove('on'); }
+    await cotAnalyzeWithAI();
+  } catch(e) {
+    console.warn('Arte processing error:', e);
+    cotNotify('Error al procesar el archivo', 'var(--acc3)');
+  }
 }
-function toBase64(file) { return new Promise((res,rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsDataURL(file); }); }
 
-async function analyzeDimensions(base64, mediaType) {
-  const prompt = `Analizá esta imagen de arte de bolsa industrial. Extraé SOLO las dimensiones escritas en texto. Formato típico: "Medida LARGO x ANCHO x FUELLE" en cm. FUELLE puede ser 0. Respondé SOLO JSON: {"largo":numero_o_null,"ancho":numero_o_null,"fuelle":numero}`;
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 200,
-      messages: [{role:'user', content:[{type:'image', source:{type:'base64', media_type:mediaType, data:base64}},{type:'text', text:prompt}]}]})
+async function cotExtractPDFPage(file) {
+  const arrayBuf = await file.arrayBuffer();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  const page = await pdfDoc.getPage(1);
+  const viewport = page.getViewport({ scale: 1.5 });
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  const dataUrl = canvas.toDataURL('image/png');
+  COT_S.artBase64 = dataUrl.split(',')[1];
+  COT_S.artMediaType = 'image/png';
+}
+
+async function cotReadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      COT_S.artBase64 = dataUrl.split(',')[1];
+      COT_S.artMediaType = file.type || 'image/png';
+      resolve();
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
-  const data = await resp.json();
-  const m = (data.content?.[0]?.text || '').match(/\{[\s\S]*\}/);
-  if (!m) throw new Error('No JSON');
-  S.detected = JSON.parse(m[0]);
-  showDetected(S.detected);
 }
 
-function showDetected(r) {
-  document.getElementById('detL').innerHTML = r.largo ? `${r.largo}<span class="u">cm</span>` : '—';
-  document.getElementById('detA').innerHTML = r.ancho ? `${r.ancho}<span class="u">cm</span>` : '—';
-  document.getElementById('detF').innerHTML = r.fuelle != null ? `${r.fuelle}<span class="u">cm</span>` : '0 cm';
-  document.getElementById('detC').textContent = 'Cargá pantones y analizá cobertura';
-  document.getElementById('detBox').classList.add('on');
-}
-function applyDetected() {
-  const d = S.detected; if (!d) return;
-  if (d.largo) document.getElementById('dLargo').value = d.largo;
-  if (d.ancho) document.getElementById('dAncho').value = d.ancho;
-  if (d.fuelle != null) document.getElementById('dFuelle').value = d.fuelle || 0;
-  show('secDim', true); recalc(); notify('Dimensiones aplicadas ✓', 'success');
-}
-
-const az = document.getElementById('arteZone');
-az.addEventListener('dragover', e => { e.preventDefault(); az.classList.add('drag-over'); });
-az.addEventListener('dragleave', () => az.classList.remove('drag-over'));
-az.addEventListener('drop', e => { e.preventDefault(); az.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('arteFile').files = dt.files; handleArte({target:{files:[f]}}); } });
-
-// ── COLORS ────────────────────────────────────────────────────────────────────
-let colorIdx = 0;
-function addColor(nombre='', pantone='', hex='#444444') {
-  const cnt = document.getElementById('colorList').children.length;
-  if (cnt >= 6) { notify('Máximo 6 colores', 'warn'); return; }
-  const id = 'col_' + colorIdx++;
-  const div = document.createElement('div');
-  div.id = id; div.className = 'color-row';
-  div.innerHTML = `<input type="color" class="color-swatch" value="${hex}">
-    <div class="pantone-combo"><input type="text" placeholder="Nombre (ej: AZUL REFLEX)" value="${nombre}" style="font-size:12px;" oninput="enableAnalyzeBtn()"><input type="text" placeholder="Nro." value="${pantone}" style="font-size:12px;"></div>
-    <div class="pct-val empty" id="pct_${id}">—</div>
-    <div class="area-val" id="area_${id}">—</div>
-    <button class="rm" onclick="rmColor('${id}')">×</button>`;
-  document.getElementById('colorList').appendChild(div);
-  updColorCount();
-}
-function rmColor(id) { document.getElementById(id)?.remove(); updColorCount(); enableAnalyzeBtn(); recalc(); }
-function updColorCount() {
-  const cnt = document.getElementById('colorList').children.length;
-  document.getElementById('colorCount').textContent = cnt + (cnt === 1 ? ' color' : ' colores');
-  document.getElementById('addColorBtn').disabled = cnt >= 6;
-  recalc();
-}
-function enableAnalyzeBtn() {
-  const btn = document.getElementById('analyzeCobBtn');
-  if (btn) btn.disabled = !(S.artBase64 && document.getElementById('colorList').children.length > 0 && ANTHROPIC_KEY);
-}
-function updCobResult(areaArte, totalPct, areImp, areLibre) {
-  document.getElementById('cobResult').style.display = 'grid';
-  const p = document.getElementById('cobPctVal');
-  p.textContent = totalPct.toFixed(2) + '%';
-  p.className = 'cob-val ' + (totalPct > 80 ? 'hi' : totalPct > 50 ? 'warn' : 'ok');
-  document.getElementById('cobAreaVal').textContent = areImp.toFixed(1) + ' cm²';
-  document.getElementById('cobLibreVal').textContent = areLibre.toFixed(1) + ' cm²';
-}
-
-async function analyzeCoverageWithAI() {
-  if (!S.artBase64) { notify('Primero cargá el arte', 'warn'); return; }
-  if (!ANTHROPIC_KEY) { notify('Configurá la API Key primero', 'warn'); return; }
-  const rows = document.querySelectorAll('#colorList .color-row');
-  if (!rows.length) { notify('Cargá al menos un pantone', 'warn'); return; }
-  const dim = calcDim(); if (!dim) { notify('Completá las dimensiones', 'warn'); return; }
-  const ab = document.getElementById('analyzingBox');
-  ab.classList.add('on'); document.getElementById('analyzingText').textContent = 'CALCULANDO COBERTURA REAL...';
-  const coloresInfo = [];
-  rows.forEach(row => {
-    const inp = row.querySelectorAll('input[type=text]');
-    const n = inp[0]?.value?.trim() || ''; const nr = inp[1]?.value?.trim() || '';
-    if (n) coloresInfo.push({nombre: n, nro: nr});
-  });
-  const colorStr = coloresInfo.map((c,i) => `${i+1}. ${c.nombre}${c.nro?' (Pantone '+c.nro+')':''}`).join('\n');
-  const prompt = `Sos experto en impresión flexográfica industrial.
-Arte de bolsa ${dim.largo}cm largo × ${dim.anchoReal.toFixed(1)}cm ancho real. Área total: ${dim.areaArte.toFixed(0)} cm².
-Colores declarados:\n${colorStr}
-REGLAS: BLANCO/papel = NO es color impreso. Medí con PRECISIÓN la cobertura real de cada color.
-Respondé SOLO JSON: {"colores":[{"nombre":"...","pct_cobertura":numero,"area_cm2":numero,"hex":"#xxxxxx"}],"pct_total_impreso":numero,"area_total_impresa_cm2":numero,"area_libre_cm2":numero}`;
+async function cotAnalyzeWithAI() {
+  if (!COT_S.artBase64) return;
+  const apiKey = localStorage.getItem('alamo_anthropic_key');
+  if (!apiKey) {
+    cotNotify('Configurá tu API Key de Claude para analizar el arte', 'var(--warn)');
+    showApiKeyModal();
+    return;
+  }
+  document.getElementById('cotAnalyzing').classList.add('on');
+  document.getElementById('cotDetBox').classList.remove('on');
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600,
-        messages: [{role:'user', content:[{type:'image', source:{type:'base64', media_type:S.artMediaType, data:S.artBase64}},{type:'text', text:prompt}]}]})
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 800,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: COT_S.artMediaType, data: COT_S.artBase64 }
+            },
+            {
+              type: 'text',
+              text: 'Analizá este arte de impresión para una bolsa industrial. Identificá: 1) Cantidad de colores distintos y cuáles son, 2) Estimación de cobertura de tinta por color (% del área total), 3) Tipo de impresión más adecuado (flexografía/serigrafía/rotograbado), 4) Observaciones relevantes para producción. Respondé en español, de forma concisa y estructurada con bullet points.'
+            }
+          ]
+        }]
+      })
     });
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `HTTP ${resp.status}`);
+    }
     const data = await resp.json();
-    const m = (data.content?.[0]?.text || '').match(/\{[\s\S]*\}/);
-    if (!m) throw new Error('No JSON');
-    const result = JSON.parse(m[0]);
-    rows.forEach((row, i) => {
-      const c = result.colores?.[i]; if (!c) return;
-      row.classList.add('analyzed');
-      const pctEl = row.querySelector('[id^="pct_"]');
-      if (pctEl) { pctEl.textContent = c.pct_cobertura.toFixed(2); pctEl.className = 'pct-val'; }
-      const areaEl = row.querySelector('[id^="area_"]');
-      if (areaEl) areaEl.textContent = c.area_cm2.toFixed(1) + ' cm²';
-      const sw = row.querySelector('.color-swatch'); if (sw && c.hex) sw.value = c.hex;
-    });
-    updCobResult(dim.areaArte, result.pct_total_impreso || 0, result.area_total_impresa_cm2 || 0, result.area_libre_cm2 || 0);
-    S.cobPct = result.pct_total_impreso || 0;
-    recalc(); notify('Cobertura calculada ✓', 'success');
-  } catch(err) { console.error(err); notify('Error al calcular cobertura', 'error'); }
-  finally { ab.classList.remove('on'); document.getElementById('analyzingText').textContent = 'ANALIZANDO ARTE CON IA...'; }
-}
-
-// ── CLISÉ ─────────────────────────────────────────────────────────────────────
-function onClise() { const on = document.getElementById('tieneClise').checked; toggleSub('cliseOpts', {checked: on}); recalc(); }
-function calcImpactoClise() {
-  const tiene = document.getElementById('tieneClise').checked;
-  const box = document.getElementById('impactoClise');
-  if (!tiene) { box.classList.remove('on'); document.getElementById('sClise').innerHTML = '—'; return 0; }
-  const costo = parseFloat(document.getElementById('costoClise').value) || 0;
-  const quien = document.getElementById('cobraClise').value;
-  const cant = parseFloat(document.getElementById('cantidad').value) || 1;
-  let fabAbsorbe = quien === 'fabrica' ? costo : quien === 'parcial' ? costo * 0.5 : 0;
-  const porBolsa = fabAbsorbe / cant;
-  if (fabAbsorbe > 0) {
-    box.classList.add('on');
-    document.getElementById('icVal').textContent = '-$' + porBolsa.toFixed(4);
-    document.getElementById('icSub').textContent = 'La fábrica absorbe $' + fabAbsorbe.toLocaleString('es-AR', {maximumFractionDigits:0});
-    document.getElementById('sClise').textContent = '$' + porBolsa.toFixed(2);
-  } else { box.classList.remove('on'); document.getElementById('sClise').textContent = '—'; }
-  return porBolsa;
-}
-
-// ── PALETIZADO ────────────────────────────────────────────────────────────────
-function calcPallet() {
-  const bp = parseFloat(document.getElementById('bolsasPaquete')?.value) || 0;
-  const cant = parseFloat(document.getElementById('cantidad').value) || 0;
-  const bxpallet = parseFloat(document.getElementById('maxBolsasPallet')?.value) || 0;
-  if (!bp || !cant || !bxpallet) { document.getElementById('palletResult').style.display = 'none'; return; }
-  const paquetes = Math.ceil(cant / bp);
-  const pallets = Math.ceil(cant / bxpallet);
-  const largo = parseFloat(document.getElementById('dLargo').value) || 50;
-  const ancho = parseFloat(document.getElementById('dAncho').value) || 30;
-  const fuelle = parseFloat(document.getElementById('dFuelle').value) || 0;
-  const isPapel = ['papel','polipapel'].includes(S.tipoBolsa);
-  const anchoReal = isPapel ? (ancho*2)+(fuelle*2)+3 : (ancho*2)+fuelle;
-  const altoBolsa = fuelle > 0 ? fuelle * 0.3 : 3;
-  const altoPallet = (bp * altoBolsa) / 100;
-  const vol = (largo/100) * (anchoReal/100) * altoPallet * pallets;
-  document.getElementById('palletResult').style.display = 'block';
-  document.getElementById('prPaquetes').textContent = paquetes.toLocaleString('es-AR');
-  document.getElementById('prPallets').textContent = pallets;
-  document.getElementById('prM3').textContent = vol.toFixed(1);
-}
-
-// ── PRECIOS REFERENCIA ────────────────────────────────────────────────────────
-const PR = {
-  papel_kg: 1250, rafia_kg: 180, grumo_kg: 1950, lamina_biopp_kg: 3500,
-  tinta_kg: 480, lamina_kg: 2500, crepe_kg: 1100,
-  hora_imp: 2800, hora_lam: 1900, hora_tub: 1700, hora_cos: 1300, hora_pal: 900,
-  stretch_pallet: 2800, rack: 1200, corralito: 1500, tapa: 600,
-  desperdicio: 0.05,
-};
-
-// ── RECALC ────────────────────────────────────────────────────────────────────
-function recalc() {
-  calcDim(); calcPallet();
-  const cant = parseFloat(document.getElementById('cantidad').value) || 0;
-  if (!cant || !S.tipoBolsa) { resetSidebar(); return; }
-  const largo  = parseFloat(document.getElementById('dLargo').value) || 0;
-  const ancho  = parseFloat(document.getElementById('dAncho').value) || 0;
-  const fuelle = parseFloat(document.getElementById('dFuelle').value) || 0;
-  if (!largo || !ancho) { resetSidebar(); return; }
-  const isPapel = ['papel','polipapel'].includes(S.tipoBolsa);
-  const anchoReal = isPapel ? (ancho*2)+(fuelle*2)+3 : (ancho*2)+fuelle;
-  const areaM2 = (largo * anchoReal) / 10000;
-  const DESP = 1 + PR.desperdicio;
-  let cPapel = 0, cRafia = 0, cLamBiopp = 0, cMezcla = 0;
-
-  if (S.tipoBolsa === 'papel') {
-    let totalGrBolsa = 0;
-    document.getElementById('capasList')?.querySelectorAll('div[id^="capa_"]').forEach((row, i) => {
-      const inp = row.querySelectorAll('input[type=number]')[0];
-      const gr = parseFloat(inp?.value || 80);
-      const kgCapa = areaM2 * (gr / 1000) * DESP;
-      cPapel += kgCapa * PR.papel_kg; totalGrBolsa += kgCapa * 1000;
-      const kgEl = row.querySelector('.capa-kg-' + i);
-      if (kgEl) kgEl.textContent = (kgCapa * 1000).toFixed(1) + 'g';
-    });
-    const ptb = document.getElementById('papelTotalBox');
-    if (ptb && totalGrBolsa > 0) {
-      ptb.style.display = 'block';
-      const e1 = document.getElementById('papelTotalGBolsa'); if (e1) e1.textContent = totalGrBolsa.toFixed(1) + 'g';
-      const e2 = document.getElementById('papelTotalKgPedido'); if (e2) e2.textContent = ((totalGrBolsa/1000)*cant).toFixed(1) + ' kg';
+    const text = data.content?.[0]?.text || '';
+    document.getElementById('cotDetContent').innerHTML = text.replace(/\n/g, '<br>');
+    document.getElementById('cotDetBox').classList.add('on');
+    cotNotify('Arte analizado con IA ✓', 'var(--ok)');
+    // Auto-add colors based on detected count
+    const matchCol = text.match(/(\d+)\s*color/i);
+    if (matchCol && COT_S.sec === 1) {
+      const n = Math.min(parseInt(matchCol[1]) || 1, 8);
+      const existingRows = document.querySelectorAll('#cotColoresContainer .color-row').length;
+      for (let i = existingRows; i < n; i++) cotAddColor();
     }
-  } else if (S.tipoBolsa === 'polipapel') {
-    const papelGrRaw = document.getElementById('capasList')?.querySelector('input[type=number]')?.value;
-    const papelGr = parseFloat(papelGrRaw) || 0;
-    const kgPapel = papelGr > 0 ? areaM2 * (papelGr/1000) * DESP : 0;
-    const kgRafia = areaM2 * (55/1000) * DESP;
-    const kgMezcla = areaM2 * (15/1000) * DESP;
-    if (papelGr > 0) cPapel = kgPapel * PR.papel_kg;
-    cRafia = kgRafia * PR.rafia_kg; cMezcla = kgMezcla * PR.grumo_kg;
-    const r = document.getElementById('polipapelResult');
-    if (r) {
-      r.style.display = 'block';
-      const u = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-      u('polipapelPapelKg', papelGr > 0 ? (kgPapel*1000).toFixed(1)+'g' : '—');
-      u('polipapelRafiaKg', (kgRafia*1000).toFixed(1)+'g');
-      u('polipapelMezclaKg', (kgMezcla*1000).toFixed(1)+'g');
-      u('polipapelTotal', papelGr > 0 ? ((kgPapel+kgRafia+kgMezcla)*1000).toFixed(1)+'g' : '—');
-      u('polipapelPapelTotalKg', papelGr > 0 ? (kgPapel*cant).toFixed(1)+' kg' : '—');
-      u('polipapelRafiaTotalKg', (kgRafia*cant).toFixed(1)+' kg');
-      u('polipapelMezclaTotalKg', (kgMezcla*cant).toFixed(1)+' kg');
-      u('polipapelTotalPedido', papelGr > 0 ? ((kgPapel+kgRafia+kgMezcla)*cant).toFixed(1)+' kg' : '—');
+  } catch(e) {
+    console.error('AI analysis error:', e);
+    cotNotify('Error en análisis IA: ' + e.message, 'var(--acc3)');
+  } finally {
+    document.getElementById('cotAnalyzing').classList.remove('on');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — COLORES
+// ══════════════════════════════════════════════════════════════════════════════
+function cotAddColor() {
+  cotColorCount++;
+  const id = 'cot_color_' + cotColorCount;
+  const row = document.createElement('div');
+  row.className = 'color-row';
+  row.id = id;
+  const hue = ((cotColorCount - 1) * 55 + 10) % 360;
+  const hex = cotHslToHex(hue, 65, 52);
+  row.innerHTML = `
+    <input type="color" class="color-swatch" value="${hex}" title="Color">
+    <input class="cot-input" type="text" placeholder="Tinta ${cotColorCount}" style="font-size:12px;" title="Nombre de la tinta">
+    <select class="cot-select" style="font-size:11px;" title="Sistema de tinta">
+      <option value="flexo">Flexo</option>
+      <option value="pantone">Pantone</option>
+      <option value="proceso">Proceso</option>
+      <option value="uv">UV</option>
+    </select>
+    <input class="cot-input" type="number" placeholder="40" min="0" max="100" style="font-size:12px;text-align:right;" title="Cobertura %" oninput="cotRecalc()">
+    <input class="cot-input" type="number" placeholder="3" step="0.1" min="0" style="font-size:12px;text-align:right;" title="g/m²" oninput="cotRecalc()">
+    <button onclick="cotRemoveColor('${id}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:18px;line-height:1;padding:0;transition:color .15s;" onmouseover="this.style.color='var(--acc3)'" onmouseout="this.style.color='var(--t3)'" title="Eliminar color">×</button>`;
+  document.getElementById('cotColoresContainer').appendChild(row);
+  cotRecalc();
+}
+
+function cotRemoveColor(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+  cotRecalc();
+}
+
+function cotHslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => { const k = (n + h / 30) % 12; const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * c).toString(16).padStart(2, '0'); };
+  return '#' + f(0) + f(8) + f(4);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — CLICHE TOGGLE
+// ══════════════════════════════════════════════════════════════════════════════
+function cotOnClicheChange() {
+  cotSetCond('cliche-params', document.getElementById('cotCliche').checked);
+  cotRecalc();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — INSUMOS TOGGLES
+// ══════════════════════════════════════════════════════════════════════════════
+function cotTogglePE() {
+  cotSetCond('pe', document.getElementById('cotPE').checked);
+  cotRecalc();
+}
+
+function cotToggleCrepe() {
+  cotSetCond('crepe', document.getElementById('cotCrepe').checked);
+  cotRecalc();
+}
+
+function cotTogglePaletizado() {
+  cotSetCond('palet', document.getElementById('cotPaletizado').checked);
+  cotCalcPallet();
+  cotRecalc();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — PALLET CALCULATION
+// ══════════════════════════════════════════════════════════════════════════════
+function cotCalcPallet() {
+  if (!document.getElementById('cotPaletizado').checked) return;
+  const bolsasPallet     = parseFloat(document.getElementById('cotBolsasPallet').value)     || 0;
+  const pesoBolsaLlena   = parseFloat(document.getElementById('cotPesoBolsaLlena').value)   || 0;
+  const altPallet        = parseFloat(document.getElementById('cotAltPallet').value)        || 0;
+  const cant             = parseFloat(document.getElementById('cotCantidad').value)         || 0;
+  if (!bolsasPallet || !cant) {
+    document.getElementById('cotPalletResult').style.display = 'none';
+    return;
+  }
+  const numPallets  = Math.ceil(cant / bolsasPallet);
+  const pesoTotTon  = (pesoBolsaLlena * cant) / 1000;
+  document.getElementById('cotPalletResult').style.display = 'block';
+  document.getElementById('cotPalletInfo').innerHTML =
+    `<strong>${numPallets}</strong> pallets necesarios &nbsp;·&nbsp; ` +
+    `<strong>${cotFmtN(bolsasPallet)}</strong> bolsas/pallet` +
+    (pesoTotTon > 0 ? ` &nbsp;·&nbsp; Peso lleno: <strong>${cotFmtN(pesoTotTon, 1)}</strong> ton` : '') +
+    (altPallet  > 0 ? ` &nbsp;·&nbsp; Altura: <strong>${altPallet}</strong> cm` : '');
+  cotRecalc();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — MAIN RECALCULATION
+// ══════════════════════════════════════════════════════════════════════════════
+function cotRecalc() {
+  const cant   = parseFloat(document.getElementById('cotCantidad').value) || 0;
+  const ancho  = parseFloat(document.getElementById('cotAncho').value)    || 0;
+  const largo  = parseFloat(document.getElementById('cotLargo').value)    || 0;
+  const fuelle = parseFloat(document.getElementById('cotFuelle').value)   || 0;
+  const areaM2      = (ancho && largo) ? ((ancho + fuelle) * 2 * largo) / 1e6 : 0;
+  const areaTotalM2 = areaM2 * cant;
+
+  const costs = {};
+  let kgMaterial = 0;
+
+  // ── Material principal ──
+  if (COT_S.tipoBolsa === 'saco_rafia' || COT_S.tipoBolsa === 'big_bag') {
+    const trama    = parseFloat(document.getElementById('cotTrama').value)    || 10;
+    const urdimbre = parseFloat(document.getElementById('cotUrdimbre').value) || 10;
+    const dtex     = parseFloat(document.getElementById('cotDtex').value)     || 900;
+    const gm2 = (trama + urdimbre) * dtex / 10000;
+    const kg  = areaTotalM2 * gm2 / 1000;
+    kgMaterial = kg;
+    if (kg > 0) costs['Material rafia PP'] = kg * COT_PR.rafia_kg;
+  } else if (COT_S.tipoBolsa === 'saco_papel') {
+    const gramaje = parseFloat(document.getElementById('cotGramaje').value) || 80;
+    const capas   = parseInt(document.getElementById('cotCapas').value)     || 3;
+    const kg = (areaTotalM2 * gramaje * capas) / 1000;
+    kgMaterial = kg;
+    if (kg > 0) costs['Material papel'] = kg * COT_PR.papel_kg;
+  } else if (COT_S.tipoBolsa === 'bolsa_pe') {
+    const esp = 50; // micrones por defecto
+    const kg  = areaTotalM2 * esp * 0.00092;
+    kgMaterial = kg;
+    if (kg > 0) costs['Material PE'] = kg * COT_PR.pe_kg;
+  } else if (COT_S.tipoBolsa && cant > 0) {
+    // Otros: estimación genérica
+    kgMaterial = cant * 0.12;
+    costs['Material base'] = cant * 18;
+  }
+
+  // ── Impresión / Tintas ──
+  const tipoImp = document.getElementById('cotTipoImpresion').value;
+  if (tipoImp !== 'sin' && areaTotalM2 > 0) {
+    const colorRows = document.querySelectorAll('#cotColoresContainer .color-row');
+    let costaTinta = 0;
+    colorRows.forEach(row => {
+      const inputs = row.querySelectorAll('input[type=number]');
+      const cob  = (parseFloat(inputs[0]?.value) || 40) / 100;
+      const gm2  = parseFloat(inputs[1]?.value) || 3;
+      const kgT  = areaTotalM2 * cob * gm2 / 1000;
+      costaTinta += kgT * COT_PR.tinta_kg;
+    });
+    if (colorRows.length > 0 && costaTinta > 0) costs['Tinta impresión'] = costaTinta;
+  }
+
+  // ── Cliché ──
+  if (document.getElementById('cotCliche').checked) {
+    const cantC  = parseFloat(document.getElementById('cotCantCliche').value)  || 1;
+    const costoC = parseFloat(document.getElementById('cotCostoCliche').value) || 15000;
+    const totalC = cantC * costoC;
+    costs['Cliché / fotopolímero'] = totalC;
+    if (cant > 0) {
+      document.getElementById('cotImpactoCliche').classList.add('on');
+      document.getElementById('cotImpactoVal').textContent =
+        '$ ' + cotFmtN(totalC) + ' total  ·  $ ' + cotFmtN(totalC / cant, 3) + ' / unidad';
     }
-  } else if (S.tipoBolsa === 'rafia_conv') {
-    const kgR = areaM2 * (65/1000) * DESP; cRafia = kgR * PR.rafia_kg;
-    const r = document.getElementById('rafiaConvResult');
-    if (r) { r.style.display='block'; const u=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-      u('rafiaConvKg',(kgR*1000).toFixed(1)+'g'); u('rafiaConvTotal',(kgR*1000).toFixed(1)+'g');
-      u('rafiaConvTotalKg',(kgR*cant).toFixed(1)+' kg'); u('rafiaConvTotalPedido',(kgR*cant).toFixed(1)+' kg'); }
-  } else if (S.tipoBolsa === 'rafia_lam') {
-    const gramajeFinal = parseFloat(document.getElementById('rafiaGramajeFinal')?.value) || 70;
-    const grLam = Math.max(0, gramajeFinal - 55);
-    const kgTela = areaM2 * (55/1000) * DESP; const kgLam = areaM2 * (grLam/1000) * DESP;
-    cRafia = kgTela * PR.rafia_kg; cMezcla = kgLam * PR.grumo_kg;
-    const r = document.getElementById('rafiaLamResult');
-    if (r) { r.style.display='block'; const u=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-      u('rafiaBaseKg',(kgTela*1000).toFixed(1)+'g'); u('rafiaLamKg',(kgLam*1000).toFixed(1)+'g');
-      u('rafiaLamTotal',((kgTela+kgLam)*1000).toFixed(1)+'g');
-      u('rafiaBaseTotalKg',(kgTela*cant).toFixed(1)+' kg'); u('rafiaLamTotalKg',(kgLam*cant).toFixed(1)+' kg');
-      u('rafiaLamTotalPedido',((kgTela+kgLam)*cant).toFixed(1)+' kg'); }
-  } else if (S.tipoBolsa === 'biopp') {
-    const kgRb = areaM2*(55/1000)*DESP, kgLb = areaM2*(25/1000)*DESP, kgMb = areaM2*(15/1000)*DESP;
-    cRafia = kgRb*PR.rafia_kg; cLamBiopp = kgLb*PR.lamina_biopp_kg; cMezcla = kgMb*PR.grumo_kg;
-    const r = document.getElementById('bioppResult');
-    if (r) { r.style.display='block'; const u=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-      u('bioppRafiaKg',(kgRb*1000).toFixed(1)+'g'); u('bioppLaminaKg',(kgLb*1000).toFixed(1)+'g');
-      u('bioppMezclaKg',(kgMb*1000).toFixed(1)+'g'); u('bioppTotal',((kgRb+kgLb+kgMb)*1000).toFixed(1)+'g');
-      u('bioppRafiaTotalKg',(kgRb*cant).toFixed(1)+' kg'); u('bioppLaminaTotalKg',(kgLb*cant).toFixed(1)+' kg');
-      u('bioppMezclaTotalKg',(kgMb*cant).toFixed(1)+' kg'); u('bioppTotalPedido',((kgRb+kgLb+kgMb)*cant).toFixed(1)+' kg'); }
+  } else {
+    document.getElementById('cotImpactoCliche').classList.remove('on');
   }
 
-  const cobPct = ((S.cobPct != null ? S.cobPct : 40)) / 100;
-  const nCol = document.getElementById('colorList').children.length || 1;
-  const kgTinta = areaM2 * cobPct * nCol * 0.008;
-  const cTinta = kgTinta * PR.tinta_kg;
-
-  let cPE = 0;
-  if (document.getElementById('tienelamina')?.checked) {
-    const mic = parseFloat(document.getElementById('laminaMic').value) || 14;
-    cPE += areaM2 * (mic/1000) * 1.22 * PR.lamina_kg;
+  // ── Film PE interno ──
+  if (document.getElementById('cotPE').checked) {
+    const esp      = parseFloat(document.getElementById('cotPEEspesor').value) || 50;
+    const anchoF   = parseFloat(document.getElementById('cotPEAncho').value)   || (ancho || 600);
+    const largoF   = parseFloat(document.getElementById('cotPELargo').value)   || (largo || 900);
+    const areaFilm = (anchoF * largoF) / 1e6;
+    const kgFilm   = areaFilm * cant * esp * 0.00092;
+    if (kgFilm > 0) costs['Film PE interno'] = kgFilm * COT_PR.pe_kg;
   }
-  if (document.getElementById('tieneBolsaPE')?.checked) {
-    const ba = parseFloat(document.getElementById('bpeAncho').value)||0;
-    const bl = parseFloat(document.getElementById('bpeLargo').value)||0;
-    const bm = parseFloat(document.getElementById('bpeMic').value)||50;
-    const dens = parseFloat(document.getElementById('bpeDensidad').value)||0.92;
-    if (ba && bl) cPE += (ba/100)*(bl/100)*(bm/1000)*dens*PR.lamina_kg;
+
+  // ── Crepe ──
+  if (document.getElementById('cotCrepe').checked) {
+    const metros = parseFloat(document.getElementById('cotCrepeMetros').value) || 0.15;
+    if (cant > 0) costs['Cinta crepe'] = metros * cant * COT_PR.crepe_m;
   }
-  const cCrepe = document.getElementById('tieneCrepe')?.checked ? 0.0035 * PR.crepe_kg : 0;
 
-  const ml = largo / 100;
-  const setupPorBolsa = (nCol * 40 * 60) / cant;
-  const velImp = isPapel ? 80 : 70;
-  const tImp = (ml / velImp) + setupPorBolsa / 60;
-  const cImp = (tImp / 60) * PR.hora_imp;
-  const needsLam = ['rafia_lam','biopp','polipapel'].includes(S.tipoBolsa);
-  const cLam = needsLam ? (ml / 120 / 60) * PR.hora_lam : 0;
-  const cTub = (ml / (isPapel ? 60 : 45) / 60) * PR.hora_tub;
-  const velCos = anchoReal > 60 ? 28 : 42;
-  const cCos = (1 / velCos / 60) * PR.hora_cos;
+  // ── Costura ──
+  if (document.getElementById('cotCostura').checked && cant > 0) {
+    costs['Costura fondo'] = cant * COT_PR.costura_u;
+  }
 
-  const bxpallet = parseFloat(document.getElementById('maxBolsasPallet')?.value) || 500;
-  const pallets = Math.ceil(cant / bxpallet);
-  let cPal = (1 / 15 / 60) * PR.hora_pal;
-  cPal += (pallets * PR.stretch_pallet) / cant;
-  if (document.getElementById('tieneRack')?.checked) cPal += (pallets * PR.rack) / cant;
-  if (document.getElementById('tieneCorralito')?.checked) cPal += (pallets * PR.corralito) / cant;
-  if (document.getElementById('tieneTapa')?.checked) cPal += (pallets * PR.tapa) / cant;
+  // ── Paletizado ──
+  if (document.getElementById('cotPaletizado').checked && cant > 0) {
+    const bolsasPallet = parseFloat(document.getElementById('cotBolsasPallet').value) || 500;
+    const numPallets   = Math.ceil(cant / bolsasPallet);
+    costs['Pallets (madera)'] = numPallets * COT_PR.palet_u;
+    costs['Film stretch']     = numPallets * 0.3 * COT_PR.film_stretch_kg;
+  }
 
-  const cClise = calcImpactoClise() || 0;
-  const fabril = cImp + cLam + cTub + cCos + cPal;
-  const cFijos = fabril * 0.30;
-  const cFilm = (pallets * PR.stretch_pallet) / cant;
-  const cLog = (parseFloat(document.getElementById('costoLog').value) || 0) / cant;
-  const total = cPapel+cRafia+cLamBiopp+cMezcla+cTinta+cPE+cCrepe+cImp+cLam+cTub+cCos+cPal+cClise+cFijos+cLog;
-  const margen = parseFloat(document.getElementById('margenPct').value) || 25;
-  const pventa = total * (1 + margen / 100);
+  // ── Mano de obra ──
+  if (cant > 0) costs['Mano de obra'] = cant * COT_PR.mano_obra_u;
 
-  upd('sPapel', cPapel); upd('sRafia', cRafia + cLamBiopp); upd('sMezcla', cMezcla);
-  upd('sTinta', cTinta); upd('sPE', cPE); upd('sCrepe', cCrepe);
-  upd('sImp', cImp); upd('sLam', cLam); upd('sTub', cTub); upd('sCos', cCos); upd('sPal', cPal);
-  upd('sFijos', cFijos); upd('sFilm', cFilm); upd('sLog', cLog);
-  document.getElementById('ctVal').textContent = '$' + total.toFixed(2);
-  document.getElementById('ctSub').textContent = 'total: $' + (total*cant).toLocaleString('es-AR', {maximumFractionDigits:0});
-  document.getElementById('pfTotal').textContent = '$' + pventa.toFixed(2);
-  document.getElementById('pfUnit').textContent = 'por bolsa · total: $' + (pventa*cant).toLocaleString('es-AR', {maximumFractionDigits:0});
-  document.getElementById('fabPrice').textContent = '$' + pventa.toFixed(2) + '/bolsa';
+  // ── Flete / Otros ──
+  const flete = parseFloat(document.getElementById('cotFlete').value) || 0;
+  const otros = parseFloat(document.getElementById('cotOtros').value) || 0;
+  if (flete > 0) costs['Flete'] = flete;
+  if (otros > 0) costs['Otros gastos'] = otros;
 
-  const kgLines = [];
-  if (cPapel > 0) { const gr = S.tipoBolsa==='papel' ? getTotalGrPapel() : 80; kgLines.push(['Papel', areaM2*cant*(gr/1000)*DESP]); }
-  if (cRafia > 0) kgLines.push(['Rafia', areaM2*cant*(S.tipoBolsa==='rafia_conv'?65:55)/1000*DESP]);
-  if (cLamBiopp > 0) kgLines.push(['Lám. BioPP', areaM2*cant*25/1000*DESP]);
-  if (cMezcla > 0) { const grM = S.tipoBolsa==='rafia_lam' ? Math.max(0,(parseFloat(document.getElementById('rafiaGramajeFinal')?.value)||70)-55) : 15; kgLines.push(['PP+PE mezcla', areaM2*cant*grM/1000*DESP]); }
-  if (cTinta > 0) kgLines.push(['Tinta (est.)', kgTinta * cant]);
-  const el = document.getElementById('kgPedidoList');
-  if (el) el.innerHTML = kgLines.length ? kgLines.map(([n,kg]) => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3)">${n}</span><span style="color:var(--accent2)">${kg.toFixed(1)} kg</span></div>`).join('') : '—';
+  // ── Overhead 8% ──
+  const subtotal = Object.values(costs).reduce((a, b) => a + b, 0);
+  if (subtotal > 0) costs['Overhead (8%)'] = subtotal * COT_PR.overhead_pct;
+
+  const total    = Object.values(costs).reduce((a, b) => a + b, 0);
+  const margen   = parseFloat(document.getElementById('cotMargen')?.value) || 30;
+  const precio   = total * (1 + margen / 100);
+  const unitCost = cant > 0 ? total / cant  : 0;
+  const unitPrice= cant > 0 ? precio / cant : 0;
+
+  COT_S.costos   = costs;
+  COT_S._total   = total;
+  COT_S._kgMat   = kgMaterial;
+
+  // Update FAB
+  document.getElementById('cotFabPrice').textContent = total > 0 ? '$ ' + cotFmtN(total) : '—';
+
+  // Update drawer
+  cotUpdateDrawer(costs, total, unitCost, margen, precio, unitPrice, kgMaterial);
+
+  // If on resumen step, update it
+  if (COT_S.sec === 3) cotBuildResumen();
 }
 
-function upd(id, val) {
-  const el = document.getElementById(id); if (!el) return;
-  el.textContent = typeof val === 'number' ? (val > 0.001 ? '$' + val.toFixed(2) : '—') : val;
+function cotFmtN(n, dec) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  if (dec === undefined) dec = Math.abs(n) >= 1000 ? 0 : (Math.abs(n) >= 10 ? 1 : 2);
+  return n.toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
-function resetSidebar() {
-  ['sPapel','sRafia','sMezcla','sTinta','sPE','sCrepe','sImp','sLam','sTub','sCos','sPal','sClise','sFijos','sFilm','sLog'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.innerHTML = '<span class="skel"></span>';
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — DRAWER
+// ══════════════════════════════════════════════════════════════════════════════
+function cotToggleDrawer(open) {
+  document.getElementById('cotSidebar').classList.toggle('open', !!open);
+  document.getElementById('cotDrawerOverlay').classList.toggle('open', !!open);
+}
+
+function cotUpdateDrawer(costs, total, unitCost, margen, precio, unitPrice, kgMat) {
+  const linesEl = document.getElementById('cotCostLines');
+  linesEl.innerHTML = '';
+  Object.entries(costs).forEach(([k, v]) => {
+    if (v > 0) {
+      linesEl.innerHTML += `<div class="cost-line"><span class="cn">${k}</span><span class="cv">$ ${cotFmtN(v)}</span></div>`;
+    }
   });
-  document.getElementById('ctVal').textContent = '$—';
-  document.getElementById('pfTotal').textContent = '$—';
-  document.getElementById('pfUnit').textContent = 'por bolsa · total: $—';
-}
-function getTotalGrPapel() {
-  let total = 0;
-  document.getElementById('capasList')?.querySelectorAll('input[type=number]').forEach(inp => { total += parseFloat(inp.value) || 0; });
-  return total || 80;
+
+  document.getElementById('cotDrawerTotal').textContent     = total > 0 ? '$ ' + cotFmtN(total) : '—';
+  document.getElementById('cotDrawerUnit').textContent      = unitCost > 0 ? '$ ' + cotFmtN(unitCost, 4) + ' /u' : '—';
+  document.getElementById('cotDrawerMargen').value          = margen;
+  document.getElementById('cotDrawerPrecio').textContent    = precio > 0 ? '$ ' + cotFmtN(precio) : '—';
+  document.getElementById('cotDrawerPrecioUnit').textContent= unitPrice > 0 ? '$ ' + cotFmtN(unitPrice, 4) + ' por unidad' : '— por unidad';
+  document.getElementById('cotDrawerKg').textContent        = kgMat > 0 ? cotFmtN(kgMat, 1) + ' KG' : '— KG';
 }
 
-// ── RESUMEN ───────────────────────────────────────────────────────────────────
-function buildResumen() {
-  const g = id => document.getElementById(id)?.value || '—';
-  const rows = [
-    ['Cliente', g('cliente')], ['Pedido', g('nroPedido')],
-    ['Cantidad', g('cantidad') + ' bolsas'], ['Tipo', S.tipoNombre || '—'],
-    ['Dimensiones', `${g('dLargo')} × ${g('dAncho')} × ${g('dFuelle')} cm`],
-    ['Colores', document.getElementById('colorList').children.length + ' pantone(s)'],
-    ['Clisé', document.getElementById('tieneClise')?.checked ? 'Sí' : 'No'],
-    ['Crepe', document.getElementById('tieneCrepe')?.checked ? g('crepeColor') : 'No'],
-    ['Entrega', g('fechaEntrega')],
-  ];
-  document.getElementById('resumenContent').innerHTML = rows.map(([k,v]) => `<div class="res-row"><span class="rk">${k}</span><span class="rv">${v}</span></div>`).join('');
+function cotSyncMargen(val) {
+  const m = parseFloat(val) || 30;
+  const mainMargen = document.getElementById('cotMargen');
+  if (mainMargen && parseFloat(mainMargen.value) !== m) mainMargen.value = m;
+  cotRecalc();
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function show(id, visible) {
-  const el = document.getElementById(id); if (!el) return;
-  if (visible) { el.classList.add('on'); el.style.display = 'block'; }
-  else { el.classList.remove('on'); el.style.display = 'none'; }
-}
-function toggleSub(id, chk) { show(id, chk.checked !== undefined ? chk.checked : chk); recalc(); }
-function toggleDrawer() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('drawerOverlay').classList.toggle('open');
-}
-let nt;
-function notify(msg, type='') {
-  const n = document.getElementById('notif');
-  n.textContent = msg; n.className = 'notif show ' + type;
-  clearTimeout(nt); nt = setTimeout(() => n.classList.remove('show'), 3200);
-}
-function genCotizacion() { notify('⚠ Generación PDF disponible en próxima versión', 'warn'); }
-function limpiar() { if (confirm('¿Nuevo pedido?')) location.reload(); }
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — RESUMEN
+// ══════════════════════════════════════════════════════════════════════════════
+function cotBuildResumen() {
+  const cliente   = document.getElementById('cotCliente').value    || '—';
+  const cantStr   = document.getElementById('cotCantidad').value   || '0';
+  const cant      = parseFloat(cantStr) || 0;
+  const ancho     = document.getElementById('cotAncho').value      || '—';
+  const largo     = document.getElementById('cotLargo').value      || '—';
+  const fuelle    = document.getElementById('cotFuelle').value     || '0';
+  const tipoImp   = document.getElementById('cotTipoImpresion').value;
+  const colorRows = document.querySelectorAll('#cotColoresContainer .color-row');
+  const total     = COT_S._total || 0;
+  const margen    = parseFloat(document.getElementById('cotMargen')?.value) || 30;
+  const precio    = total * (1 + margen / 100);
+  const unitCost  = cant > 0 ? total / cant  : 0;
+  const unitPrice = cant > 0 ? precio / cant : 0;
+  const kgMat     = COT_S._kgMat || 0;
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-initApiBanner();
-goSec(0);
-resetSidebar();
+  const impLabels = {
+    sin: 'Sin impresión', flexo: 'Flexografía',
+    serigrafia: 'Serigrafía', rotograbado: 'Rotograbado'
+  };
+
+  document.getElementById('cotResumenGrid').innerHTML = `
+    <div class="res-item"><div class="res-label">Cliente</div><div class="res-val">${cliente}</div></div>
+    <div class="res-item"><div class="res-label">Cantidad</div><div class="res-val">${cotFmtN(cant)} unidades</div></div>
+    <div class="res-item"><div class="res-label">Tipo de bolsa</div><div class="res-val">${COT_S.tipoNombre || '—'}</div></div>
+    <div class="res-item"><div class="res-label">Dimensiones</div><div class="res-val">${ancho} × ${largo} mm (f: ${fuelle})</div></div>
+    <div class="res-item"><div class="res-label">Impresión</div><div class="res-val">${impLabels[tipoImp] || tipoImp}</div></div>
+    <div class="res-item"><div class="res-label">Colores</div><div class="res-val">${colorRows.length}</div></div>
+    <div class="res-item"><div class="res-label">PE interno</div><div class="res-val">${document.getElementById('cotPE').checked ? 'Sí' : 'No'}</div></div>
+    <div class="res-item"><div class="res-label">Paletizado</div><div class="res-val">${document.getElementById('cotPaletizado').checked ? 'Sí' : 'No'}</div></div>
+  `;
+
+  document.getElementById('cotResumenCostoTotal').textContent = total > 0 ? '$ ' + cotFmtN(total) : '—';
+  document.getElementById('cotResumenCostoUnit').textContent  = unitCost > 0 ? '$ ' + cotFmtN(unitCost, 4) + ' / unidad' : '—';
+  document.getElementById('cotPrecioFinal').textContent       = precio > 0 ? '$ ' + cotFmtN(precio) : '—';
+  document.getElementById('cotPrecioUnitFinal').textContent   = unitPrice > 0 ? '$ ' + cotFmtN(unitPrice, 4) + ' por unidad' : '— por unidad';
+  document.getElementById('cotKgTotal').textContent           = kgMat > 0 ? cotFmtN(kgMat, 1) + ' KG estimados' : '—';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COTIZADOR — NUEVA COTIZACIÓN
+// ══════════════════════════════════════════════════════════════════════════════
+function cotNuevaCotizacion() {
+  if (!confirm('¿Iniciar una nueva cotización? Se borrarán los datos actuales.')) return;
+
+  // Reset text/number inputs
+  ['cotCliente','cotCantidad','cotAncho','cotLargo','cotFuelle',
+   'cotTrama','cotUrdimbre','cotDtex','cotGramaje',
+   'cotBolsasPallet','cotPesoBolsaLlena','cotAltPallet',
+   'cotPEEspesor','cotPEAncho','cotPELargo',
+   'cotCrepeAncho','cotCrepeMetros',
+   'cotCantCliche','cotCostoCliche',
+   'cotFlete','cotOtros'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('cotMargen').value = '30';
+
+  // Reset selects
+  document.getElementById('cotTipoImpresion').value = 'sin';
+  document.getElementById('cotCapas').value = '3';
+
+  // Reset checkboxes
+  ['cotPE','cotCrepe','cotCostura','cotPaletizado','cotCliche'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+
+  // Hide conditionals
+  ['rafia','papel','impresion','pe','crepe','palet','cliche-params'].forEach(id => cotSetCond(id, false));
+
+  // Reset bolsa selection
+  document.querySelectorAll('.bo').forEach(b => b.classList.remove('selected'));
+  COT_S.tipoBolsa  = null;
+  COT_S.tipoNombre = '';
+
+  // Clear colors
+  document.getElementById('cotColoresContainer').innerHTML = '';
+  cotColorCount = 0;
+
+  // Reset arte zone
+  const zone = document.getElementById('arteZone');
+  zone.classList.remove('has-file');
+  document.getElementById('arteZoneContent').innerHTML = `
+    <div style="font-size:28px;margin-bottom:8px;">📄</div>
+    <div style="font-size:13px;color:var(--t2);">Arrastrá o hacé click para subir PDF / imagen del arte</div>
+    <div style="font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:4px;">PDF, PNG, JPG — máx 10MB</div>`;
+  document.getElementById('cotDetBox').classList.remove('on');
+  document.getElementById('cotAnalyzing').classList.remove('on');
+  document.getElementById('cotImpactoCliche').classList.remove('on');
+  document.getElementById('cotPalletResult').style.display = 'none';
+  document.getElementById('cotDimResult').style.display = 'none';
+  COT_S.artBase64   = null;
+  COT_S.artMediaType= null;
+  COT_S._total      = 0;
+  COT_S._kgMat      = 0;
+
+  // Reset capas container
+  document.getElementById('capasContainer').innerHTML = '';
+
+  // Go to step 0
+  document.getElementById('sec' + COT_S.sec).style.display = 'none';
+  COT_S.sec = 0;
+  document.getElementById('sec0').style.display = 'block';
+  cotUpdateStepUI();
+  document.getElementById('cotFabPrice').textContent = '—';
+
+  // Reset drawer
+  document.getElementById('cotCostLines').innerHTML = '';
+  document.getElementById('cotDrawerTotal').textContent   = '—';
+  document.getElementById('cotDrawerUnit').textContent    = '—';
+  document.getElementById('cotDrawerPrecio').textContent  = '—';
+  document.getElementById('cotDrawerPrecioUnit').textContent = '— por unidad';
+  document.getElementById('cotDrawerKg').textContent      = '— KG';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  cotNotify('Nueva cotización iniciada', 'var(--ok)');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
+(function init() {
+  // Init capas container for papel
+  cotUpdateCapas();
+  // Ensure impresion is hidden initially
+  cotSetCond('impresion', false);
+})();
 </script>
 </body>
 </html>
