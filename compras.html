@@ -747,7 +747,8 @@ async function readSheet(range) {
 }
 
 async function readSheetFromId(sheetId, range) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
+  // Use FORMATTED_VALUE for external sheets (Excel imports fail with UNFORMATTED_VALUE)
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueRenderOption=FORMATTED_VALUE`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`);
   const data = await resp.json();
