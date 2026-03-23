@@ -810,7 +810,7 @@ function handleLogout() {
 }
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
-const CACHE_KEY = `alamo_compras_v2_${SHEET_ID}`; // v2: fix parseNum float bug
+const CACHE_KEY = `alamo_compras_v3_${SHEET_ID}`; // v3: case-insensitive category matching
 const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 horas
 const PROV_CATS_KEY = 'alamo_prov_cats';
 
@@ -1044,7 +1044,9 @@ function joinProveedoresData() {
 // ─── DROPDOWNS ───────────────────────────────────────────────────────────────
 function buildDropdowns() {
   const years = [...new Set(allOrdenes.map(r => r.año).filter(Boolean))].sort().reverse();
-  const cats  = [...new Set(allOrdenes.map(r => r.categoria).filter(Boolean))].sort();
+  const _catsMap = new Map();
+  allOrdenes.forEach(r => { if (!r.categoria) return; const k = r.categoria.trim().toLowerCase(); if (!_catsMap.has(k)) _catsMap.set(k, r.categoria.trim()); });
+  const cats = [..._catsMap.values()].sort((a,b) => a.localeCompare(b));
   const estados = [...new Set(allOrdenes.map(r => r.estado).filter(Boolean))].sort();
 
   ['resAno','ordAno'].forEach(id => {
@@ -1109,7 +1111,7 @@ function filterOrdenes(f) {
       if (f.fabrica === 'sin' && r.fabrica) return false;
       if (f.fabrica !== 'sin' && r.fabrica !== f.fabrica) return false;
     }
-    if (f.categoria !== 'all' && r.categoria !== f.categoria) return false;
+    if (f.categoria !== 'all' && (r.categoria||'').trim().toLowerCase() !== f.categoria.toLowerCase()) return false;
     if (f.estado && f.estado !== 'all' && r.estado !== f.estado) return false;
     if (f.pagado && f.pagado !== 'all') {
       const p = r.pagado.toLowerCase();
@@ -1973,26 +1975,27 @@ function renderMantenimiento(fabrica) {
   const totalARS = ords.reduce((s,r) => s+(r.importe_ars||0),0);
   const totalUSD = ords.reduce((s,r) => s+(r.importe_usd||0),0);
 
-  // Group by category
+  // Group by category (case-insensitive keys)
   const catMap = {};
   ords.forEach(r => {
-    const cat = (r.categoria || '(Sin categoría)').trim();
-    if (!catMap[cat]) catMap[cat] = { ocSet: new Set(), ars:0, usd:0 };
-    catMap[cat].ocSet.add(String(r.oc));
-    catMap[cat].ars += r.importe_ars||0;
-    catMap[cat].usd += r.importe_usd||0;
+    const catRaw = (r.categoria || '(Sin categoría)').trim();
+    const catKey = catRaw.toLowerCase();
+    if (!catMap[catKey]) catMap[catKey] = { display: catRaw, ocSet: new Set(), ars:0, usd:0 };
+    catMap[catKey].ocSet.add(String(r.oc));
+    catMap[catKey].ars += r.importe_ars||0;
+    catMap[catKey].usd += r.importe_usd||0;
   });
   const cats = Object.entries(catMap)
-    .map(([name,v]) => ({name, oc:v.ocSet.size, ars:v.ars, usd:v.usd}))
+    .map(([key,v]) => ({name: v.display, oc:v.ocSet.size, ars:v.ars, usd:v.usd}))
     .sort((a,b) => b.ars - a.ars);
 
   // Auto-select first category if none selected
-  if (!mantSelectedCat[tabKey] || !catMap[mantSelectedCat[tabKey]]) {
+  if (!mantSelectedCat[tabKey] || !catMap[(mantSelectedCat[tabKey]||'').toLowerCase()]) {
     mantSelectedCat[tabKey] = cats[0]?.name || '';
   }
 
   const cardsHTML = cats.map(c => `
-    <div class="cat-card${c.name === mantSelectedCat[tabKey] ? ' active' : ''}"
+    <div class="cat-card${c.name.toLowerCase() === (mantSelectedCat[tabKey]||'').toLowerCase() ? ' active' : ''}"
          data-catname="${escH(c.name)}" data-tabkey="${escH(tabKey)}"
          onclick="selectMantCat(this)">
       <div class="cat-card-name">${escH(c.name)}</div>
@@ -2040,6 +2043,7 @@ function selectMantCat(cardEl) {
   // Determine fabrica from tabKey
   const fabrica = tabKey === 'mant-alamo' ? 'Mantenimiento Alamo' : 'Mantenimiento Pitec';
   renderMantDetalle(tabKey, fabrica, mantSelectedCat[tabKey]);
+  setTimeout(() => { const d = document.getElementById(`mantDetalle-${tabKey}`); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
 }
 
 function renderMantDetalle(tabKey, fabrica, catName) {
@@ -2047,8 +2051,9 @@ function renderMantDetalle(tabKey, fabrica, catName) {
   if (!det || !catName) return;
 
   const isMant = tabKey === 'mant-alamo' ? isMantAlamo : isMantPitec;
+  const catNameLower = (catName||'').toLowerCase();
   const ords = allOrdenes.filter(r =>
-    isMant(r.fabrica) && (r.categoria||'').trim() === catName
+    isMant(r.fabrica) && (r.categoria||'').trim().toLowerCase() === catNameLower
   );
   if (!ords.length) { det.innerHTML = ''; return; }
 
@@ -2169,17 +2174,18 @@ function renderOtrasCategorias() {
   // Build category stats from allOrdenes, excluding Tinta and Papel categories
   const catMap = {};
   allOrdenes.forEach(r => {
-    const cat = (r.categoria || '').trim();
-    if (!cat) return;
-    if (EXCLUDED.some(ex => cat.toLowerCase().includes(ex))) return;
-    if (!catMap[cat]) catMap[cat] = { ocSet: new Set(), ars: 0, usd: 0 };
-    catMap[cat].ocSet.add(String(r.oc));
-    catMap[cat].ars += r.importe_ars || 0;
-    catMap[cat].usd += r.importe_usd || 0;
+    const catRaw = (r.categoria || '').trim();
+    if (!catRaw) return;
+    if (EXCLUDED.some(ex => catRaw.toLowerCase().includes(ex))) return;
+    const catKey = catRaw.toLowerCase();
+    if (!catMap[catKey]) catMap[catKey] = { display: catRaw, ocSet: new Set(), ars: 0, usd: 0 };
+    catMap[catKey].ocSet.add(String(r.oc));
+    catMap[catKey].ars += r.importe_ars || 0;
+    catMap[catKey].usd += r.importe_usd || 0;
   });
 
   const cats = Object.entries(catMap)
-    .map(([name, v]) => ({ name, oc: v.ocSet.size, ars: v.ars, usd: v.usd }))
+    .map(([key, v]) => ({ name: v.display, oc: v.ocSet.size, ars: v.ars, usd: v.usd }))
     .sort((a, b) => b.ars - a.ars);
 
   if (!cats.length) {
@@ -2188,12 +2194,12 @@ function renderOtrasCategorias() {
   }
 
   // If no category selected yet, select first
-  if (!otrasSelectedCat || !catMap[otrasSelectedCat]) {
+  if (!otrasSelectedCat || !catMap[(otrasSelectedCat||'').toLowerCase()]) {
     otrasSelectedCat = cats[0].name;
   }
 
   const cardsHTML = cats.map(c => `
-    <div class="cat-card${c.name === otrasSelectedCat ? ' active' : ''}" data-catname="${escH(c.name)}" onclick="selectOtrasCat(this)">
+    <div class="cat-card${c.name.toLowerCase() === (otrasSelectedCat||'').toLowerCase() ? ' active' : ''}" data-catname="${escH(c.name)}" onclick="selectOtrasCat(this)">
       <div class="cat-card-name">${escH(c.name)}</div>
       <div class="cat-card-stats">
         <div class="cat-card-stat">Cant. OC: <span>${fmt(c.oc)}</span></div>
@@ -2226,13 +2232,15 @@ function selectOtrasCat(cardEl) {
     el.classList.toggle('active', el === cardEl);
   });
   renderOtrasCatDetalle(otrasSelectedCat);
+  setTimeout(() => { const d = document.getElementById('otrasDetalle'); if (d) d.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
 }
 
 function renderOtrasCatDetalle(catName) {
   const det = document.getElementById('otrasDetalle');
   if (!det) return;
 
-  const ords = allOrdenes.filter(r => (r.categoria || '').trim() === catName);
+  const catNameLower2 = (catName||'').toLowerCase();
+  const ords = allOrdenes.filter(r => (r.categoria || '').trim().toLowerCase() === catNameLower2);
   if (!ords.length) { det.innerHTML = ''; return; }
 
   const totalARS = ords.reduce((s,r) => s+(r.importe_ars||0), 0);
