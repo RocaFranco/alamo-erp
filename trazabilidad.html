@@ -903,27 +903,36 @@ function pct(part, total) {
 const PROD_SHEET_ID_PERMISOS = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY = 'Trazabilidad';
 
+const ADMIN_EMAILS = ['franco.bauer98@gmail.com'];
+
 async function checkPermission(token, email) {
+  const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase().trim());
   try {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${PROD_SHEET_ID_PERMISOS}/values/Permisos!A:Z`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const data = await resp.json();
+    if (data.error) {
+      console.warn('[Permisos] API error:', data.error.code, data.error.message);
+      return isAdmin;
+    }
     const rows = data.values || [];
-    if (rows.length < 2) return false;
+    if (rows.length < 2) { console.warn('[Permisos] Sheet vacío'); return isAdmin; }
     const headers = rows[0].map(h => String(h).toLowerCase().trim());
     const emailCol = headers.findIndex(h => h === 'email');
     const moduleCol = headers.findIndex(h => h === MODULE_KEY.toLowerCase());
-    if (emailCol < 0 || moduleCol < 0) return false;
+    if (emailCol < 0) { console.warn('[Permisos] Columna email no encontrada. Headers:', headers); return isAdmin; }
+    if (moduleCol < 0) { console.warn('[Permisos] Columna', MODULE_KEY, 'no encontrada. Headers:', headers); return isAdmin; }
     for (let i = 1; i < rows.length; i++) {
       if ((rows[i][emailCol] || '').toLowerCase().trim() === email.toLowerCase().trim()) {
         const val = String(rows[i][moduleCol] || '').toLowerCase().trim();
         return ['1', 'si', 'sí', 'true', 'x', 'yes', '✓'].includes(val);
       }
     }
+    console.warn('[Permisos] Email no encontrado en sheet:', email);
     return false;
   } catch (e) {
-    console.warn('Error checking permissions:', e);
-    return false;
+    console.warn('[Permisos] Excepción:', e.message);
+    return isAdmin;
   }
 }
 
