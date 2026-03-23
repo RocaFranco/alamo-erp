@@ -1516,7 +1516,7 @@ async function loadInsumos() {
     if (!tintaLoaded) {
       cont.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Cargando datos de Tinta...</span></div>';
       try {
-        const rows = await readSheet('Tinta!A1:Z500');
+        const rows = await readSheet('Tinta!A1:Z2000');
         tintaData = rows;
         tintaLoaded = true;
         buildTintaIndex(tintaData);
@@ -1530,7 +1530,7 @@ async function loadInsumos() {
     if (!papelLoaded) {
       cont.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Cargando datos de Papel...</span></div>';
       try {
-        const rows = await readSheet('Papel!A1:Z500');
+        const rows = await readSheet('Papel!A1:Z2000');
         papelData = rows;
         papelLoaded = true;
         buildPapelIndex(papelData);
@@ -1722,7 +1722,11 @@ function renderInsumo(tipo, rows) {
     const displayHeaders = colIndices.map(({h}) =>
       /^COSTO\s+USD/i.test(h) ? 'Valor USD día' : h
     );
-    const dataRows = rows.slice(1);
+    // Sort data rows by OC descending (find OC column = first col with header 'oc' or index 0)
+    const iOCcol = rawHeaders.findIndex(h => /^n?[°ºo]?\s*oc$/i.test(String(h).trim()) || String(h).trim().toLowerCase() === 'oc');
+    const ocIdx = iOCcol >= 0 ? iOCcol : 0;
+    const dataRows = rows.slice(1).filter(r => r && r.some(c => c !== '' && c !== undefined))
+      .sort((a, b) => (parseNum(b[ocIdx]) || 0) - (parseNum(a[ocIdx]) || 0));
     sheetHTML = `
       <div class="table-wrap" style="margin-bottom:0">
         <div class="table-head-row">
