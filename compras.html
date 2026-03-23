@@ -663,14 +663,19 @@ function fmt(n, dec=0) {
 
 function fmtARS(n) {
   if (!n && n !== 0) return '—';
-  if (Math.abs(n) >= 1e9) return '$ ' + fmt(n/1e9, 2) + ' B';
-  if (Math.abs(n) >= 1e6) return '$ ' + fmt(n/1e6, 1) + ' M';
+  const a = Math.abs(n);
+  if (a >= 1e12) return '$ ' + fmt(n/1e12, 2) + ' B';
+  if (a >= 1e9)  return '$ ' + fmt(n/1e9,  2) + ' Mil M';
+  if (a >= 1e6)  return '$ ' + fmt(n/1e6,  1) + ' M';
   return '$ ' + fmt(n, 0);
 }
 
 function fmtUSD(n) {
   if (!n && n !== 0) return '—';
-  if (Math.abs(n) >= 1e6) return 'U$S ' + fmt(n/1e6, 2) + ' M';
+  const a = Math.abs(n);
+  if (a >= 1e12) return 'U$S ' + fmt(n/1e12, 2) + ' B';
+  if (a >= 1e9)  return 'U$S ' + fmt(n/1e9,  2) + ' Mil M';
+  if (a >= 1e6)  return 'U$S ' + fmt(n/1e6,  2) + ' M';
   return 'U$S ' + fmt(n, 0);
 }
 
@@ -1494,7 +1499,14 @@ function renderInsumo(tipo, rows) {
   // Build sheet table
   let sheetHTML = '';
   if (rows && rows.length > 1) {
-    const headers = rows[0] || [];
+    const rawHeaders = rows[0] || [];
+    // Build column index map: skip MES and AÑO columns
+    const colIndices = rawHeaders.map((h,i) => ({ h: String(h).trim(), i }))
+      .filter(({h}) => !/^(MES|AÑO|ANO)$/i.test(h));
+    // Rename headers for display
+    const displayHeaders = colIndices.map(({h}) =>
+      /^COSTO\s+USD/i.test(h) ? 'Valor USD día' : h
+    );
     const dataRows = rows.slice(1);
     sheetHTML = `
       <div class="table-wrap" style="margin-bottom:0">
@@ -1505,13 +1517,23 @@ function renderInsumo(tipo, rows) {
         <div class="table-scroll" style="max-height:350px">
           <table>
             <thead>
-              <tr>${headers.map(h => `<th>${escH(String(h))}</th>`).join('')}</tr>
+              <tr>${displayHeaders.map(h => `<th>${escH(h)}</th>`).join('')}</tr>
             </thead>
             <tbody>
-              ${dataRows.map(row => `<tr>${headers.map((h,i) => {
-                const val = row[i] || '';
-                const isDateCol = /fecha/i.test(String(h));
-                return `<td>${escH(isDateCol ? fmtDate(val) : String(val))}</td>`;
+              ${dataRows.map(row => `<tr>${colIndices.map(({h, i}) => {
+                const val = row[i] !== undefined ? row[i] : '';
+                const isDateCol = /fecha/i.test(h);
+                const isNumCol  = /importe|precio|costo\s+usd/i.test(h);
+                let display;
+                if (isDateCol) {
+                  display = fmtDate(val);
+                } else if (isNumCol && val !== '' && !isNaN(Number(val))) {
+                  const n = Number(val);
+                  display = n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                } else {
+                  display = String(val);
+                }
+                return `<td>${escH(display)}</td>`;
               }).join('')}</tr>`).join('')}
             </tbody>
           </table>
@@ -1883,7 +1905,7 @@ function renderOtrasCategorias() {
     <div class="cat-card${c.name === otrasSelectedCat ? ' active' : ''}" data-catname="${escH(c.name)}" onclick="selectOtrasCat(this)">
       <div class="cat-card-name">${escH(c.name)}</div>
       <div class="cat-card-stats">
-        <div class="cat-card-stat">OC: <span>${fmt(c.oc)}</span></div>
+        <div class="cat-card-stat">Cant. OC: <span>${fmt(c.oc)}</span></div>
         <div class="cat-card-stat">ARS: <span>${fmtARS(c.ars)}</span></div>
         ${c.usd > 0 ? `<div class="cat-card-stat">USD: <span>${fmtUSD(c.usd)}</span></div>` : ''}
       </div>
@@ -1961,7 +1983,7 @@ function renderOtrasCatDetalle(catName) {
         </div>
         <div class="table-scroll" style="max-height:300px">
           <table>
-            <thead><tr><th>Proveedor</th><th class="num">OC</th><th class="num">ARS</th><th class="num">USD</th><th class="num">% total</th></tr></thead>
+            <thead><tr><th>Proveedor</th><th class="num">Cant. OC</th><th class="num">ARS</th><th class="num">USD</th><th class="num">% total</th></tr></thead>
             <tbody>
               ${provList.map(p => `
                 <tr>
