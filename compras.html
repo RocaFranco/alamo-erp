@@ -557,7 +557,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
 const CLIENT_ID  = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
 const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email';
 const SHEET_ID   = '1EHWoF4WzSPypZ66zbs9JEjv4kzVKCcrwHdnHRDsHeJE';
-const PRECIOS_TINTAS_SHEET_ID = '1p0HPX0uXMDAgQ-2jzwezPXz4G6Pg9WB-stTJgyjmH6M'; // lista de precios por color/pantone
+const PRECIOS_TINTAS_SHEET_ID = '1p0HPX0uXMDAgQ-2jzwezPXz4G6Pg9WB-stTJgyjmH6M'; // lista precios tintas (dos tablas: papel + tubo)
 const PROD_SHEET_ID_PERMISOS = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY = 'Compras';
 
@@ -1614,6 +1614,21 @@ function renderPapelSmartTable(rows) {
   </div>`;
 }
 
+function togglePreciosTintas() {
+  const cont = document.getElementById('preciosTintasExterno');
+  const btn  = document.getElementById('btnPreciosTintasToggle');
+  if (!cont) return;
+  const isVisible = cont.style.display !== 'none';
+  if (isVisible) {
+    cont.style.display = 'none';
+    if (btn) btn.textContent = '📋 Ver lista de precios de proveedores';
+  } else {
+    cont.style.display = 'block';
+    if (btn) btn.textContent = '📋 Ocultar lista de precios';
+    loadPreciosTintasExterno();
+  }
+}
+
 async function loadPreciosTintasExterno() {
   const cont = document.getElementById('preciosTintasExterno');
   if (!cont) return;
@@ -1647,49 +1662,96 @@ async function loadPreciosTintasExterno() {
   }
 }
 
+function parsePreciosTintasSheet(rows) {
+  // Structure: row[0] = section titles, row[1] = column headers, row[2+] = data
+  // Two tables side by side: Tinta Papel (left) and Tinta Tubo/Rafia (right)
+  if (!rows || rows.length < 3) return null;
+  const titleRow  = rows[0] || [];
+  const headerRow = rows[1] || [];
+  const dataRows  = rows.slice(2);
+
+  // Find where each table starts from the title row
+  let t1Col = -1, t2Col = -1;
+  titleRow.forEach((cell, i) => {
+    const v = String(cell||'').toLowerCase().trim();
+    if (v && v.includes('papel') && t1Col < 0) t1Col = i;
+    if (v && (v.includes('tubo') || v.includes('rafia')) && t2Col < 0) t2Col = i;
+  });
+  // Fallback: find first and second non-empty header col
+  if (t1Col < 0 || t2Col < 0) {
+    const nonEmptyCols = headerRow.reduce((acc, h, i) => { if (String(h||'').trim()) acc.push(i); return acc; }, []);
+    if (t1Col < 0) t1Col = nonEmptyCols[0] ?? 1;
+    if (t2Col < 0) {
+      // Find first gap (empty column) after t1Col
+      for (let i = t1Col + 1; i < headerRow.length; i++) {
+        if (!String(headerRow[i]||'').trim() && String(headerRow[i+1]||'').trim()) { t2Col = i + 1; break; }
+      }
+    }
+  }
+
+  // Build column lists for each table (skip empty-header cols)
+  const buildCols = (from, to) =>
+    headerRow.slice(from, to >= 0 ? to : undefined)
+      .map((h, idx) => ({ h: String(h).trim(), i: from + idx }))
+      .filter(c => c.h);
+
+  const t1Cols = buildCols(t1Col, t2Col);
+  const t2Cols = t2Col >= 0 ? buildCols(t2Col, -1) : [];
+
+  const parseTable = (cols) => dataRows
+    .map(row => { const o = {}; cols.forEach(c => { o[c.h] = String(row[c.i] ?? '').trim(); }); return o; })
+    .filter(r => Object.values(r).some(v => v !== ''));
+
+  return {
+    t1Name:    titleRow[t1Col] ? String(titleRow[t1Col]).trim() : 'Tinta Papel',
+    t2Name:    t2Col >= 0 && titleRow[t2Col] ? String(titleRow[t2Col]).trim() : 'Tinta Tubo',
+    t1Headers: t1Cols.map(c => c.h),
+    t2Headers: t2Cols.map(c => c.h),
+    t1Data:    parseTable(t1Cols),
+    t2Data:    parseTable(t2Cols),
+  };
+}
+
 function renderPreciosTintasExterno(cont, rows) {
-  // Filter out completely empty rows
-  const nonEmpty = rows.filter(r => r && r.some(c => String(c||'').trim() !== ''));
-  if (!nonEmpty || nonEmpty.length < 2) {
-    cont.innerHTML = `<div class="section-head" style="margin-bottom:8px"><span class="section-title">Lista de precios de proveedores — Tintas</span></div>
-      <div style="color:var(--t3);font-size:12px;padding:12px">No se encontraron datos en la hoja de precios.</div>`;
+  const parsed = parsePreciosTintasSheet(rows);
+  if (!parsed) {
+    cont.innerHTML = `<div class="section-head"><span class="section-title">Lista de precios de proveedores — Tintas</span></div>
+      <div style="color:var(--t3);font-size:12px;padding:12px">No se encontraron datos.</div>`;
     return;
   }
-  // Determine max column count
-  const maxCols = Math.max(...nonEmpty.map(r => r.length));
-  const rawHeaders = nonEmpty[0] || [];
-  const dataRows   = nonEmpty.slice(1);
 
-  const thHTML = Array.from({length: maxCols}, (_, i) => `<th>${escH(String(rawHeaders[i]||'').trim())}</th>`).join('');
-
-  const tbHTML = dataRows.map(row => {
-    // Count how many cells have content
-    const filledCells = row.filter(c => String(c||'').trim() !== '').length;
-    // If only 1 cell has content → section separator row
-    if (filledCells <= 1) {
-      const label = String(row[0]||'').trim();
-      if (!label) return '';
-      return `<tr><td colspan="${maxCols}" style="background:var(--surf2,var(--surf));color:var(--acc3);font-weight:700;font-size:12px;padding:10px 12px;letter-spacing:0.5px;border-top:2px solid var(--b)">${escH(label)}</td></tr>`;
-    }
-    return `<tr>${Array.from({length: maxCols}, (_, i) => {
-      const val = String(row[i] !== undefined ? row[i] : '').trim();
-      // Detect numeric-looking strings for right-alignment
-      const isNum = val !== '' && /^[\d.,\s$%]+$/.test(val);
-      return `<td class="${isNum ? 'num' : ''}" style="font-size:12px">${escH(val)}</td>`;
-    }).join('')}</tr>`;
-  }).join('');
+  const buildTable = (headers, data, accentColor) => {
+    if (!data.length) return '<div class="empty-state">Sin datos</div>';
+    const isNumVal = v => v !== '' && /^-?[\d.,]+\s*%?$/.test(v.replace(/\s/g,''));
+    const thHTML = headers.map(h => `<th>${escH(h)}</th>`).join('');
+    const tbHTML = data.map(row => `<tr>${headers.map(h => {
+      const v = row[h] || '';
+      const isNum = isNumVal(v);
+      const style = isNum ? `color:${accentColor};font-weight:500` : '';
+      return `<td class="${isNum?'num':''}" style="font-size:12px;${style}">${escH(v)}</td>`;
+    }).join('')}</tr>`).join('');
+    return `<div class="table-scroll" style="max-height:450px"><table><thead><tr>${thHTML}</tr></thead><tbody>${tbHTML}</tbody></table></div>`;
+  };
 
   cont.innerHTML = `
-    <div class="section-head" style="margin-bottom:12px">
+    <div class="section-head" style="margin-bottom:16px">
       <span class="section-title">Lista de precios de proveedores — Tintas</span>
-      <span class="section-sub">Tinta Papel (Gefink / Bassegraf) · Tinta Tubo (Gefink)</span>
+      <span class="section-sub">${fmt(parsed.t1Data.length)} colores papel · ${fmt(parsed.t2Data.length)} colores tubo</span>
     </div>
-    <div class="table-wrap" style="margin-bottom:0">
-      <div class="table-scroll" style="max-height:500px">
-        <table>
-          <thead><tr>${thHTML}</tr></thead>
-          <tbody>${tbHTML || '<tr><td colspan="' + maxCols + '" class="empty-state">Sin datos</td></tr>'}</tbody>
-        </table>
+    <div class="two-col" style="gap:16px">
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row" style="background:rgba(255,165,0,0.08)">
+          <span style="color:var(--acc3);font-weight:600">${escH(parsed.t1Name)}</span>
+          <span class="section-sub">${fmt(parsed.t1Data.length)} colores</span>
+        </div>
+        ${buildTable(parsed.t1Headers, parsed.t1Data, 'var(--acc3)')}
+      </div>
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row" style="background:rgba(100,200,255,0.06)">
+          <span style="color:var(--acc2);font-weight:600">${escH(parsed.t2Name)}</span>
+          <span class="section-sub">${fmt(parsed.t2Data.length)} colores</span>
+        </div>
+        ${buildTable(parsed.t2Headers, parsed.t2Data, 'var(--acc2)')}
       </div>
     </div>`;
 }
@@ -1848,17 +1910,19 @@ function renderInsumo(tipo, rows) {
     </div>
     ${sheetHTML}
 
-    ${tipo === 'tinta' ? `<div id="preciosTintasExterno" style="margin-top:24px">
-      <div class="section-head" style="margin-bottom:12px">
-        <span class="section-title">Lista de precios de proveedores — Tintas</span>
-        <span class="section-sub">desde hoja de precios externa</span>
-      </div>
-      <div class="loading-box"><div class="spinner"></div><span>Cargando lista de precios...</span></div>
+    ${tipo === 'tinta' ? `
+    <div style="margin-top:24px">
+      <button class="sub-btn" id="btnPreciosTintasToggle"
+        onclick="togglePreciosTintas()"
+        style="margin-bottom:12px;padding:8px 18px;font-size:12px;">
+        📋 Ver lista de precios de proveedores
+      </button>
+      <div id="preciosTintasExterno" style="display:none"></div>
     </div>` : ''}
   `;
 
-  if (tipo === 'tinta') loadPreciosTintasExterno();
 }
+// Note: loadPreciosTintasExterno() is triggered by the toggle button, not auto-loaded
 
 // ─── PROVEEDORES ─────────────────────────────────────────────────────────────
 let provFiltered = [];
