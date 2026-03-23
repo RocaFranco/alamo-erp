@@ -217,6 +217,11 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
 @media(max-width:1200px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.two-col,.three-col{grid-template-columns:1fr;}.detail-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;}.header-tabs .tab-btn{padding:6px 8px;font-size:11px;}#header{padding:0 12px;gap:8px;}.badge-live{display:none;}.panel{padding:16px;}}
+
+/* ── PRECIOS ── */
+.btn-hide{background:none;border:none;cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px;transition:opacity 0.15s;opacity:0.5;}
+.btn-hide:hover{opacity:1;}
+.precio-row.hidden-row{opacity:0.35;}
 </style>
 </head>
 <body>
@@ -266,6 +271,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
     <button class="tab-btn" data-panel="ordenes" onclick="switchTab('ordenes')">Órdenes</button>
     <button class="tab-btn" data-panel="insumos" onclick="switchTab('insumos')">Insumos</button>
     <button class="tab-btn" data-panel="proveedores" onclick="switchTab('proveedores')">Proveedores</button>
+    <button class="tab-btn" id="tab-precios" data-panel="precios" onclick="switchTab('precios')">Precios</button>
   </nav>
 
   <div class="header-right">
@@ -363,29 +369,11 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
 
       <div>
         <div class="section-head" style="margin-bottom:12px">
-          <span class="section-title">Por Fábrica</span>
+          <span class="section-title">Por Empresa</span>
           <span class="section-sub" id="sinFabNote"></span>
         </div>
-        <div class="three-col" id="fabCards">
-          <div class="fab-card pitec" id="fabPitec">
-            <div class="fab-card-title">Pitec</div>
-            <div class="fab-metric"><span class="fab-metric-label">Órdenes</span><span class="fab-metric-val" id="fabPitecOC">—</span></div>
-            <div class="fab-metric"><span class="fab-metric-label">ARS</span><span class="fab-metric-val" id="fabPitecARS">—</span></div>
-            <div class="fab-metric"><span class="fab-metric-label">USD</span><span class="fab-metric-val" id="fabPitecUSD">—</span></div>
-          </div>
-          <div class="fab-card alamo" id="fabAlamo">
-            <div class="fab-card-title">Alamo</div>
-            <div class="fab-metric"><span class="fab-metric-label">Órdenes</span><span class="fab-metric-val" id="fabAlamoOC">—</span></div>
-            <div class="fab-metric"><span class="fab-metric-label">ARS</span><span class="fab-metric-val" id="fabAlamoARS">—</span></div>
-            <div class="fab-metric"><span class="fab-metric-label">USD</span><span class="fab-metric-val" id="fabAlamoUSD">—</span></div>
-          </div>
-          <div class="fab-card mant" id="fabMant">
-            <div class="fab-card-title">Mant. Alamo</div>
-            <div class="fab-metric"><span class="fab-metric-label">Órdenes</span><span class="fab-metric-val" id="fabMantOC">—</span></div>
-            <div class="fab-metric"><span class="fab-metric-label">ARS</span><span class="fab-metric-val" id="fabMantARS">—</span></div>
-            <div class="fab-metric"><span class="fab-metric-label">USD</span><span class="fab-metric-val" id="fabMantUSD">—</span></div>
-          </div>
-        </div>
+        <!-- Empresa cards - rendered dynamically -->
+        <div id="empresaCards" style="display:flex;flex-direction:column;gap:12px;"></div>
       </div>
     </div>
   </div>
@@ -503,6 +491,48 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
     </div>
   </div>
 
+  <!-- PANEL: PRECIOS -->
+  <div class="panel" id="panel-precios">
+    <div class="filter-bar" id="preciosFilterBar">
+      <input type="text" id="preciosSearch" placeholder="Buscar insumo..." oninput="renderPreciosTable()" style="min-width:220px;">
+      <span class="filter-label">Categoría</span>
+      <select id="preciosCat" onchange="renderPreciosTable()">
+        <option value="all">Todas</option>
+      </select>
+      <span class="filter-label">Empresa</span>
+      <select id="preciosEmpresa" onchange="renderPreciosTable()">
+        <option value="all">Todas</option>
+        <option value="Pitec">Pitec</option>
+        <option value="Alamo">Alamo</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--t2);cursor:pointer;margin-left:auto;">
+        <input type="checkbox" id="preciosShowHidden" onchange="renderPreciosTable()" style="width:14px;height:14px;">
+        Mostrar ocultos
+      </label>
+    </div>
+    <div style="margin-bottom:10px;padding:10px 14px;background:var(--surf);border:1px solid var(--b);border-radius:8px;font-size:12px;color:var(--t2);">
+      <strong style="color:var(--acc);">ℹ Últimos precios por insumo</strong> — Solo insumos comprados 2+ veces. Excluye compras de Fadebol, Polypel y Mateu. Usá el 👁 para ocultar insumos que no te interesan.
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="preciosTable">
+        <thead>
+          <tr>
+            <th style="width:28px;"></th>
+            <th>Descripción</th>
+            <th>Categoría</th>
+            <th>Empresa</th>
+            <th>Proveedor habitual</th>
+            <th class="num">Último precio ARS</th>
+            <th class="num">Último precio USD</th>
+            <th class="num">Última compra</th>
+            <th class="num"># OC</th>
+          </tr>
+        </thead>
+        <tbody id="preciosBody"><tr><td colspan="9" class="empty-state">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
 </div><!-- /app -->
 
 <script>
@@ -510,7 +540,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
 const CLIENT_ID  = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
 const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets.readonly';
 const SHEET_ID   = '1EHWoF4WzSPypZ66zbs9JEjv4kzVKCcrwHdnHRDsHeJE';
-const PROD_SHEET_ID_PERMISOS = '1__VAhSwaLtF4xGjtuMI_Gw2yWpBzsNKZNy0tgBEAYJA';
+const PROD_SHEET_ID_PERMISOS = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY = 'Compras';
 
 async function checkPermission(token, email) {
@@ -850,6 +880,18 @@ function buildDropdowns() {
   ordEstado.innerHTML = '<option value="all">Todos</option>';
   estados.forEach(e => ordEstado.innerHTML += `<option value="${escH(e)}">${escH(e)}</option>`);
   if (curE) ordEstado.value = curE;
+
+  // Dynamic fábrica options
+  const fabricas = [...new Set(allOrdenes.map(r => r.fabrica).filter(Boolean))].sort();
+  ['resFabrica','ordFabrica'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">Todas</option>';
+    fabricas.forEach(f => sel.innerHTML += `<option value="${escH(f)}">${escH(f)}</option>`);
+    sel.innerHTML += '<option value="sin">Sin asignar</option>';
+    if (cur && sel.querySelector(`option[value="${cur}"]`)) sel.value = cur;
+  });
 }
 
 // ─── FILTERS ─────────────────────────────────────────────────────────────────
@@ -995,20 +1037,72 @@ function renderTopProveedores(data) {
     </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Sin datos</td></tr>';
 }
 
+function getEmpresa(fabrica) {
+  const f = (fabrica || '').toLowerCase();
+  if (f.includes('pitec')) return 'Pitec';
+  if (f.includes('alamo') || f.includes('álamo')) return 'Alamo';
+  if (f) return f; // unknown empresa = its own group
+  return null;
+}
+
 function renderFabricaCards(data) {
-  const fabricas = ['Pitec','Alamo','Mantenimiento Alamo'];
-  const ids = ['Pitec','Alamo','Mant'];
-  fabricas.forEach((fab, i) => {
-    const rows = data.filter(r => r.fabrica === fab);
-    const oc  = rows.length;
-    const ars = rows.reduce((s,r) => s + (r.importe_ars||0), 0);
-    const usd = rows.reduce((s,r) => s + (r.importe_usd||0), 0);
-    document.getElementById(`fab${ids[i]}OC`).textContent  = fmt(oc);
-    document.getElementById(`fab${ids[i]}ARS`).textContent = fmtARS(ars);
-    document.getElementById(`fab${ids[i]}USD`).textContent = fmtUSD(usd);
+  // Group by empresa, then by fabrica within empresa
+  const empresaMap = {}; // empresa -> { oc, ars, usd, fabricas: { fab -> {oc,ars,usd} } }
+  data.forEach(r => {
+    const emp = getEmpresa(r.fabrica);
+    if (!emp) return;
+    if (!empresaMap[emp]) empresaMap[emp] = { oc: 0, ars: 0, usd: 0, fabricas: {} };
+    empresaMap[emp].oc++;
+    empresaMap[emp].ars += r.importe_ars || 0;
+    empresaMap[emp].usd += r.importe_usd || 0;
+    const fab = r.fabrica || '(sin asignar)';
+    if (!empresaMap[emp].fabricas[fab]) empresaMap[emp].fabricas[fab] = { oc: 0, ars: 0, usd: 0 };
+    empresaMap[emp].fabricas[fab].oc++;
+    empresaMap[emp].fabricas[fab].ars += r.importe_ars || 0;
+    empresaMap[emp].fabricas[fab].usd += r.importe_usd || 0;
   });
+
+  const EMPRESA_COLORS = {
+    'Pitec': { accent: 'var(--acc)', bg: 'rgba(232,255,71,0.05)', border: 'rgba(232,255,71,0.2)' },
+    'Alamo': { accent: 'var(--acc2)', bg: 'rgba(71,200,255,0.05)', border: 'rgba(71,200,255,0.2)' },
+  };
+
+  const empresas = Object.keys(empresaMap).sort();
+  const container = document.getElementById('empresaCards');
+  if (!container) return;
+
+  container.innerHTML = empresas.map(emp => {
+    const d = empresaMap[emp];
+    const col = EMPRESA_COLORS[emp] || { accent: 'var(--warn)', bg: 'rgba(255,179,71,0.05)', border: 'rgba(255,179,71,0.2)' };
+    const fabricas = Object.entries(d.fabricas).sort((a,b) => b[1].ars - a[1].ars);
+    const fabRows = fabricas.map(([fab, fd]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--surf3);border-radius:6px;font-size:11px;">
+        <span style="color:var(--t2);font-family:var(--mono);">${escH(fab)}</span>
+        <span style="display:flex;gap:14px;">
+          <span style="color:var(--t2);">${fmt(fd.oc)} OC</span>
+          <span style="color:var(--acc);font-family:var(--mono);">${fmtARS(fd.ars)}</span>
+          ${fd.usd > 0 ? `<span style="color:var(--acc2);font-family:var(--mono);">${fmtUSD(fd.usd)}</span>` : ''}
+        </span>
+      </div>`).join('');
+
+    return `
+    <div style="background:var(--surf);border:1px solid ${col.border};border-radius:12px;padding:16px 18px;background:${col.bg};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-family:var(--disp);font-size:16px;font-weight:800;color:${col.accent};">🏭 ${escH(emp)}</div>
+        <div style="display:flex;gap:18px;font-family:var(--mono);font-size:12px;">
+          <span style="color:var(--t2);">${fmt(d.oc)} <span style="color:var(--t3)">OC</span></span>
+          <span style="color:var(--acc);">${fmtARS(d.ars)}</span>
+          ${d.usd > 0 ? `<span style="color:var(--acc2);">${fmtUSD(d.usd)}</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">${fabRows}</div>
+    </div>`;
+  }).join('');
+
+  // Sin fábrica note
   const sinFab = data.filter(r => !r.fabrica).length;
-  document.getElementById('sinFabNote').textContent = sinFab > 0 ? `Sin asignar: ${fmt(sinFab)} órdenes` : '';
+  const note = document.getElementById('sinFabNote');
+  if (note) note.textContent = sinFab > 0 ? `Sin asignar: ${fmt(sinFab)} órdenes` : '';
 }
 
 // ─── ÓRDENES TABLE ────────────────────────────────────────────────────────────
@@ -1471,6 +1565,7 @@ function switchTab(tab) {
 
   if (tab === 'ordenes' && !ordFiltered.length && allOrdenes.length) applyOrdenesFilter();
   if (tab === 'insumos') loadInsumos();
+  if (tab === 'precios') loadPrecios();
   if (tab === 'proveedores' && !provFiltered.length && allProveedores.length) filterProveedores();
 }
 
@@ -1478,6 +1573,7 @@ function switchTab(tab) {
 function doRefresh() {
   tintaLoaded = false; papelLoaded = false;
   tintaData = null; papelData = null;
+  preciosLoaded = false; preciosData = [];
   loadAll();
 }
 
@@ -1497,6 +1593,130 @@ function showError(panelId, msg) {
 
 function escH(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── PRECIOS ──────────────────────────────────────────────────────────────────
+const PRECIOS_EXCLUDED_SUPPLIERS = ['fadebol', 'polypel', 'mateu'];
+let preciosLoaded = false;
+let preciosData = []; // computed once, re-filtered on render
+
+function loadPrecios() {
+  if (preciosLoaded) { renderPreciosTable(); return; }
+  preciosLoaded = true;
+  buildPreciosData();
+  // Populate categoría dropdown
+  const cats = [...new Set(preciosData.map(p => p.categoria).filter(Boolean))].sort();
+  const sel = document.getElementById('preciosCat');
+  if (sel) {
+    sel.innerHTML = '<option value="all">Todas</option>';
+    cats.forEach(c => sel.innerHTML += `<option value="${escH(c)}">${escH(c)}</option>`);
+  }
+  renderPreciosTable();
+}
+
+function buildPreciosData() {
+  // Load hidden prefs from localStorage
+  const hidden = JSON.parse(localStorage.getItem('alamo_precios_hidden') || '{}');
+
+  // Filter out excluded suppliers
+  const filtered = allOrdenes.filter(r => {
+    const prov = (r.proveedor || '').toLowerCase();
+    return !PRECIOS_EXCLUDED_SUPPLIERS.some(ex => prov.includes(ex));
+  });
+
+  // Group by descripción (normalized)
+  const groups = {};
+  filtered.forEach(r => {
+    const desc = (r.descripcion || '').trim();
+    if (!desc) return;
+    const key = desc.toLowerCase();
+    if (!groups[key]) groups[key] = { descripcion: desc, categoria: r.categoria, rows: [] };
+    groups[key].rows.push(r);
+  });
+
+  preciosData = Object.values(groups)
+    .filter(g => g.rows.length >= 2) // bought 2+ times
+    .map(g => {
+      // Sort rows by date descending to get latest
+      const sorted = g.rows.filter(r => r.fecha).sort((a, b) => b.fecha - a.fecha);
+      const latest = sorted[0] || g.rows[0];
+      // Get most common empresa
+      const empCounts = {};
+      g.rows.forEach(r => { const e = getEmpresa(r.fabrica); if (e) empCounts[e] = (empCounts[e]||0)+1; });
+      const empresa = Object.keys(empCounts).sort((a,b)=>empCounts[b]-empCounts[a])[0] || '—';
+      // Get most common proveedor
+      const provCounts = {};
+      g.rows.forEach(r => { const p = r.proveedor||''; if(p) provCounts[p]=(provCounts[p]||0)+1; });
+      const proveedor = Object.keys(provCounts).sort((a,b)=>provCounts[b]-provCounts[a])[0] || '—';
+
+      return {
+        key: g.descripcion.toLowerCase(),
+        descripcion: g.descripcion,
+        categoria: g.categoria || '—',
+        empresa,
+        proveedor,
+        precio_ars: latest ? latest.precio_unit : 0,
+        precio_usd: latest ? latest.costo_usd : 0,
+        fecha_ultima: latest ? latest.fecha : null,
+        n_oc: g.rows.length,
+        hidden: !!hidden[g.descripcion.toLowerCase()],
+      };
+    })
+    .sort((a,b) => a.descripcion.localeCompare(b.descripcion, 'es'));
+}
+
+function togglePrecioHidden(key) {
+  const hidden = JSON.parse(localStorage.getItem('alamo_precios_hidden') || '{}');
+  hidden[key] = !hidden[key];
+  localStorage.setItem('alamo_precios_hidden', JSON.stringify(hidden));
+  // Update in preciosData
+  const item = preciosData.find(p => p.key === key);
+  if (item) item.hidden = hidden[key];
+  renderPreciosTable();
+}
+
+function renderPreciosTable() {
+  const search = (document.getElementById('preciosSearch')?.value || '').toLowerCase();
+  const cat = document.getElementById('preciosCat')?.value || 'all';
+  const emp = document.getElementById('preciosEmpresa')?.value || 'all';
+  const showHidden = document.getElementById('preciosShowHidden')?.checked || false;
+
+  const rows = preciosData.filter(p => {
+    if (!showHidden && p.hidden) return false;
+    if (cat !== 'all' && p.categoria !== cat) return false;
+    if (emp !== 'all' && p.empresa !== emp) return false;
+    if (search && !p.descripcion.toLowerCase().includes(search) && !p.proveedor.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('preciosBody');
+  if (!tbody) return;
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Sin resultados</td></tr>';
+    return;
+  }
+
+  const fmtFecha = d => {
+    if (!d) return '—';
+    return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+  };
+
+  tbody.innerHTML = rows.map(p => `
+    <tr class="precio-row${p.hidden?' hidden-row':''}" data-key="${escH(p.key)}">
+      <td style="text-align:center;">
+        <button class="btn-hide" onclick="togglePrecioHidden('${escH(p.key).replace(/'/g,"\\'")}')"\
+          title="${p.hidden ? 'Mostrar' : 'Ocultar'}">${p.hidden ? '👁' : '🙈'}</button>
+      </td>
+      <td style="font-weight:500;">${escH(p.descripcion)}</td>
+      <td class="mono muted" style="font-size:11px;">${escH(p.categoria)}</td>
+      <td>${p.empresa !== '—' ? `<span class="chip chip-${p.empresa.toLowerCase().includes('pitec')?'pitec':'alamo'}">${escH(p.empresa)}</span>` : '—'}</td>
+      <td class="muted" style="font-size:12px;">${escH(p.proveedor)}</td>
+      <td class="num">${p.precio_ars > 0 ? fmtARS(p.precio_ars) : '—'}</td>
+      <td class="num">${p.precio_usd > 0 ? fmtUSD(p.precio_usd) : '—'}</td>
+      <td class="num mono muted" style="font-size:11px;">${fmtFecha(p.fecha_ultima)}</td>
+      <td class="num mono muted" style="font-size:11px;">${p.n_oc}</td>
+    </tr>`).join('');
 }
 </script>
 </body>
