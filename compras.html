@@ -1622,7 +1622,21 @@ async function loadPreciosTintasExterno() {
     return;
   }
   try {
-    const rows = await readSheetFromId(PRECIOS_TINTAS_SHEET_ID, 'Precios Tintas!A1:Z200');
+    // Step 1: get spreadsheet metadata to find actual tab name
+    const metaUrl = `https://sheets.googleapis.com/v4/spreadsheets/${PRECIOS_TINTAS_SHEET_ID}?fields=sheets.properties`;
+    const metaResp = await fetch(metaUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!metaResp.ok) {
+      const txt = await metaResp.text();
+      throw new Error(`Metadata error ${metaResp.status}: ${txt}`);
+    }
+    const meta = await metaResp.json();
+    const sheetTabs = (meta.sheets || []).map(s => s.properties?.title || '');
+    // Find best matching tab (prefer one with "precio" or "tinta", fallback to first)
+    const tabName = sheetTabs.find(t => /precio/i.test(t) || /tinta/i.test(t)) || sheetTabs[0] || 'Sheet1';
+    console.log('[PreciosTintas] Tabs disponibles:', sheetTabs, '→ usando:', tabName);
+
+    // Step 2: read the data
+    const rows = await readSheetFromId(PRECIOS_TINTAS_SHEET_ID, `${tabName}!A1:Z300`);
     preciosTintasData = rows;
     preciosTintasLoaded = true;
     renderPreciosTintasExterno(cont, rows);
