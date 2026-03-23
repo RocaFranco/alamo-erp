@@ -222,6 +222,16 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
 .btn-hide{background:none;border:none;cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px;transition:opacity 0.15s;opacity:0.5;}
 .btn-hide:hover{opacity:1;}
 .precio-row.hidden-row{opacity:0.35;}
+
+/* ── OTRAS CATEGORÍAS ── */
+.otras-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px;}
+.cat-card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+.cat-card:hover{border-color:var(--b2);background:var(--surf2);}
+.cat-card.active{border-color:rgba(71,200,255,0.4);background:rgba(71,200,255,0.05);}
+.cat-card-name{font-family:var(--disp);font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.cat-card-stats{display:flex;flex-direction:column;gap:3px;}
+.cat-card-stat{font-family:var(--mono);font-size:11px;color:var(--t2);}
+.cat-card-stat span{color:var(--text);}
 </style>
 </head>
 <body>
@@ -454,6 +464,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
       <div class="sub-toggle">
         <button class="sub-btn active" id="btnTinta" onclick="switchInsumo('tinta')">Tintas</button>
         <button class="sub-btn" id="btnPapel" onclick="switchInsumo('papel')">Papel</button>
+        <button class="sub-btn" id="btnOtras" onclick="switchInsumo('otras')">Otras categorías</button>
       </div>
     </div>
 
@@ -596,6 +607,7 @@ let tintaData     = null;
 let papelData     = null;
 let tintaLoaded   = false;
 let papelLoaded   = false;
+let otrasLoaded   = false;
 let insumoActivo  = 'tinta';
 
 let ordFiltered   = [];
@@ -622,6 +634,11 @@ function parseNum(v) {
 
 function parseDate(v) {
   if (!v) return null;
+  // Google Sheets serial date number (returned by UNFORMATTED_VALUE for date cells)
+  // Excel epoch is Dec 30, 1899; Unix epoch offset = 25569 days
+  if (typeof v === 'number' && v > 40000 && v < 75000) {
+    return new Date(Math.round((v - 25569) * 86400 * 1000));
+  }
   const s = String(v).trim();
   // dd-mm-yyyy or dd/mm/yyyy
   const m1 = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
@@ -630,6 +647,13 @@ function parseDate(v) {
   const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
   return null;
+}
+
+function fmtDate(v) {
+  if (!v && v !== 0) return '—';
+  const d = (v instanceof Date) ? v : parseDate(v);
+  if (!d || isNaN(d)) return '—';
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function fmt(n, dec=0) {
@@ -760,7 +784,7 @@ function handleLogout() {
   document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('loginOverlay').style.display = 'flex';
   allOrdenes = []; allProveedores = []; tintaData = null; papelData = null;
-  tintaLoaded = false; papelLoaded = false;
+  tintaLoaded = false; papelLoaded = false; otrasLoaded = false;
 }
 
 // ─── CACHE ───────────────────────────────────────────────────────────────────
@@ -1235,11 +1259,10 @@ function renderOrdenesPage() {
   } else {
     tbody.innerHTML = page.map((r, i) => {
       const ri = start + i;
-      const dateStr = r.fecha ? `${String(r.fecha.getDate()).padStart(2,'0')}-${String(r.fecha.getMonth()+1).padStart(2,'0')}-${r.fecha.getFullYear()}` : String(r.fecha_raw);
       return `
         <tr onclick="toggleDetail(${r._idx})" style="cursor:pointer" id="row-${r._idx}">
           <td class="mono" style="font-size:11px;color:var(--t2)">${escH(String(r.oc))}</td>
-          <td class="mono" style="font-size:11px;white-space:nowrap">${dateStr}</td>
+          <td class="mono" style="font-size:11px;white-space:nowrap">${fmtDate(r.fecha_raw)}</td>
           <td>${fabricaChip(r.fabrica)}</td>
           <td style="font-size:11px;color:var(--t2)">${escH(r.categoria) || '—'}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escH(r.descripcion)}">${escH(truncate(r.descripcion, 40))}</td>
@@ -1299,8 +1322,8 @@ function toggleDetail(idx) {
 
 function buildDetailHTML(r) {
   const fields = [
-    ['OC',           r.oc],
-    ['Fecha emisión',r.fecha_raw],
+    ['Nro OC',       String(r.oc)],
+    ['Fecha emisión',fmtDate(r.fecha_raw)],
     ['Fábrica',      r.fabrica || '—'],
     ['Categoría',    r.categoria || '—'],
     ['Descripción',  r.descripcion || '—'],
@@ -1311,8 +1334,8 @@ function buildDetailHTML(r) {
     ['Tipo de cambio',r.costo_usd ? `$ ${fmt(r.costo_usd,2)}` : '—'],
     ['Importe USD',  fmtUSD(r.importe_usd)],
     ['N° Esp. Téc.',  r.n_esp || '—'],
-    ['Fecha entrega',r.fecha_entrega || '—'],
-    ['Fecha recepción',r.fecha_recep || '—'],
+    ['Fecha entrega',fmtDate(r.fecha_entrega)],
+    ['Fecha recepción',fmtDate(r.fecha_recep)],
     ['Cant. entregada', r.cant_entregada ? fmt(r.cant_entregada) : '—'],
     ['Estado',       r.estado || '—'],
     ['Días atraso',  r.dias_atraso > 0 ? `<span style="color:var(--acc3)">${r.dias_atraso} días</span>` : '0'],
@@ -1337,6 +1360,7 @@ function switchInsumo(tipo) {
   insumoActivo = tipo;
   document.getElementById('btnTinta').classList.toggle('active', tipo === 'tinta');
   document.getElementById('btnPapel').classList.toggle('active', tipo === 'papel');
+  document.getElementById('btnOtras').classList.toggle('active', tipo === 'otras');
   loadInsumos();
 }
 
@@ -1355,7 +1379,7 @@ async function loadInsumos() {
       }
     }
     renderInsumo('tinta', tintaData);
-  } else {
+  } else if (insumoActivo === 'papel') {
     if (!papelLoaded) {
       cont.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Cargando datos de Papel...</span></div>';
       try {
@@ -1368,6 +1392,9 @@ async function loadInsumos() {
       }
     }
     renderInsumo('papel', papelData);
+  } else {
+    // otras categorías
+    renderOtrasCategorias();
   }
 }
 
@@ -1597,10 +1624,9 @@ function buildProvDetailHTML(nombre) {
       <thead><tr><th>OC</th><th>Fecha</th><th>Fábrica</th><th>Descripción</th><th class="num">ARS</th><th class="num">USD</th><th>Estado</th><th>Pagado</th></tr></thead>
       <tbody>
         ${recentOcs.map(r => {
-          const dateStr = r.fecha ? `${String(r.fecha.getDate()).padStart(2,'0')}-${String(r.fecha.getMonth()+1).padStart(2,'0')}-${r.fecha.getFullYear()}` : String(r.fecha_raw);
           return `<tr>
             <td class="mono" style="color:var(--t2)">${escH(String(r.oc))}</td>
-            <td class="mono" style="white-space:nowrap">${dateStr}</td>
+            <td class="mono" style="white-space:nowrap">${fmtDate(r.fecha_raw)}</td>
             <td>${fabricaChip(r.fabrica)}</td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(truncate(r.descripcion,35))}</td>
             <td class="num">${fmtARS(r.importe_ars)}</td>
@@ -1626,6 +1652,7 @@ function toggleCurrency() {
   if (activeTab === 'insumos') {
     if (insumoActivo === 'tinta' && tintaLoaded) renderInsumo('tinta', tintaData);
     if (insumoActivo === 'papel' && papelLoaded) renderInsumo('papel', papelData);
+    if (insumoActivo === 'otras' && otrasLoaded) renderOtrasCategorias();
   }
   if (activeTab === 'proveedores') sortAndRenderProveedores();
 }
@@ -1644,7 +1671,7 @@ function switchTab(tab) {
 
 // ─── REFRESH ─────────────────────────────────────────────────────────────────
 function doRefresh() {
-  tintaLoaded = false; papelLoaded = false;
+  tintaLoaded = false; papelLoaded = false; otrasLoaded = false;
   tintaData = null; papelData = null;
   preciosLoaded = false; preciosData = [];
   loadAll(true); // fuerza re-lectura del sheet, ignora caché
@@ -1730,12 +1757,158 @@ function buildPreciosData() {
         proveedor,
         precio_ars: latest ? latest.precio_unit : 0,
         precio_usd: latest ? latest.costo_usd : 0,
-        fecha_ultima: latest ? latest.fecha : null,
+        fecha_ultima: latest ? latest.fecha_raw : null,
         n_oc: g.rows.length,
         hidden: !!hidden[g.descripcion.toLowerCase()],
       };
     })
     .sort((a,b) => a.descripcion.localeCompare(b.descripcion, 'es'));
+}
+
+// ─── OTRAS CATEGORÍAS ────────────────────────────────────────────────────────
+let otrasSelectedCat = null;
+
+function renderOtrasCategorias() {
+  otrasLoaded = true;
+  const cont = document.getElementById('insumosContent');
+
+  // Excluded categories (handled by dedicated tabs)
+  const EXCLUDED = ['tinta', 'papel'];
+
+  // Build category stats from allOrdenes, excluding Tinta and Papel categories
+  const catMap = {};
+  allOrdenes.forEach(r => {
+    const cat = (r.categoria || '').trim();
+    if (!cat) return;
+    if (EXCLUDED.some(ex => cat.toLowerCase().includes(ex))) return;
+    if (!catMap[cat]) catMap[cat] = { oc: 0, ars: 0, usd: 0 };
+    catMap[cat].oc++;
+    catMap[cat].ars += r.importe_ars || 0;
+    catMap[cat].usd += r.importe_usd || 0;
+  });
+
+  const cats = Object.entries(catMap)
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.ars - a.ars);
+
+  if (!cats.length) {
+    cont.innerHTML = '<div class="empty-state">No hay otras categorías en Órdenes.</div>';
+    return;
+  }
+
+  // If no category selected yet, select first
+  if (!otrasSelectedCat || !catMap[otrasSelectedCat]) {
+    otrasSelectedCat = cats[0].name;
+  }
+
+  const cardsHTML = cats.map(c => `
+    <div class="cat-card${c.name === otrasSelectedCat ? ' active' : ''}" data-catname="${escH(c.name)}" onclick="selectOtrasCat(this)">
+      <div class="cat-card-name">${escH(c.name)}</div>
+      <div class="cat-card-stats">
+        <div class="cat-card-stat">OC: <span>${fmt(c.oc)}</span></div>
+        <div class="cat-card-stat">ARS: <span>${fmtARS(c.ars)}</span></div>
+        ${c.usd > 0 ? `<div class="cat-card-stat">USD: <span>${fmtUSD(c.usd)}</span></div>` : ''}
+      </div>
+    </div>`).join('');
+
+  cont.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--t2);margin-bottom:12px;">
+        ${cats.length} categorías — click en una para ver detalles
+      </div>
+      <div class="otras-grid">${cardsHTML}</div>
+    </div>
+    <div id="otrasDetalle"></div>`;
+
+  renderOtrasCatDetalle(otrasSelectedCat);
+}
+
+function selectOtrasCat(cardEl) {
+  // data-catname holds the HTML-escaped category name; find real name from allOrdenes
+  const escapedName = cardEl.getAttribute('data-catname') || '';
+  // Unescape basic HTML entities to get the real name
+  const tmp = document.createElement('textarea');
+  tmp.innerHTML = escapedName;
+  otrasSelectedCat = tmp.value;
+  // Update active state on cards
+  document.querySelectorAll('.cat-card').forEach(el => {
+    el.classList.toggle('active', el === cardEl);
+  });
+  renderOtrasCatDetalle(otrasSelectedCat);
+}
+
+function renderOtrasCatDetalle(catName) {
+  const det = document.getElementById('otrasDetalle');
+  if (!det) return;
+
+  const ords = allOrdenes.filter(r => (r.categoria || '').trim() === catName);
+  if (!ords.length) { det.innerHTML = ''; return; }
+
+  const totalARS = ords.reduce((s,r) => s+(r.importe_ars||0), 0);
+  const totalUSD = ords.reduce((s,r) => s+(r.importe_usd||0), 0);
+
+  // Group by proveedor
+  const byProv = {};
+  ords.forEach(r => {
+    const p = r.proveedor || '(Sin proveedor)';
+    if (!byProv[p]) byProv[p] = { oc:0, ars:0, usd:0 };
+    byProv[p].oc++;
+    byProv[p].ars += r.importe_ars||0;
+    byProv[p].usd += r.importe_usd||0;
+  });
+  const provList = Object.entries(byProv).map(([n,v]) => ({nombre:n,...v})).sort((a,b) => b.ars - a.ars);
+
+  // Group by year
+  const byYear = {};
+  ords.forEach(r => {
+    if (!r.año) return;
+    if (!byYear[r.año]) byYear[r.año] = { oc:0, ars:0, usd:0 };
+    byYear[r.año].oc++;
+    byYear[r.año].ars += r.importe_ars||0;
+    byYear[r.año].usd += r.importe_usd||0;
+  });
+  const yearRows = Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([y,v]) =>
+    `<tr><td class="mono">${y}</td><td class="num">${fmt(v.oc)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
+  ).join('');
+
+  det.innerHTML = `
+    <div class="section-head" style="margin-bottom:12px;">
+      <span class="section-title">${escH(catName)}</span>
+      <span class="section-sub">${fmt(ords.length)} OC — ${fmtARS(totalARS)} — ${fmtUSD(totalUSD)}</span>
+    </div>
+    <div class="two-col" style="margin-bottom:0">
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row">
+          <span>Proveedores</span>
+        </div>
+        <div class="table-scroll" style="max-height:300px">
+          <table>
+            <thead><tr><th>Proveedor</th><th class="num">OC</th><th class="num">ARS</th><th class="num">USD</th><th class="num">% total</th></tr></thead>
+            <tbody>
+              ${provList.map(p => `
+                <tr>
+                  <td>${escH(p.nombre)}</td>
+                  <td class="num">${fmt(p.oc)}</td>
+                  <td class="num">${fmtARS(p.ars)}</td>
+                  <td class="num">${fmtUSD(p.usd)}</td>
+                  <td class="num muted">${totalARS > 0 ? fmt((p.ars/totalARS)*100,1)+'%' : '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row">
+          <span>Por año</span>
+        </div>
+        <div class="table-scroll" style="max-height:300px">
+          <table>
+            <thead><tr><th>Año</th><th class="num">OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
+            <tbody>${yearRows || '<tr><td colspan="4" class="empty-state">Sin datos</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
 }
 
 function togglePrecioHidden(key) {
@@ -1770,11 +1943,6 @@ function renderPreciosTable() {
     return;
   }
 
-  const fmtFecha = d => {
-    if (!d) return '—';
-    return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
-  };
-
   tbody.innerHTML = rows.map(p => `
     <tr class="precio-row${p.hidden?' hidden-row':''}" data-key="${escH(p.key)}">
       <td style="text-align:center;">
@@ -1787,7 +1955,7 @@ function renderPreciosTable() {
       <td class="muted" style="font-size:12px;">${escH(p.proveedor)}</td>
       <td class="num">${p.precio_ars > 0 ? fmtARS(p.precio_ars) : '—'}</td>
       <td class="num">${p.precio_usd > 0 ? fmtUSD(p.precio_usd) : '—'}</td>
-      <td class="num mono muted" style="font-size:11px;">${fmtFecha(p.fecha_ultima)}</td>
+      <td class="num mono muted" style="font-size:11px;">${fmtDate(p.fecha_ultima)}</td>
       <td class="num mono muted" style="font-size:11px;">${p.n_oc}</td>
     </tr>`).join('');
 }
