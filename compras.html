@@ -536,7 +536,6 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
             <th style="width:28px;"></th>
             <th>Descripción</th>
             <th>Categoría</th>
-            <th>Detalle</th>
             <th>Empresa</th>
             <th>Proveedor habitual</th>
             <th class="num">Último precio ARS</th>
@@ -545,7 +544,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
             <th class="num">Cant. de Compras</th>
           </tr>
         </thead>
-        <tbody id="preciosBody"><tr><td colspan="10" class="empty-state">Cargando...</td></tr></tbody>
+        <tbody id="preciosBody"><tr><td colspan="9" class="empty-state">Cargando...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -673,13 +672,13 @@ function fmt(n, dec=0) {
   return n.toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
-function fmtARS(n) {
+function fmtARS(n, dec = 0) {
   if (!n && n !== 0) return '—';
   const a = Math.abs(n);
   if (a >= 1e12) return '$ ' + fmt(n/1e12, 2) + ' B';
   if (a >= 1e9)  return '$ ' + fmt(n/1e9,  2) + ' Mil M';
   if (a >= 1e6)  return '$ ' + fmt(n/1e6,  1) + ' M';
-  return '$ ' + fmt(n, 0);
+  return '$ ' + fmt(n, dec);
 }
 
 function fmtUSD(n, dec = 0) {
@@ -2777,14 +2776,11 @@ function renderPreciosTable() {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Sin resultados</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Sin resultados</td></tr>';
     return;
   }
 
-  tbody.innerHTML = rows.map(p => {
-    const catL = (p.categoria||'').toLowerCase();
-    const detalleStyle = catL.includes('tinta') ? 'color:var(--acc3)' : catL.includes('papel') ? 'color:var(--acc2)' : 'color:var(--t3)';
-    return `
+  tbody.innerHTML = rows.map(p => `
     <tr class="precio-row${p.hidden?' hidden-row':''}" data-key="${escH(p.key)}">
       <td style="text-align:center;">
         <button class="btn-hide" onclick="togglePrecioHidden('${escH(p.key).replace(/'/g,"\\'")}')"\
@@ -2792,15 +2788,13 @@ function renderPreciosTable() {
       </td>
       <td style="font-weight:500;">${escH(p.descripcion)}</td>
       <td class="mono muted" style="font-size:11px;">${escH(p.categoria)}</td>
-      <td style="font-size:11px;${detalleStyle}">${p.detalle ? escH(p.detalle) : '<span style="color:var(--t3)">—</span>'}</td>
       <td>${p.empresa !== '—' ? `<span class="chip chip-${p.empresa.toLowerCase().includes('pitec')?'pitec':'alamo'}">${escH(p.empresa)}</span>` : '—'}</td>
       <td class="muted" style="font-size:12px;">${escH(p.proveedor)}</td>
-      <td class="num">${p.precio_ars > 0 ? fmtARS(p.precio_ars) : '—'}</td>
+      <td class="num">${p.precio_ars > 0 ? fmtARS(p.precio_ars, 2) : '—'}</td>
       <td class="num">${p.precio_usd > 0 ? fmtUSD(p.precio_usd, 2) : '—'}</td>
       <td class="num mono muted" style="font-size:11px;">${fmtDate(p.fecha_ultima)}</td>
       <td class="num mono muted" style="font-size:11px;">${p.n_oc}</td>
-    </tr>`;
-  }).join('');
+    </tr>`).join('');
 }
 </script>
 </body>
