@@ -536,6 +536,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
             <th style="width:28px;"></th>
             <th>Descripción</th>
             <th>Categoría</th>
+            <th>Detalle</th>
             <th>Empresa</th>
             <th>Proveedor habitual</th>
             <th class="num">Último precio ARS</th>
@@ -544,7 +545,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
             <th class="num">Cant. de Compras</th>
           </tr>
         </thead>
-        <tbody id="preciosBody"><tr><td colspan="9" class="empty-state">Cargando...</td></tr></tbody>
+        <tbody id="preciosBody"><tr><td colspan="10" class="empty-state">Cargando...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -556,6 +557,7 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
 const CLIENT_ID  = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
 const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email';
 const SHEET_ID   = '1EHWoF4WzSPypZ66zbs9JEjv4kzVKCcrwHdnHRDsHeJE';
+const PRECIOS_TINTAS_SHEET_ID = '1Y1Ec7IxoXwDTejuZnrAslbJRghbiC6x6'; // lista de precios por color/pantone
 const PROD_SHEET_ID_PERMISOS = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY = 'Compras';
 
@@ -613,6 +615,10 @@ let tintaLoaded   = false;
 let papelLoaded   = false;
 let otrasLoaded   = false;
 let insumoActivo  = 'tinta';
+let tintaIndex    = {}; // (oc|normalizedDesc) → {color, pantone, tipo}
+let papelIndex    = {}; // (oc|normalizedDesc) → {tipo, micronaje, formato, isPitec}
+let preciosTintasData   = null; // rows from external Precios Tintas sheet
+let preciosTintasLoaded = false;
 
 let ordFiltered   = [];
 let currentPage   = 0;
@@ -740,6 +746,14 @@ async function readSheet(range) {
   return data.values || [];
 }
 
+async function readSheetFromId(sheetId, range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`);
+  const data = await resp.json();
+  return data.values || [];
+}
+
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 window.onload = function() {
   const initGSI = () => {
@@ -806,6 +820,7 @@ function handleLogout() {
   document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('loginOverlay').style.display = 'flex';
   allOrdenes = []; allProveedores = []; tintaData = null; papelData = null;
+  tintaIndex = {}; papelIndex = {}; preciosTintasLoaded = false; preciosTintasData = null;
   tintaLoaded = false; papelLoaded = false; otrasLoaded = false;
 }
 
@@ -1503,6 +1518,7 @@ async function loadInsumos() {
         const rows = await readSheet('Tinta!A1:Z500');
         tintaData = rows;
         tintaLoaded = true;
+        buildTintaIndex(tintaData);
       } catch(e) {
         cont.innerHTML = `<div class="error-box"><p>Error al cargar Tinta: ${escH(e.message)}</p><button class="btn-retry" onclick="tintaLoaded=false;loadInsumos()">Reintentar</button></div>`;
         return;
@@ -1516,6 +1532,7 @@ async function loadInsumos() {
         const rows = await readSheet('Papel!A1:Z500');
         papelData = rows;
         papelLoaded = true;
+        buildPapelIndex(papelData);
       } catch(e) {
         cont.innerHTML = `<div class="error-box"><p>Error al cargar Papel: ${escH(e.message)}</p><button class="btn-retry" onclick="papelLoaded=false;loadInsumos()">Reintentar</button></div>`;
         return;
@@ -1530,6 +1547,128 @@ async function loadInsumos() {
     // otras categorías
     renderOtrasCategorias();
   }
+}
+
+function renderTintaSmartTable(rows) {
+  const tintas = buildTintaUltimosPrecios(rows);
+  if (!tintas.length) return '';
+  const trRows = tintas.map(t => `<tr>
+    <td style="font-weight:500;color:var(--acc3)">${escH(t.color||'—')}</td>
+    <td class="mono">${escH(t.pantone||'—')}</td>
+    <td><span class="chip chip-${(t.tipo||'').toLowerCase().includes('tubo')?'pitec':'alamo'}" style="font-size:10px">${escH(t.tipo||'—')}</span></td>
+    <td style="font-size:12px">${escH(t.proveedor||'—')}</td>
+    <td class="num">${t.precio_ars > 0 ? fmtARS(t.precio_ars) + '/kg' : '—'}</td>
+    <td class="num">${t.precio_usd > 0 ? fmtUSD(t.precio_usd, 2) + '/kg' : '—'}</td>
+    <td class="num mono muted" style="font-size:11px">${fmtDate(t.fecha)}</td>
+    <td class="num mono muted" style="font-size:11px">${t.n}</td>
+  </tr>`).join('');
+  return `
+  <div class="table-wrap" style="margin-top:20px;margin-bottom:0">
+    <div class="table-head-row">
+      <span>Últimos precios por tinta</span>
+      <span class="section-sub">${tintas.length} tintas distintas</span>
+    </div>
+    <div class="table-scroll" style="max-height:400px">
+      <table>
+        <thead><tr>
+          <th>Color</th><th>Pantone</th><th>Tipo</th><th>Proveedor</th>
+          <th class="num">Últ. precio ARS</th><th class="num">Últ. precio USD</th>
+          <th class="num">Última compra</th><th class="num">Compras</th>
+        </tr></thead>
+        <tbody>${trRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function renderPapelSmartTable(rows) {
+  const papeles = buildPapelUltimosPrecios(rows);
+  if (!papeles.length) return '';
+  const trRows = papeles.map(p => `<tr>
+    <td style="font-weight:500;color:var(--acc2)">${escH(p.tipo||'—')}</td>
+    <td class="mono">${escH(p.micronaje ? p.micronaje+'µ' : '—')}</td>
+    <td class="mono">${escH(p.formato||'—')}</td>
+    <td style="font-size:12px">${escH(p.proveedor||'—')}</td>
+    <td class="num">${p.precio_ars > 0 ? fmtARS(p.precio_ars) : '—'}</td>
+    <td class="num">${p.precio_usd > 0 ? fmtUSD(p.precio_usd, 2) : '—'}</td>
+    <td class="num mono muted" style="font-size:11px">${fmtDate(p.fecha)}</td>
+    <td class="num mono muted" style="font-size:11px">${p.n}</td>
+  </tr>`).join('');
+  return `
+  <div class="table-wrap" style="margin-top:20px;margin-bottom:0">
+    <div class="table-head-row">
+      <span>Últimos precios por papel</span>
+      <span class="section-sub">${papeles.length} especificaciones distintas</span>
+    </div>
+    <div class="table-scroll" style="max-height:400px">
+      <table>
+        <thead><tr>
+          <th>Tipo</th><th>Micronaje</th><th>Formato</th><th>Proveedor</th>
+          <th class="num">Últ. precio ARS</th><th class="num">Últ. precio USD</th>
+          <th class="num">Última compra</th><th class="num">Compras</th>
+        </tr></thead>
+        <tbody>${trRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+async function loadPreciosTintasExterno() {
+  const cont = document.getElementById('preciosTintasExterno');
+  if (!cont) return;
+  if (preciosTintasLoaded && preciosTintasData) {
+    renderPreciosTintasExterno(cont, preciosTintasData);
+    return;
+  }
+  try {
+    const rows = await readSheetFromId(PRECIOS_TINTAS_SHEET_ID, 'Precios Tintas!A1:Z200');
+    preciosTintasData = rows;
+    preciosTintasLoaded = true;
+    renderPreciosTintasExterno(cont, rows);
+  } catch(e) {
+    cont.innerHTML = `<div class="section-head" style="margin-bottom:8px"><span class="section-title">Lista de precios de proveedores — Tintas</span></div>
+      <div class="error-box"><p>No se pudo cargar la lista de precios: ${escH(e.message)}</p>
+      <button class="btn-retry" onclick="preciosTintasLoaded=false;loadPreciosTintasExterno()">Reintentar</button></div>`;
+  }
+}
+
+function renderPreciosTintasExterno(cont, rows) {
+  if (!rows || rows.length < 2) {
+    cont.innerHTML = `<div class="section-head" style="margin-bottom:8px"><span class="section-title">Lista de precios de proveedores — Tintas</span></div>
+      <div style="color:var(--t3);font-size:12px;padding:12px">No se encontraron datos en la hoja de precios.</div>`;
+    return;
+  }
+  // Display raw table preserving the sheet structure (two sections: Tinta Papel + Tinta Tubo)
+  const rawHeaders = rows[0] || [];
+  const dataRows   = rows.slice(1);
+  const thHTML = rawHeaders.map(h => `<th>${escH(String(h||'').trim())}</th>`).join('');
+  const tbHTML = dataRows.map(row => {
+    // Detect section header rows (non-empty first cell, rest empty or bold indicator)
+    const firstCell = String(row[0]||'').trim();
+    const isSection = firstCell && rawHeaders.slice(1).every((_, i) => !String(row[i+1]||'').trim());
+    if (isSection) {
+      return `<tr><td colspan="${rawHeaders.length}" style="background:var(--surf);color:var(--acc3);font-weight:700;font-size:12px;padding:8px 10px;letter-spacing:0.5px">${escH(firstCell)}</td></tr>`;
+    }
+    return `<tr>${rawHeaders.map((h, i) => {
+      const val = row[i] !== undefined ? row[i] : '';
+      const isNum = typeof val === 'number';
+      const display = isNum ? val.toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:2}) : String(val);
+      return `<td class="${isNum ? 'num' : ''}" style="font-size:12px">${escH(display)}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+  cont.innerHTML = `
+    <div class="section-head" style="margin-bottom:12px">
+      <span class="section-title">Lista de precios de proveedores — Tintas</span>
+      <span class="section-sub">Tinta Papel (Gefink / Bassegraf) · Tinta Tubo (Gefink)</span>
+    </div>
+    <div class="table-wrap" style="margin-bottom:0">
+      <div class="table-scroll" style="max-height:500px">
+        <table>
+          <thead><tr>${thHTML}</tr></thead>
+          <tbody>${tbHTML}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function renderInsumo(tipo, rows) {
@@ -1681,7 +1820,19 @@ function renderInsumo(tipo, rows) {
       <span class="section-title">Planilla ${tipoLabel}</span>
     </div>
     ${sheetHTML}
+
+    ${tipo === 'tinta' ? renderTintaSmartTable(rows) : renderPapelSmartTable(rows)}
+
+    ${tipo === 'tinta' ? `<div id="preciosTintasExterno" style="margin-top:24px">
+      <div class="section-head" style="margin-bottom:12px">
+        <span class="section-title">Lista de precios de proveedores — Tintas</span>
+        <span class="section-sub">desde hoja de precios externa</span>
+      </div>
+      <div class="loading-box"><div class="spinner"></div><span>Cargando lista de precios...</span></div>
+    </div>` : ''}
   `;
+
+  if (tipo === 'tinta') loadPreciosTintasExterno();
 }
 
 // ─── PROVEEDORES ─────────────────────────────────────────────────────────────
@@ -1836,6 +1987,8 @@ function switchTab(tab) {
 function doRefresh() {
   tintaLoaded = false; papelLoaded = false; otrasLoaded = false;
   tintaData = null; papelData = null;
+  tintaIndex = {}; papelIndex = {};
+  preciosTintasLoaded = false; preciosTintasData = null;
   preciosLoaded = false; preciosData = [];
   loadAll(true); // fuerza re-lectura del sheet, ignora caché
 }
@@ -1858,14 +2011,157 @@ function escH(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ─── TINTA / PAPEL ENRICHMENT INDEXES ─────────────────────────────────────────
+function buildTintaIndex(rows) {
+  tintaIndex = {};
+  if (!rows || rows.length < 2) return;
+  const rawH = rows[0].map(h => String(h||'').trim());
+  const hi = (...cands) => rawH.findIndex(h => cands.some(c => h.toLowerCase().includes(c)));
+  const iOC     = rawH.findIndex(h => /^n?[°ºo]?\s*oc$/i.test(h.trim()) || h.toLowerCase() === 'oc');
+  const iDesc   = hi('descrip');
+  const iColor  = hi('color');
+  const iPan    = hi('pantone');
+  const iTipo   = hi('tipo');
+  rows.slice(1).forEach(row => {
+    const oc   = String(row[iOC]  ?? '').trim();
+    const desc = iDesc >= 0 ? normalizeDescKey(String(row[iDesc] || '')) : '';
+    if (!oc && !desc) return;
+    const key  = `${oc}|${desc}`;
+    tintaIndex[key] = {
+      color:   iColor >= 0 ? String(row[iColor] || '').trim() : '',
+      pantone: iPan   >= 0 ? String(row[iPan]   || '').trim() : '',
+      tipo:    iTipo  >= 0 ? String(row[iTipo]  || '').trim() : '',
+    };
+  });
+}
+
+function buildPapelIndex(rows) {
+  papelIndex = {};
+  if (!rows || rows.length < 2) return;
+  const rawH = rows[0].map(h => String(h||'').trim());
+  const hi = (...cands) => rawH.findIndex(h => cands.some(c => h.toLowerCase().includes(c)));
+  const iOC      = rawH.findIndex(h => /^n?[°ºo]?\s*oc$/i.test(h.trim()) || h.toLowerCase() === 'oc');
+  const iDesc    = hi('descrip');
+  const iTipo    = hi('tipo');
+  const iMicron  = hi('micron');
+  const iFormato = hi('format');
+  const iFabrica = hi('fabric', 'empresa');
+  rows.slice(1).forEach(row => {
+    const oc   = String(row[iOC]  ?? '').trim();
+    const desc = iDesc >= 0 ? normalizeDescKey(String(row[iDesc] || '')) : '';
+    if (!oc && !desc) return;
+    const key     = `${oc}|${desc}`;
+    const tipo    = iTipo    >= 0 ? String(row[iTipo]    || '').trim() : '';
+    const micron  = iMicron  >= 0 ? String(row[iMicron]  || '').trim() : '';
+    const formato = iFormato >= 0 ? String(row[iFormato] || '').trim() : '';
+    const fabrica = iFabrica >= 0 ? String(row[iFabrica] || '').trim() : '';
+    papelIndex[key] = { tipo, micronaje: micron, formato, isPitec: fabrica.toLowerCase().includes('pitec') };
+  });
+}
+
+// ─── SMART ÚLTIMOS PRECIOS TABLES (from dedicated Tinta/Papel sheets) ──────────
+function buildTintaUltimosPrecios(rows) {
+  if (!rows || rows.length < 2) return [];
+  const rawH = rows[0].map(h => String(h||'').trim());
+  const hi = (...cands) => rawH.findIndex(h => cands.some(c => h.toLowerCase().includes(c)));
+  const iOC    = rawH.findIndex(h => /^n?[°ºo]?\s*oc$/i.test(h.trim()) || h.toLowerCase() === 'oc');
+  const iColor = hi('color');
+  const iPan   = hi('pantone');
+  const iTipo  = hi('tipo');
+  const iProv  = hi('proveedor');
+  const iCant  = hi('cantidad', 'cant');
+  const iARS   = hi('importe ars', 'importe_ars', 'total ars', 'monto ars');
+  const iUSD   = hi('importe usd', 'importe_usd', 'total usd', 'monto usd');
+  const iFecha = hi('fecha');
+  const groups = {};
+  rows.slice(1).forEach(row => {
+    const color   = iColor >= 0 ? String(row[iColor] || '').trim() : '';
+    const pantone = iPan   >= 0 ? String(row[iPan]   || '').trim() : '';
+    const tipo    = iTipo  >= 0 ? String(row[iTipo]  || '').trim() : '';
+    if (!color && !pantone) return;
+    const key = `${color.toLowerCase()}|${pantone.toLowerCase()}|${tipo.toLowerCase()}`;
+    const fecha = iFecha >= 0 ? parseDate(row[iFecha]) : null;
+    const cant  = iCant  >= 0 ? parseNum(row[iCant])  : 0;
+    const ars   = iARS   >= 0 ? parseNum(row[iARS])   : 0;
+    const usd   = iUSD   >= 0 ? parseNum(row[iUSD])   : 0;
+    const prov  = iProv  >= 0 ? String(row[iProv] || '').trim() : '';
+    if (!groups[key]) groups[key] = { color, pantone, tipo, rows: [] };
+    groups[key].rows.push({ fecha, cant, ars, usd, prov });
+  });
+  return Object.values(groups).map(g => {
+    const sorted = g.rows.filter(r => r.fecha).sort((a,b) => b.fecha - a.fecha);
+    const latest = sorted[0] || g.rows[0];
+    const pARS = latest.cant > 0 ? latest.ars / latest.cant : latest.ars;
+    const pUSD = latest.cant > 0 ? latest.usd / latest.cant : latest.usd;
+    return { color: g.color, pantone: g.pantone, tipo: g.tipo, proveedor: latest.prov,
+             precio_ars: pARS, precio_usd: pUSD, fecha: latest.fecha, n: g.rows.length };
+  }).sort((a,b) => (a.color||'').localeCompare(b.color||'', 'es'));
+}
+
+function buildPapelUltimosPrecios(rows) {
+  if (!rows || rows.length < 2) return [];
+  const rawH = rows[0].map(h => String(h||'').trim());
+  const hi = (...cands) => rawH.findIndex(h => cands.some(c => h.toLowerCase().includes(c)));
+  const iOC      = rawH.findIndex(h => /^n?[°ºo]?\s*oc$/i.test(h.trim()) || h.toLowerCase() === 'oc');
+  const iTipo    = hi('tipo');
+  const iMicron  = hi('micron');
+  const iFormato = hi('format');
+  const iProv    = hi('proveedor');
+  const iCant    = hi('cantidad', 'cant');
+  const iARS     = hi('importe ars', 'importe_ars', 'total ars', 'monto ars');
+  const iUSD     = hi('importe usd', 'importe_usd', 'total usd', 'monto usd');
+  const iFecha   = hi('fecha');
+  const iFabrica = hi('fabric', 'empresa');
+  const groups = {};
+  rows.slice(1).forEach(row => {
+    const tipo    = iTipo    >= 0 ? String(row[iTipo]    || '').trim() : '';
+    const micron  = iMicron  >= 0 ? String(row[iMicron]  || '').trim() : '';
+    const formato = iFormato >= 0 ? String(row[iFormato] || '').trim() : '';
+    const fabrica = iFabrica >= 0 ? String(row[iFabrica] || '').trim() : '';
+    const isPitec = fabrica.toLowerCase().includes('pitec');
+    // Filter: skip rows where tipo/micronaje/formato are 0 or empty (unless Pitec = rafia interna)
+    if (!isPitec) {
+      const micN = parseNum(micron);
+      const fmtV = parseNum(formato);
+      if (!tipo || micN === 0 || fmtV === 0) return;
+    }
+    const key = `${tipo.toLowerCase()}|${micron}|${formato.toLowerCase()}`;
+    const fecha = iFecha >= 0 ? parseDate(row[iFecha]) : null;
+    const cant  = iCant  >= 0 ? parseNum(row[iCant])  : 0;
+    const ars   = iARS   >= 0 ? parseNum(row[iARS])   : 0;
+    const usd   = iUSD   >= 0 ? parseNum(row[iUSD])   : 0;
+    const prov  = iProv  >= 0 ? String(row[iProv] || '').trim() : '';
+    if (!groups[key]) groups[key] = { tipo, micronaje: micron, formato, rows: [] };
+    groups[key].rows.push({ fecha, cant, ars, usd, prov });
+  });
+  return Object.values(groups).map(g => {
+    const sorted = g.rows.filter(r => r.fecha).sort((a,b) => b.fecha - a.fecha);
+    const latest = sorted[0] || g.rows[0];
+    const pARS = latest.cant > 0 ? latest.ars / latest.cant : latest.ars;
+    const pUSD = latest.cant > 0 ? latest.usd / latest.cant : latest.usd;
+    return { tipo: g.tipo, micronaje: g.micronaje, formato: g.formato,
+             proveedor: latest.prov, precio_ars: pARS, precio_usd: pUSD,
+             fecha: latest.fecha, n: g.rows.length };
+  }).sort((a,b) => (a.tipo||'').localeCompare(b.tipo||'', 'es'));
+}
+
 // ─── PRECIOS ──────────────────────────────────────────────────────────────────
 const PRECIOS_EXCLUDED_SUPPLIERS = ['fadebol', 'polypel', 'mateu'];
 let preciosLoaded = false;
 let preciosData = []; // computed once, re-filtered on render
 
-function loadPrecios() {
+async function loadPrecios() {
   if (preciosLoaded) { renderPreciosTable(); return; }
   preciosLoaded = true;
+  // Load Tinta/Papel sheet data for enrichment (color/pantone/tipo, tipo/micronaje/formato)
+  if (!tintaLoaded) {
+    try { tintaData = await readSheet('Tinta!A1:Z500'); tintaLoaded = true; buildTintaIndex(tintaData); }
+    catch(e) { console.warn('[Precios] No se pudo cargar Tinta para enriquecimiento:', e.message); }
+  }
+  if (!papelLoaded) {
+    try { papelData = await readSheet('Papel!A1:Z500'); papelLoaded = true; buildPapelIndex(papelData); }
+    catch(e) { console.warn('[Precios] No se pudo cargar Papel para enriquecimiento:', e.message); }
+  }
   buildPreciosData();
   // Populate categoría dropdown
   const cats = [...new Set(preciosData.map(p => p.categoria).filter(Boolean))].sort();
@@ -1938,6 +2234,24 @@ function buildPreciosData() {
       // Count unique OC numbers (not row count)
       const uniqueOCset = new Set(g.rows.map(r => String(r.oc)));
 
+      // Enrich tinta/papel rows with color/pantone/tipo or tipo/micronaje/formato
+      const latestOC   = String(latest?.oc || '');
+      const latestDesc = normalizeDescKey(latest?.descripcion || '');
+      const enrichKey  = `${latestOC}|${latestDesc}`;
+      let detalle = '';
+      const catLower = (g.categoria || '').toLowerCase();
+      if (catLower.includes('tinta')) {
+        const en = tintaIndex[enrichKey] || {};
+        const parts = [en.color, en.pantone, en.tipo].filter(Boolean);
+        if (parts.length) detalle = parts.join(' / ');
+      } else if (catLower.includes('papel')) {
+        const en = papelIndex[enrichKey] || {};
+        if (en.tipo || en.micronaje || en.formato) {
+          const micStr = en.micronaje ? en.micronaje + 'µ' : '';
+          detalle = [en.tipo, micStr, en.formato].filter(Boolean).join(' / ');
+        }
+      }
+
       const normalizedKey = normalizeDescKey(displayDesc);
       return {
         key: normalizedKey,
@@ -1949,6 +2263,7 @@ function buildPreciosData() {
         precio_usd: precioUSD || 0,
         fecha_ultima: latest ? latest.fecha_raw : null,
         n_oc: uniqueOCset.size,
+        detalle,
         hidden: !!hidden[normalizedKey],
       };
     })
@@ -2373,11 +2688,14 @@ function renderPreciosTable() {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Sin resultados</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Sin resultados</td></tr>';
     return;
   }
 
-  tbody.innerHTML = rows.map(p => `
+  tbody.innerHTML = rows.map(p => {
+    const catL = (p.categoria||'').toLowerCase();
+    const detalleStyle = catL.includes('tinta') ? 'color:var(--acc3)' : catL.includes('papel') ? 'color:var(--acc2)' : 'color:var(--t3)';
+    return `
     <tr class="precio-row${p.hidden?' hidden-row':''}" data-key="${escH(p.key)}">
       <td style="text-align:center;">
         <button class="btn-hide" onclick="togglePrecioHidden('${escH(p.key).replace(/'/g,"\\'")}')"\
@@ -2385,13 +2703,15 @@ function renderPreciosTable() {
       </td>
       <td style="font-weight:500;">${escH(p.descripcion)}</td>
       <td class="mono muted" style="font-size:11px;">${escH(p.categoria)}</td>
+      <td style="font-size:11px;${detalleStyle}">${p.detalle ? escH(p.detalle) : '<span style="color:var(--t3)">—</span>'}</td>
       <td>${p.empresa !== '—' ? `<span class="chip chip-${p.empresa.toLowerCase().includes('pitec')?'pitec':'alamo'}">${escH(p.empresa)}</span>` : '—'}</td>
       <td class="muted" style="font-size:12px;">${escH(p.proveedor)}</td>
       <td class="num">${p.precio_ars > 0 ? fmtARS(p.precio_ars) : '—'}</td>
       <td class="num">${p.precio_usd > 0 ? fmtUSD(p.precio_usd, 2) : '—'}</td>
       <td class="num mono muted" style="font-size:11px;">${fmtDate(p.fecha_ultima)}</td>
       <td class="num mono muted" style="font-size:11px;">${p.n_oc}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 </script>
 </body>
