@@ -510,7 +510,32 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
 const CLIENT_ID  = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
 const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets.readonly';
 const SHEET_ID   = '1EHWoF4WzSPypZ66zbs9JEjv4kzVKCcrwHdnHRDsHeJE';
-const EMAILS_AUTORIZADOS = ['franco.bauer98@gmail.com'];
+const PROD_SHEET_ID_PERMISOS = '1__VAhSwaLtF4xGjtuMI_Gw2yWpBzsNKZNy0tgBEAYJA';
+const MODULE_KEY = 'Compras';
+
+async function checkPermission(token, email) {
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${PROD_SHEET_ID_PERMISOS}/values/Permisos!A:Z`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await resp.json();
+    const rows = data.values || [];
+    if (rows.length < 2) return false;
+    const headers = rows[0].map(h => String(h).toLowerCase().trim());
+    const emailCol = headers.findIndex(h => h === 'email');
+    const moduleCol = headers.findIndex(h => h === MODULE_KEY.toLowerCase());
+    if (emailCol < 0 || moduleCol < 0) return false;
+    for (let i = 1; i < rows.length; i++) {
+      if ((rows[i][emailCol] || '').toLowerCase().trim() === email.toLowerCase().trim()) {
+        const val = String(rows[i][moduleCol] || '').toLowerCase().trim();
+        return ['1', 'si', 'sí', 'true', 'x', 'yes', '✓'].includes(val);
+      }
+    }
+    return false;
+  } catch (e) {
+    console.warn('Error checking permissions:', e);
+    return false;
+  }
+}
 
 const MESES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const MESES_LONG  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -658,7 +683,8 @@ async function onTokenReceived(resp) {
     const uData = await uResp.json();
     const email = (uData.email || '').toLowerCase();
 
-    if (!EMAILS_AUTORIZADOS.includes(email)) {
+    const hasAccess = await checkPermission(accessToken, email);
+    if (!hasAccess) {
       google.accounts.oauth2.revoke(accessToken, () => {});
       accessToken = null;
       document.getElementById('loginOverlay').style.display = 'none';

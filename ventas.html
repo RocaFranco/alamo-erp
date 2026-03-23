@@ -201,9 +201,59 @@ select option{background:var(--surface2);}
 .api-banner{background:rgba(255,107,71,.06);border:1px solid rgba(255,107,71,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;color:var(--accent3);}
 .api-banner input{flex:1;font-size:11px;padding:6px 10px;}
 .api-banner button{background:rgba(255,107,71,.15);border:1px solid rgba(255,107,71,.3);border-radius:6px;color:var(--accent3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:6px 12px;white-space:nowrap;}
+
+/* ── AUTH OVERLAYS ── */
+#loginOverlay{position:fixed;inset:0;background:var(--bg);z-index:9000;display:flex;align-items:center;justify-content:center;}
+.login-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:48px 40px;max-width:360px;width:90%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.login-logo{height:52px;object-fit:contain;background:white;border-radius:8px;padding:6px 16px;margin-bottom:4px;}
+.login-title{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.03em;}
+.login-sub{color:var(--text2);font-size:12px;line-height:1.6;}
+.login-btn{background:var(--accent);border:none;border-radius:8px;color:#0e0f11;cursor:pointer;font-family:var(--display);font-weight:700;font-size:13px;padding:13px 24px;width:100%;transition:all .2s;}
+.login-btn:hover{background:#f5ff7a;transform:translateY(-1px);}
+.login-checking{display:none;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text2);}
+.login-checking.on{display:flex;}
+#accessDenied{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;}
+.denied-card{background:var(--surface);border:1px solid rgba(255,107,71,.3);border-radius:16px;padding:48px 40px;max-width:380px;width:90%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.denied-icon{width:56px;height:56px;color:var(--accent3);}
+.denied-title{font-family:var(--display);font-weight:800;font-size:20px;color:var(--accent3);}
+.denied-sub{color:var(--text2);font-size:12px;line-height:1.7;}
+.denied-email{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;word-break:break-all;}
+.denied-back{color:var(--accent2);font-family:var(--mono);font-size:11px;text-decoration:none;margin-top:4px;}
+#app-ventas{display:none;}
+#app-ventas.visible{display:block;}
+.user-badge-v{display:none;align-items:center;gap:6px;background:rgba(71,255,178,.08);border:1px solid rgba(71,255,178,.2);border-radius:20px;padding:4px 10px;}
+.user-badge-v .dot-green{width:6px;height:6px;border-radius:50%;background:var(--success);}
+.user-badge-v span{font-family:var(--mono);font-size:10px;color:var(--success);}
+.logout-btn-v{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:4px 10px;transition:all .2s;}
+.logout-btn-v:hover{border-color:var(--accent3);color:var(--accent3);}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <img src="logo.jpg" alt="Alamo" class="login-logo">
+    <div class="login-title">Ventas — Cotizador</div>
+    <div class="login-sub">Iniciá sesión con tu cuenta Google autorizada para acceder al módulo de Ventas.</div>
+    <button class="login-btn" onclick="handleLogin()">Ingresar con Google</button>
+    <div class="login-checking" id="loginChecking"><div class="spin" style="width:14px;height:14px;border:2px solid rgba(71,200,255,.2);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite;"></div><span>Verificando permisos...</span></div>
+  </div>
+</div>
+
+<!-- ACCESS DENIED OVERLAY -->
+<div id="accessDenied" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;">
+  <div class="denied-card">
+    <svg class="denied-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+    <div class="denied-title">Acceso denegado</div>
+    <div class="denied-sub">Tu cuenta no tiene permisos para acceder al módulo de Ventas. Contactá al administrador del sistema.</div>
+    <div class="denied-email" id="deniedEmail">—</div>
+    <a href="https://rocafranco.github.io/alamo-erp/" class="denied-back">← Volver al ERP</a>
+  </div>
+</div>
+
+<div id="app-ventas">
 
 <header>
   <div class="logo"><div class="pulse"></div>VENTAS</div>
@@ -212,6 +262,8 @@ select option{background:var(--surface2);}
     <button class="htab" onclick="switchTab('historial')">Historial</button>
   </div>
   <div class="header-right">
+    <div class="user-badge-v" id="userBadgeV"><div class="dot-green"></div><span id="userEmailV">—</span></div>
+    <button class="logout-btn-v" id="logoutBtnV" style="display:none;" onclick="handleLogout()">Salir</button>
     <a href="https://rocafranco.github.io/alamo-erp/" class="home-link">← ERP Home</a>
   </div>
 </header>
@@ -586,11 +638,102 @@ select option{background:var(--surface2);}
   </div>
 </div>
 
+</div><!-- /app-ventas -->
+
 <div class="notif" id="notif"></div>
 
 <script>
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+const CLIENT_ID_V = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
+const SCOPES_V    = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+const PROD_SHEET_ID_PERMISOS = '1__VAhSwaLtF4xGjtuMI_Gw2yWpBzsNKZNy0tgBEAYJA';
+const MODULE_KEY  = 'Ventas';
+let tokenClientV = null, accessTokenV = null, tokenRefreshTimerV = null;
+
+async function checkPermission(token, email) {
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${PROD_SHEET_ID_PERMISOS}/values/Permisos!A:Z`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await resp.json();
+    const rows = data.values || [];
+    if (rows.length < 2) return false;
+    const headers = rows[0].map(h => String(h).toLowerCase().trim());
+    const emailCol = headers.findIndex(h => h === 'email');
+    const moduleCol = headers.findIndex(h => h === MODULE_KEY.toLowerCase());
+    if (emailCol < 0 || moduleCol < 0) return false;
+    for (let i = 1; i < rows.length; i++) {
+      if ((rows[i][emailCol] || '').toLowerCase().trim() === email.toLowerCase().trim()) {
+        const val = String(rows[i][moduleCol] || '').toLowerCase().trim();
+        return ['1', 'si', 'sí', 'true', 'x', 'yes', '✓'].includes(val);
+      }
+    }
+    return false;
+  } catch (e) {
+    console.warn('Error checking permissions:', e);
+    return false;
+  }
+}
+
+window.onload = function () {
+  const initGSI = () => {
+    if (typeof google === 'undefined' || !google.accounts) { setTimeout(initGSI, 200); return; }
+    tokenClientV = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID_V, scope: SCOPES_V, callback: onTokenReceivedV,
+    });
+  };
+  initGSI();
+};
+
+function handleLogin() {
+  if (!tokenClientV) { alert('Google Identity Services cargando, intentá de nuevo.'); return; }
+  tokenClientV.requestAccessToken({ prompt: 'select_account' });
+}
+
+async function onTokenReceivedV(resp) {
+  if (resp.error) { console.error('Auth error:', resp); return; }
+  accessTokenV = resp.access_token;
+  document.getElementById('loginChecking').classList.add('on');
+  try {
+    const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessTokenV}` }
+    });
+    const uData = await uResp.json();
+    const email = (uData.email || '').toLowerCase();
+    const hasAccess = await checkPermission(accessTokenV, email);
+    if (!hasAccess) {
+      google.accounts.oauth2.revoke(accessTokenV, () => {});
+      accessTokenV = null;
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('loginChecking').classList.remove('on');
+      document.getElementById('deniedEmail').textContent = uData.email || email;
+      document.getElementById('accessDenied').style.display = 'flex';
+      return;
+    }
+    document.getElementById('userEmailV').textContent = uData.email || email;
+    document.getElementById('userBadgeV').style.display = 'flex';
+    document.getElementById('logoutBtnV').style.display = 'block';
+  } catch (e) {
+    console.warn('No se pudo verificar permisos:', e);
+  }
+  document.getElementById('loginChecking').classList.remove('on');
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('app-ventas').classList.add('visible');
+  if (tokenRefreshTimerV) clearInterval(tokenRefreshTimerV);
+  tokenRefreshTimerV = setInterval(() => { tokenClientV.requestAccessToken({ prompt: '' }); }, 55 * 60 * 1000);
+}
+
+function handleLogout() {
+  if (accessTokenV) google.accounts.oauth2.revoke(accessTokenV, () => {});
+  accessTokenV = null;
+  if (tokenRefreshTimerV) clearInterval(tokenRefreshTimerV);
+  document.getElementById('app-ventas').classList.remove('visible');
+  document.getElementById('userBadgeV').style.display = 'none';
+  document.getElementById('logoutBtnV').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
 }
 
 // ── API KEY ───────────────────────────────────────────────────────────────────
