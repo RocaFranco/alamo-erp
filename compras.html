@@ -1648,29 +1648,37 @@ async function loadPreciosTintasExterno() {
 }
 
 function renderPreciosTintasExterno(cont, rows) {
-  if (!rows || rows.length < 2) {
+  // Filter out completely empty rows
+  const nonEmpty = rows.filter(r => r && r.some(c => String(c||'').trim() !== ''));
+  if (!nonEmpty || nonEmpty.length < 2) {
     cont.innerHTML = `<div class="section-head" style="margin-bottom:8px"><span class="section-title">Lista de precios de proveedores — Tintas</span></div>
       <div style="color:var(--t3);font-size:12px;padding:12px">No se encontraron datos en la hoja de precios.</div>`;
     return;
   }
-  // Display raw table preserving the sheet structure (two sections: Tinta Papel + Tinta Tubo)
-  const rawHeaders = rows[0] || [];
-  const dataRows   = rows.slice(1);
-  const thHTML = rawHeaders.map(h => `<th>${escH(String(h||'').trim())}</th>`).join('');
+  // Determine max column count
+  const maxCols = Math.max(...nonEmpty.map(r => r.length));
+  const rawHeaders = nonEmpty[0] || [];
+  const dataRows   = nonEmpty.slice(1);
+
+  const thHTML = Array.from({length: maxCols}, (_, i) => `<th>${escH(String(rawHeaders[i]||'').trim())}</th>`).join('');
+
   const tbHTML = dataRows.map(row => {
-    // Detect section header rows (non-empty first cell, rest empty or bold indicator)
-    const firstCell = String(row[0]||'').trim();
-    const isSection = firstCell && rawHeaders.slice(1).every((_, i) => !String(row[i+1]||'').trim());
-    if (isSection) {
-      return `<tr><td colspan="${rawHeaders.length}" style="background:var(--surf);color:var(--acc3);font-weight:700;font-size:12px;padding:8px 10px;letter-spacing:0.5px">${escH(firstCell)}</td></tr>`;
+    // Count how many cells have content
+    const filledCells = row.filter(c => String(c||'').trim() !== '').length;
+    // If only 1 cell has content → section separator row
+    if (filledCells <= 1) {
+      const label = String(row[0]||'').trim();
+      if (!label) return '';
+      return `<tr><td colspan="${maxCols}" style="background:var(--surf2,var(--surf));color:var(--acc3);font-weight:700;font-size:12px;padding:10px 12px;letter-spacing:0.5px;border-top:2px solid var(--b)">${escH(label)}</td></tr>`;
     }
-    return `<tr>${rawHeaders.map((h, i) => {
-      const val = row[i] !== undefined ? row[i] : '';
-      const isNum = typeof val === 'number';
-      const display = isNum ? val.toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:2}) : String(val);
-      return `<td class="${isNum ? 'num' : ''}" style="font-size:12px">${escH(display)}</td>`;
+    return `<tr>${Array.from({length: maxCols}, (_, i) => {
+      const val = String(row[i] !== undefined ? row[i] : '').trim();
+      // Detect numeric-looking strings for right-alignment
+      const isNum = val !== '' && /^[\d.,\s$%]+$/.test(val);
+      return `<td class="${isNum ? 'num' : ''}" style="font-size:12px">${escH(val)}</td>`;
     }).join('')}</tr>`;
   }).join('');
+
   cont.innerHTML = `
     <div class="section-head" style="margin-bottom:12px">
       <span class="section-title">Lista de precios de proveedores — Tintas</span>
@@ -1680,7 +1688,7 @@ function renderPreciosTintasExterno(cont, rows) {
       <div class="table-scroll" style="max-height:500px">
         <table>
           <thead><tr>${thHTML}</tr></thead>
-          <tbody>${tbHTML}</tbody>
+          <tbody>${tbHTML || '<tr><td colspan="' + maxCols + '" class="empty-state">Sin datos</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
