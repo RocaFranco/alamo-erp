@@ -631,6 +631,68 @@ td.empty-cell { color: var(--t3); }
   .badge-live { display: none; }
   .panel { padding: 16px; }
 }
+
+/* ── STOCK DASHBOARD ── */
+.stock-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.stock-section-label {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--t2);
+  display: flex; align-items: center; gap: 6px;
+}
+.stock-section-time {
+  font-family: var(--mono); font-size: 9px; color: var(--t3);
+}
+.bobinas-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 8px;
+}
+@media (max-width: 900px) { .bobinas-grid { grid-template-columns: 1fr; } }
+.stock-card {
+  border-radius: 10px; padding: 18px; border: 1px solid var(--b);
+  border-top-width: 3px;
+}
+.stock-card-title {
+  font-family: var(--disp); font-size: 13px; font-weight: 700;
+  margin-bottom: 14px; letter-spacing: .02em;
+}
+.stock-metrics {
+  display: flex; align-items: center; gap: 0; margin-bottom: 14px;
+}
+.stock-metric { flex: 1; text-align: center; }
+.stock-metric-val {
+  font-family: var(--mono); font-size: 26px; font-weight: 500; line-height: 1;
+}
+.stock-metric-lbl {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--t3); margin-top: 4px;
+}
+.stock-metric-sep {
+  width: 1px; height: 40px; background: var(--b); margin: 0 8px;
+}
+.stock-rows { display: flex; flex-direction: column; gap: 5px; border-top: 1px solid var(--b); padding-top: 10px; }
+.stock-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--t2);
+}
+.stock-row-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stock-row-mts, .stock-row-kg {
+  font-family: var(--mono); font-size: 10px; color: var(--t3);
+  white-space: nowrap;
+}
+.smp-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+@media (max-width: 700px) { .smp-grid { grid-template-columns: 1fr; } }
+.smp-card {
+  background: var(--surf); border: 1px solid var(--b); border-radius: 10px; overflow: hidden;
+}
+.smp-card-title {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: .08em; padding: 10px 14px; background: var(--surf2);
+  border-bottom: 1px solid var(--b);
+}
 </style>
 </head>
 <body>
@@ -747,12 +809,8 @@ td.empty-cell { color: var(--t3); }
 
   <!-- PANEL: STOCK & MP -->
   <div class="panel" id="panel-stock">
-    <div class="section-head" style="margin-bottom:18px">
-      <span class="section-title">Stock &amp; Materia Prima</span>
-      <span class="section-sub" id="stockTabsFound"></span>
-    </div>
     <div id="stockContent">
-      <div class="loading-box"><div class="spinner"></div><span>Buscando pestañas de stock...</span></div>
+      <div class="loading-box"><div class="spinner"></div><span>Cargando stock...</span></div>
     </div>
   </div>
 
@@ -1120,44 +1178,249 @@ function renderDetailTable(containerId, data, mesIdx, unit) {
 async function loadStock() {
   stockLoaded = true;
   const el = document.getElementById('stockContent');
-  el.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Buscando pestañas de stock...</span></div>';
-
-  const tabs = discoveredTabs.prod || [];
-  const keywords = /stock|mp|materia|prima|insumo/i;
-  const matches = tabs.filter(t => keywords.test(t));
-
-  document.getElementById('stockTabsFound').textContent = `${tabs.length} pestañas encontradas`;
-
-  if (!matches.length) {
-    el.innerHTML = renderNoTabFound('Stock / Materia Prima', tabs, ['stock', 'MP', 'materia', 'insumo']);
-    return;
-  }
-
-  // Load first match
-  const tabName = matches[0];
+  el.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Cargando stock...</span></div>';
   try {
-    const data = await readSheet(SHEET_IDS.prod, `'${tabName}'!A1:ZZ500`);
-    el.innerHTML = `
-      <div class="section-head" style="margin-bottom:12px">
-        <span style="color:var(--t2);font-size:12px;font-family:var(--mono)">Pestaña: <strong style="color:var(--ok)">${tabName}</strong></span>
-        <div class="tabs-list">${matches.map(m => `<span class="tab-badge match" onclick="loadStockTab('${m}')">${m}</span>`).join('')}</div>
-      </div>
-      <div class="stock-table-wrap" id="stockTable">${renderGenericTable(data)}</div>`;
+    const [sbData, smpData] = await Promise.all([
+      readSheet(SHEET_IDS.prod, 'SB!A1:Z300'),
+      readSheet(SHEET_IDS.prod, 'SMP!A1:Z200'),
+    ]);
+    el.innerHTML = renderStockDashboard(sbData, smpData);
   } catch (e) {
-    el.innerHTML = errorHTML('Error cargando pestaña: ' + e.message, 'loadStock()');
+    el.innerHTML = errorHTML('Error cargando stock: ' + e.message, 'loadStock()');
   }
 }
 
-async function loadStockTab(tabName) {
-  const el = document.getElementById('stockTable');
-  if (!el) return;
-  el.innerHTML = '<div class="loading-box"><div class="spinner"></div></div>';
-  try {
-    const data = await readSheet(SHEET_IDS.prod, `'${tabName}'!A1:ZZ500`);
-    el.innerHTML = renderGenericTable(data);
-  } catch (e) {
-    el.innerHTML = errorHTML('Error: ' + e.message, 'loadStockTab()');
+function renderStockDashboard(sbData, smpData) {
+  const bobinas = parseBobinas(sbData);
+  const { mp, cuchillas } = parseSMP(smpData);
+
+  // ── Bobinas section ──
+  const BCOLORS = [
+    { accent: 'var(--acc)',  bg: 'rgba(232,255,71,.07)',  border: 'rgba(232,255,71,.2)'  },
+    { accent: 'var(--acc2)', bg: 'rgba(71,200,255,.07)', border: 'rgba(71,200,255,.2)'  },
+    { accent: 'var(--ok)',   bg: 'rgba(71,255,178,.07)', border: 'rgba(71,255,178,.2)'  },
+  ];
+
+  const bobinaCards = bobinas.map((b, i) => {
+    const c = BCOLORS[i % BCOLORS.length];
+    return `
+    <div class="stock-card" style="border-top:3px solid ${c.accent}; background:${c.bg}; border-color-top:${c.accent}">
+      <div class="stock-card-title" style="color:${c.accent}">${b.nombre}</div>
+      <div class="stock-metrics">
+        <div class="stock-metric">
+          <div class="stock-metric-val" style="color:${c.accent}">${fmt(b.totalMts)}</div>
+          <div class="stock-metric-lbl">metros</div>
+        </div>
+        <div class="stock-metric-sep"></div>
+        <div class="stock-metric">
+          <div class="stock-metric-val">${fmt(b.totalKg)}</div>
+          <div class="stock-metric-lbl">kg</div>
+        </div>
+      </div>
+      ${b.rows.length > 0 ? `<div class="stock-rows">${b.rows.map(r => `
+        <div class="stock-row">
+          <span class="stock-row-name">${r.nombre}</span>
+          <span class="stock-row-mts">${fmt(r.mts)} mts</span>
+          <span class="stock-row-kg">${fmt(r.kg)} kg</span>
+        </div>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // ── MP table ──
+  const mpRows = mp.map(r => `
+    <tr>
+      <td>${r.nombre}</td>
+      <td class="r">${fmt(r.cantidad, 2)}</td>
+      <td class="r">${r.unidad}</td>
+    </tr>`).join('');
+
+  const cuchillasRows = cuchillas.map(r => `
+    <tr>
+      <td>${r.nombre}</td>
+      <td class="r">${fmt(r.cantidad, 0)}</td>
+      <td class="r">${r.unidad || 'u'}</td>
+    </tr>`).join('');
+
+  return `
+  <div class="stock-section-head">
+    <span class="stock-section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      STOCK BOBINAS — Pitec
+    </span>
+    <span class="stock-section-time">Datos en tiempo real · Pestaña SB</span>
+  </div>
+  <div class="bobinas-grid">${bobinaCards}</div>
+
+  <div class="stock-section-head" style="margin-top:28px">
+    <span class="stock-section-label">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      MATERIAS PRIMAS — Pitec
+    </span>
+    <span class="stock-section-time">Datos en tiempo real · Pestaña SMP</span>
+  </div>
+  <div class="smp-grid">
+    <div class="smp-card">
+      <div class="smp-card-title" style="color:var(--warn)">Materias Primas</div>
+      <table>${mp.length ? `<thead><tr><th>Material</th><th class="r">Cantidad</th><th class="r">Unidad</th></tr></thead><tbody>${mpRows}</tbody>` : '<tbody><tr><td colspan="3" style="color:var(--t3);text-align:center;padding:20px">Sin datos</td></tr></tbody>'}</table>
+    </div>
+    <div class="smp-card">
+      <div class="smp-card-title" style="color:var(--acc3)">Stock Cuchillas</div>
+      <table>${cuchillas.length ? `<thead><tr><th>Cuchilla</th><th class="r">Cantidad</th><th class="r">Und</th></tr></thead><tbody>${cuchillasRows}</tbody>` : '<tbody><tr><td colspan="3" style="color:var(--t3);text-align:center;padding:20px">Sin datos</td></tr></tbody>'}</table>
+    </div>
+  </div>`;
+}
+
+// ── Parser: SB tab → 3 bobina tables ──
+function parseBobinas(data) {
+  // Table keywords to look for
+  const TABLES = [
+    { key: 'para laminar', nombre: 'Bobinas Para Laminar' },
+    { key: 'laminada',     nombre: 'Bobinas Laminadas' },
+    { key: 'convencional', nombre: 'Bobinas Convencional' },
+  ];
+
+  const results = TABLES.map(t => ({ ...t, rows: [], totalMts: 0, totalKg: 0 }));
+
+  // Find which row each table starts at
+  let currentTable = -1;
+  let mtsCol = -1, kgCol = -1;
+  let headerFound = false;
+
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r] || [];
+    const rowText = row.join('|').toLowerCase();
+
+    // Detect table header
+    const tIdx = TABLES.findIndex(t => rowText.includes(t.key));
+    if (tIdx >= 0) {
+      currentTable = tIdx;
+      headerFound = false;
+      mtsCol = -1; kgCol = -1;
+      continue;
+    }
+
+    if (currentTable < 0) continue;
+
+    // Look for column headers (mts, kg)
+    if (!headerFound) {
+      mtsCol = row.findIndex(c => /^mts|metros/i.test(String(c).trim()));
+      kgCol  = row.findIndex(c => /^kg|kilo/i.test(String(c).trim()));
+      if (mtsCol >= 0 || kgCol >= 0) {
+        headerFound = true;
+        continue;
+      }
+      // Also detect by position if row has numbers in expected positions
+      const hasNums = row.some(c => parseNum(c) > 0);
+      if (hasNums && row[0] && String(row[0]).trim()) {
+        // Guess: col 0 = name, col 1 = mts, col 2 = kg
+        mtsCol = 1; kgCol = 2; headerFound = true;
+      }
+      continue;
+    }
+
+    // Skip empty rows (but they might signal end of table)
+    if (!row[0] && !row[1] && !row[2]) continue;
+
+    const nombre = String(row[0] || '').trim();
+    const mtsVal = mtsCol >= 0 ? parseNum(row[mtsCol]) : 0;
+    const kgVal  = kgCol  >= 0 ? parseNum(row[kgCol])  : 0;
+
+    // Total row
+    if (/total/i.test(nombre)) {
+      results[currentTable].totalMts = mtsVal || results[currentTable].totalMts;
+      results[currentTable].totalKg  = kgVal  || results[currentTable].totalKg;
+      continue;
+    }
+
+    // Skip header-like rows
+    if (!nombre || /artículo|articulo|descripción|item/i.test(nombre)) continue;
+
+    // Data row
+    if (nombre && (mtsVal > 0 || kgVal > 0)) {
+      results[currentTable].rows.push({ nombre, mts: mtsVal, kg: kgVal });
+      results[currentTable].totalMts += mtsVal;
+      results[currentTable].totalKg  += kgVal;
+    }
   }
+
+  return results;
+}
+
+// ── Parser: SMP tab → MP table + cuchillas table ──
+function parseSMP(data) {
+  const mp = [];
+  const cuchillas = [];
+
+  // Find where the cuchillas table starts (look for "cuchilla" keyword in any column > 2)
+  let cuchillasStartCol = -1;
+  let mpHeaderRow = -1, cuchillasHeaderRow = -1;
+  let mpNameCol = 0, mpCantCol = 1, mpUndCol = 2;
+
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r] || [];
+    const rowText = row.join('|').toLowerCase();
+
+    // Find cuchillas section header (usually on the right side of the sheet)
+    if (/cuchilla/i.test(rowText)) {
+      // Find which column it's in
+      const cIdx = row.findIndex(c => /cuchilla/i.test(String(c)));
+      if (cIdx > 2 && cuchillasStartCol < 0) {
+        cuchillasStartCol = cIdx;
+        cuchillasHeaderRow = r;
+      }
+    }
+
+    // MP column headers
+    if (mpHeaderRow < 0 && (/material|materia|descripci/i.test(rowText))) {
+      mpHeaderRow = r;
+      mpNameCol = row.findIndex(c => /material|materia|descripci/i.test(String(c)));
+      mpCantCol = row.findIndex(c => /cantidad|stock|cant/i.test(String(c)));
+      mpUndCol  = row.findIndex(c => /unidad|und\b|kg|lt/i.test(String(c)));
+      if (mpNameCol < 0) mpNameCol = 0;
+      if (mpCantCol < 0) mpCantCol = 1;
+      if (mpUndCol  < 0) mpUndCol  = 2;
+    }
+  }
+
+  // Extract MP rows
+  let inMP = false;
+  let inCuch = false;
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r] || [];
+    if (r === mpHeaderRow) { inMP = true; continue; }
+    if (r === cuchillasHeaderRow) { inCuch = true; inMP = false; }
+
+    if (inMP) {
+      const nombre = String(row[mpNameCol] || '').trim();
+      if (!nombre || /total|subtotal/i.test(nombre)) continue;
+      if (/material|materia|descripci/i.test(nombre)) continue;
+      const cant = parseNum(row[mpCantCol]);
+      const und  = String(row[mpUndCol] || '').trim();
+      if (nombre && cant >= 0) mp.push({ nombre, cantidad: cant, unidad: und });
+    }
+
+    if (inCuch && cuchillasStartCol >= 0) {
+      const nombre = String(row[cuchillasStartCol] || '').trim();
+      if (!nombre || /cuchilla|total/i.test(nombre)) continue;
+      const cant = parseNum(row[cuchillasStartCol + 1]);
+      const und  = String(row[cuchillasStartCol + 2] || 'u').trim();
+      if (nombre) cuchillas.push({ nombre, cantidad: cant, unidad: und });
+    }
+  }
+
+  // Fallback: if no headers detected, scan raw data
+  if (mp.length === 0 && cuchillasStartCol < 0) {
+    for (const row of data) {
+      if (!row || !row[0]) continue;
+      const nombre = String(row[0]).trim();
+      if (!nombre || /material|total|stock/i.test(nombre)) continue;
+      const cant = parseNum(row[1]);
+      const und  = String(row[2] || '').trim();
+      if (nombre && cant > 0) mp.push({ nombre, cantidad: cant, unidad: und });
+    }
+  }
+
+  return { mp, cuchillas };
 }
 
 // ─── ENTREGAS ────────────────────────────────────────────────────────────────
