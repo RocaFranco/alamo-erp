@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alamo ERP — Central</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:    #0e0f11;
+      --surf:  #16181c;
+      --surf2: #1e2127;
+      --surf3: #23272f;
+      --b:     #2a2d35;
+      --b2:    #353942;
+      --acc:   #e8ff47;
+      --acc2:  #47c8ff;
+      --acc3:  #ff6b47;
+      --ok:    #47ffb2;
+      --warn:  #ffb347;
+      --text:  #f0f2f5;
+      --t2:    #8b909e;
+      --t3:    #555b6a;
+      --mono:  'DM Mono', monospace;
+      --sans:  'DM Sans', sans-serif;
+      --disp:  'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--t3); }
+
+    /* ══════════════════════════════
+       HEADER
+    ══════════════════════════════ */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 50px;
+      background: rgba(14,15,17,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--b);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--ok);
+      border-radius: 50%;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .pulse-dot::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: var(--ok);
+      opacity: 0.35;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.35; }
+      50%       { transform: scale(1.8); opacity: 0; }
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+    }
+    .brand-name {
+      font-family: var(--disp);
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.18em;
+      color: var(--text);
+    }
+    .brand-sub {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--t2);
+      letter-spacing: 0.12em;
+      margin-top: 1px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #live-clock {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--t2);
+      letter-spacing: 0.05em;
+      text-align: right;
+    }
+    #live-clock .date-line {
+      color: var(--t3);
+      font-size: 10px;
+    }
+
+    .version-badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--acc);
+      background: rgba(232,255,71,0.08);
+      border: 1px solid rgba(232,255,71,0.2);
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+    }
+
+    /* ══════════════════════════════
+       WELCOME BANNER
+    ══════════════════════════════ */
+    .banner {
+      width: 100%;
+      padding: 48px 24px 40px;
+      background: linear-gradient(135deg,
+        rgba(30,33,39,0.9) 0%,
+        rgba(22,24,28,0.6) 50%,
+        rgba(14,15,17,0.9) 100%);
+      border-bottom: 1px solid var(--b);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+    .banner::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 200px;
+      background: radial-gradient(ellipse, rgba(232,255,71,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .banner::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--b), transparent);
+    }
+
+    .banner-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--acc);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      opacity: 0.8;
+    }
+    .banner-title {
+      font-family: var(--disp);
+      font-weight: 800;
+      font-size: clamp(24px, 4vw, 38px);
+      color: var(--text);
+      letter-spacing: 0.02em;
+      margin-bottom: 10px;
+    }
+    .banner-sub {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--t2);
+      font-weight: 300;
+      letter-spacing: 0.03em;
+    }
+
+    /* ══════════════════════════════
+       MAIN GRID
+    ══════════════════════════════ */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--t3);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--b);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 960px) {
+      .cards-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ══════════════════════════════
+       CARD
+    ══════════════════════════════ */
+    .card {
+      background: var(--surf);
+      border: 1px solid var(--b);
+      border-radius: 14px;
+      padding: 28px 24px 24px;
+      min-height: 200px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s, background 0.25s;
+      opacity: 0;
+      transform: translateY(18px);
+    }
+
+    .card.visible {
+      opacity: 1;
+      transform: translateY(0);
+      transition:
+        opacity 0.45s ease,
+        transform 0.45s ease,
+        border-color 0.25s,
+        box-shadow 0.25s,
+        background 0.25s;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .card:hover {
+      background: var(--surf2);
+      transform: translateY(-3px);
+    }
+
+    .card.dev:hover {
+      border-color: rgba(255,179,71,0.35);
+      box-shadow: 0 0 0 1px rgba(255,179,71,0.12), 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .card.active:hover {
+      border-color: rgba(71,255,178,0.4);
+      box-shadow: 0 0 0 1px rgba(71,255,178,0.1), 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    /* Active cards get a subtle accent border */
+    .card.active {
+      border-color: rgba(71,255,178,0.2);
+    }
+
+    /* PITEC special card */
+    .card.pitec {
+      border-color: rgba(232,255,71,0.25);
+      background: linear-gradient(135deg, var(--surf) 0%, rgba(30,33,39,1) 100%);
+    }
+    .card.pitec::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: 14px 14px 0 0;
+      background: linear-gradient(90deg, transparent, var(--acc), transparent);
+    }
+    .card.pitec:hover {
+      border-color: rgba(232,255,71,0.45);
+      box-shadow: 0 0 0 1px rgba(232,255,71,0.12), 0 8px 40px rgba(0,0,0,0.5);
+    }
+
+    /* ── Icon area ── */
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      background: var(--surf3);
+      border: 1px solid var(--b2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.25s, border-color 0.25s;
+    }
+    .card-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+    .card.dev .card-icon svg    { stroke: var(--t2); }
+    .card.active .card-icon     { background: rgba(71,255,178,0.07); border-color: rgba(71,255,178,0.2); }
+    .card.active .card-icon svg { stroke: var(--ok); }
+    .card.pitec .card-icon      { background: rgba(232,255,71,0.07); border-color: rgba(232,255,71,0.2); }
+    .card.pitec .card-icon svg  { stroke: var(--acc); }
+
+    .card:hover .card-icon { border-color: var(--b2); }
+
+    /* ── Card body ── */
+    .card-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+    .card-name {
+      font-family: var(--disp);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+    }
+
+    .card-desc {
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--t2);
+      line-height: 1.55;
+      font-weight: 300;
+    }
+
+    /* ── Status badge ── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      padding: 4px 9px;
+      border-radius: 100px;
+      width: fit-content;
+      margin-top: 4px;
+    }
+    .status-badge .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-badge.ok {
+      color: var(--ok);
+      background: rgba(71,255,178,0.08);
+      border: 1px solid rgba(71,255,178,0.2);
+    }
+    .status-badge.ok .dot { background: var(--ok); }
+    .status-badge.warn {
+      color: var(--warn);
+      background: rgba(255,179,71,0.08);
+      border: 1px solid rgba(255,179,71,0.2);
+    }
+    .status-badge.warn .dot { background: var(--warn); }
+
+    /* ── Pitec expand ── */
+    .pitec-links {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+      animation: fadeSlide 0.25s ease;
+    }
+    .pitec-links.open { display: flex; }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .pitec-link-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 9px;
+      border: 1px solid var(--b2);
+      background: var(--surf3);
+      text-decoration: none;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s;
+      cursor: pointer;
+    }
+    .pitec-link-btn:hover {
+      background: var(--bg);
+      transform: translateX(3px);
+    }
+    .pitec-link-btn.primary {
+      border-color: rgba(232,255,71,0.3);
+      background: rgba(232,255,71,0.06);
+      color: var(--acc);
+    }
+    .pitec-link-btn.primary:hover {
+      background: rgba(232,255,71,0.1);
+      border-color: rgba(232,255,71,0.5);
+    }
+    .pitec-link-btn.secondary {
+      border-color: rgba(71,200,255,0.2);
+      color: var(--acc2);
+    }
+    .pitec-link-btn.secondary:hover {
+      background: rgba(71,200,255,0.06);
+      border-color: rgba(71,200,255,0.4);
+    }
+    .pitec-link-btn.tertiary {
+      border-color: rgba(255,107,71,0.2);
+      color: var(--acc3);
+    }
+    .pitec-link-btn.tertiary:hover {
+      background: rgba(255,107,71,0.06);
+      border-color: rgba(255,107,71,0.4);
+    }
+
+    .pitec-link-btn .link-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+    .pitec-link-btn .link-arrow {
+      margin-left: auto;
+      opacity: 0.5;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+    .pitec-link-btn:hover .link-arrow {
+      opacity: 1;
+      transform: translateX(2px);
+    }
+
+    .pitec-expand-hint {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--t3);
+      letter-spacing: 0.1em;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: color 0.2s;
+    }
+    .pitec-expand-hint svg {
+      width: 10px;
+      height: 10px;
+      transition: transform 0.25s;
+    }
+    .pitec-expand-hint.expanded svg { transform: rotate(180deg); }
+    .pitec-expand-hint.expanded { color: var(--acc); }
+
+    /* ══════════════════════════════
+       MODAL
+    ══════════════════════════════ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surf);
+      border: 1px solid var(--b2);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 420px;
+      padding: 36px 32px 32px;
+      position: relative;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    }
+    .modal-overlay.open .modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 200px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--b2), transparent);
+    }
+
+    .modal-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: rgba(255,179,71,0.08);
+      border: 1px solid rgba(255,179,71,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .modal-icon svg { width: 26px; height: 26px; stroke: var(--warn); }
+
+    .modal-sector {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--warn);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .modal-title {
+      font-family: var(--disp);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .modal-body {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--t2);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .modal-close {
+      width: 100%;
+      padding: 12px;
+      border-radius: 9px;
+      border: 1px solid var(--b2);
+      background: var(--surf2);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s;
+    }
+    .modal-close:hover {
+      background: var(--surf3);
+      border-color: var(--t3);
+    }
+
+    /* ══════════════════════════════
+       FOOTER
+    ══════════════════════════════ */
+    footer {
+      border-top: 1px solid var(--b);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .footer-brand {
+      font-family: var(--disp);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--t2);
+      letter-spacing: 0.06em;
+    }
+    .footer-brand span { color: var(--acc); }
+
+    .footer-credit {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--t3);
+      letter-spacing: 0.06em;
+    }
+    .footer-credit a {
+      color: var(--t2);
+      text-decoration: none;
+      transition: color 0.18s;
+    }
+    .footer-credit a:hover { color: var(--acc2); }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════
+       HEADER
+  ══════════════════════════════ -->
+  <header>
+    <div class="header-left">
+      <div class="pulse-dot"></div>
+      <div class="brand">
+        <span class="brand-name">ALAMO</span>
+        <span class="brand-sub">ERP Central</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="live-clock">
+        <div id="clock-time">00:00:00</div>
+        <div class="date-line" id="clock-date">01/01/2025</div>
+      </div>
+      <div class="version-badge">v1.0</div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════
+       WELCOME BANNER
+  ══════════════════════════════ -->
+  <div class="banner">
+    <div class="banner-label">Sistema Integrado · Alamo</div>
+    <h1 class="banner-title">Sistema de Gestión Integral</h1>
+    <p class="banner-sub">Selecciona un área para acceder a su información</p>
+  </div>
+
+  <!-- ══════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════ -->
+  <main>
+    <div class="section-label">Sectores del Sistema</div>
+
+    <div class="cards-grid">
+
+      <!-- 1. COMPRAS -->
+      <div class="card dev" data-sector="Compras" onclick="openModal('COMPRAS')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">COMPRAS</div>
+          <div class="card-desc">Ordenes de compra, proveedores, precios de materia prima</div>
+          <div class="status-badge warn">
+            <span class="dot"></span>EN DESARROLLO
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. VENTAS -->
+      <div class="card dev" data-sector="Ventas" onclick="openModal('VENTAS')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+            <polyline points="17 6 23 6 23 12"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">VENTAS</div>
+          <div class="card-desc">Pedidos, clientes, precios Navegante</div>
+          <div class="status-badge warn">
+            <span class="dot"></span>EN DESARROLLO
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. FABRICA ALAMO -->
+      <div class="card dev" data-sector="Fabrica Alamo" onclick="openModal('FÁBRICA ALAMO')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 20V9l6-5 6 5V20"/>
+            <path d="M14 20V12h8v8"/>
+            <path d="M6 12v.01M6 15v.01M10 12v.01M10 15v.01"/>
+            <path d="M18 15v.01M18 18v.01"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">FÁBRICA ALAMO</div>
+          <div class="card-desc">Producción, eficiencia, trazabilidad Alamo</div>
+          <div class="status-badge warn">
+            <span class="dot"></span>EN DESARROLLO
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. FABRICA PITEC — special card -->
+      <div class="card pitec" id="pitec-card" onclick="togglePitec(event)">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
+            <path d="M6.34 6.34 4.93 4.93M19.07 19.07l-1.41-1.41M17.66 6.34l1.41-1.41M4.93 19.07l1.41-1.41"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">FÁBRICA PITEC</div>
+          <div class="card-desc">Costos, producción y análisis de Fábrica Pitec</div>
+          <div class="status-badge ok">
+            <span class="dot"></span>ACTIVO
+          </div>
+          <div class="pitec-expand-hint" id="pitec-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+            VER MODULOS
+          </div>
+        </div>
+        <div class="pitec-links" id="pitec-links">
+          <a class="pitec-link-btn primary" href="https://rocafranco.github.io/pitec-costos/" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+              <path d="M6 8l3 3 3-3 3 3"/>
+            </svg>
+            Costos de Producción
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+          <a class="pitec-link-btn secondary" href="#" onclick="event.stopPropagation()">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            Telares — Análisis
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+          <a class="pitec-link-btn tertiary" href="#" onclick="event.stopPropagation()">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            Trazabilidad (Sheet)
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- 5. STOCK -->
+      <div class="card dev" onclick="openModal('STOCK')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">STOCK</div>
+          <div class="card-desc">Control de inventario y materias primas</div>
+          <div class="status-badge warn">
+            <span class="dot"></span>EN DESARROLLO
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. FINANZAS -->
+      <div class="card dev" onclick="openModal('FINANZAS')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">FINANZAS</div>
+          <div class="card-desc">Facturas, gastos, flujo de caja</div>
+          <div class="status-badge warn">
+            <span class="dot"></span>EN DESARROLLO
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. TELARES -->
+      <div class="card active" onclick="window.open('#','_blank')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="4" height="4" rx="0.5"/>
+            <rect x="10" y="3" width="4" height="4" rx="0.5"/>
+            <rect x="17" y="3" width="4" height="4" rx="0.5"/>
+            <rect x="3" y="10" width="4" height="4" rx="0.5"/>
+            <rect x="10" y="10" width="4" height="4" rx="0.5"/>
+            <rect x="17" y="10" width="4" height="4" rx="0.5"/>
+            <rect x="3" y="17" width="4" height="4" rx="0.5"/>
+            <rect x="10" y="17" width="4" height="4" rx="0.5"/>
+            <rect x="17" y="17" width="4" height="4" rx="0.5"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">TELARES</div>
+          <div class="card-desc">Análisis productivo del sector Telares</div>
+          <div class="status-badge ok">
+            <span class="dot"></span>ACTIVO
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. RRHH -->
+      <div class="card dev" onclick="openModal('RRHH')">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <div class="card-name">RRHH</div>
+          <div class="card-desc">Sueldos, personal, liquidaciones</div>
+          <div class="status-badge warn">
+            <span class="dot"></span>EN DESARROLLO
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════
+       FOOTER
+  ══════════════════════════════ -->
+  <footer>
+    <div class="footer-brand">ALAMO <span>ERP</span> &nbsp;v1.0</div>
+    <div class="footer-credit">
+      Desarrollado con <a href="https://claude.ai/claude-code" target="_blank" rel="noopener">Claude Code</a>
+      &nbsp;·&nbsp; <span id="footer-year"></span>
+    </div>
+  </footer>
+
+  <!-- ══════════════════════════════
+       MODAL
+  ══════════════════════════════ -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="modal-sector" id="modal-sector">SECTOR</div>
+      <div class="modal-title" id="modal-title">En Desarrollo</div>
+      <div class="modal-body">
+        Esta sección está en desarrollo.<br/>
+        Estamos trabajando en integrar toda la información de esta área al ERP.
+      </div>
+      <button class="modal-close" onclick="closeModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    /* ── Live clock ── */
+    function updateClock() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const date = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
+      document.getElementById('clock-time').textContent = time;
+      document.getElementById('clock-date').textContent = date;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    /* ── Footer year ── */
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    /* ── Modal ── */
+    function openModal(sector) {
+      document.getElementById('modal-sector').textContent = sector;
+      document.getElementById('modal-title').textContent = sector;
+      document.getElementById('modal-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    function closeModalOnOverlay(e) {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    /* ── Pitec expand/collapse ── */
+    let pitecOpen = false;
+    function togglePitec(e) {
+      pitecOpen = !pitecOpen;
+      const links = document.getElementById('pitec-links');
+      const hint  = document.getElementById('pitec-hint');
+      if (pitecOpen) {
+        links.classList.add('open');
+        hint.classList.add('expanded');
+        hint.childNodes[1].textContent = ' OCULTAR';
+      } else {
+        links.classList.remove('open');
+        hint.classList.remove('expanded');
+        hint.childNodes[1].textContent = ' VER MODULOS';
+      }
+    }
+
+    /* ── Staggered card entrance animation ── */
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, i) => {
+      setTimeout(() => {
+        card.classList.add('visible');
+      }, 80 + i * 100);
+    });
+  </script>
+</body>
+</html>
