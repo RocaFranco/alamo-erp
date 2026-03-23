@@ -1821,8 +1821,6 @@ function renderInsumo(tipo, rows) {
     </div>
     ${sheetHTML}
 
-    ${tipo === 'tinta' ? renderTintaSmartTable(rows) : renderPapelSmartTable(rows)}
-
     ${tipo === 'tinta' ? `<div id="preciosTintasExterno" style="margin-top:24px">
       <div class="section-head" style="margin-bottom:12px">
         <span class="section-title">Lista de precios de proveedores — Tintas</span>
