@@ -278,7 +278,8 @@ tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1
     <button class="btn-sm btn-currency active-ars" id="currencyToggle" onclick="toggleCurrency()" title="Cambiar moneda">
       <span id="currencyLabel">ARS $</span>
     </button>
-    <button class="btn-icon" id="refreshBtn" onclick="doRefresh()" title="Actualizar datos">
+    <span id="cacheInfo" style="display:none;font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.05em;" title="Datos en caché — clic en ↺ para actualizar del sheet"></span>
+    <button class="btn-icon" id="refreshBtn" onclick="doRefresh()" title="Actualizar desde el sheet (ignora caché)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -762,26 +763,89 @@ function handleLogout() {
   tintaLoaded = false; papelLoaded = false;
 }
 
-// ─── LOAD ALL ─────────────────────────────────────────────────────────────────
-async function loadAll() {
-  setRefreshSpinner(true);
+// ─── CACHE ───────────────────────────────────────────────────────────────────
+const CACHE_KEY = `alamo_compras_${SHEET_ID}`;
+const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 horas
+
+function getCachedData() {
   try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (Date.now() - c.ts > CACHE_TTL) return null;
+    return c;
+  } catch(e) { return null; }
+}
+function setCachedData(ordeRows, provRows) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), ordeRows, provRows })); }
+  catch(e) { console.warn('[Cache] No se pudo guardar:', e.message); }
+}
+function showCacheInfo(ts) {
+  const el = document.getElementById('cacheInfo');
+  if (el) { const d = new Date(ts); el.textContent = `caché ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; el.style.display='inline'; }
+}
+function hideCacheInfo() { const el = document.getElementById('cacheInfo'); if(el) el.style.display='none'; }
+
+// ─── LOAD ALL ─────────────────────────────────────────────────────────────────
+async function loadAll(forceRefresh = false) {
+  // Intentar caché primero (carga instantánea)
+  if (!forceRefresh) {
+    const cached = getCachedData();
+    if (cached) {
+      console.log('[Cache] Usando datos del caché:', new Date(cached.ts).toLocaleTimeString());
+      showCacheInfo(cached.ts);
+      processRows(cached.ordeRows, cached.provRows);
+      return;
+    }
+  }
+
+  hideCacheInfo();
+  setRefreshSpinner(true);
+  // Mostrar loading en el chart
+  const chartEl = document.getElementById('chartBars');
+  if (chartEl) chartEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--t3);font-family:var(--mono);font-size:11px;">Cargando datos del sheet...</div>';
+
+  try {
+    // AbortController para timeout de 35 segundos
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 35000);
+
     const [ordeRows, provRows] = await Promise.all([
-      readSheet("Órdenes!A1:Z5000"),
-      readSheet("Proveedores!A1:G200"),
+      readSheetWithSignal('Órdenes!A1:Z5000', ctrl.signal),
+      readSheetWithSignal('Proveedores!A1:G200', ctrl.signal),
     ]);
-    parseOrdenes(ordeRows);
-    parseProveedores(provRows);
-    buildDropdowns();
-    applyResumen();
-    renderOrdenesTable();
-    renderProveedores();
-    if (activeTab === 'insumos') loadInsumos();
+    clearTimeout(tid);
+
+    setCachedData(ordeRows, provRows);
+    processRows(ordeRows, provRows);
   } catch(e) {
-    console.error('Error cargando datos:', e);
-    showError('panel-resumen', 'Error al cargar datos: ' + e.message);
+    console.error('[loadAll] Error:', e);
+    const msg = e.name === 'AbortError' ? 'Tiempo de espera agotado (35s). Verificá tu conexión.' : e.message;
+    // Mostrar error visible en el chart
+    const chartEl2 = document.getElementById('chartBars');
+    if (chartEl2) chartEl2.innerHTML = `<div style="text-align:center;padding:40px;color:var(--danger);font-family:var(--mono);font-size:11px;">⚠ Error: ${escH(msg)}<br><br><button onclick="loadAll(true)" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:10px;">Reintentar</button></div>`;
+    // Mostrar notificación
+    showNotif('Error al cargar: ' + msg, 'error');
   }
   setRefreshSpinner(false);
+}
+
+async function readSheetWithSignal(range, signal) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` }, signal });
+  if (!resp.ok) throw new Error(`API ${resp.status} en ${range}: ${await resp.text()}`);
+  const data = await resp.json();
+  return data.values || [];
+}
+
+function processRows(ordeRows, provRows) {
+  parseOrdenes(ordeRows);
+  parseProveedores(provRows);
+  buildDropdowns();
+  applyResumen();
+  renderOrdenesTable();
+  renderProveedores();
+  if (activeTab === 'insumos') loadInsumos();
 }
 
 function parseOrdenes(rows) {
@@ -1583,7 +1647,7 @@ function doRefresh() {
   tintaLoaded = false; papelLoaded = false;
   tintaData = null; papelData = null;
   preciosLoaded = false; preciosData = [];
-  loadAll();
+  loadAll(true); // fuerza re-lectura del sheet, ignora caché
 }
 
 function setRefreshSpinner(on) {
