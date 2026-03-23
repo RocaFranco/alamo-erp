@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ventas — Alamo ERP</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+:root {
+  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2127; --border:#2a2d35;
+  --border2:#353942; --accent:#e8ff47; --accent2:#47c8ff; --accent3:#ff6b47;
+  --text:#f0f2f5; --text2:#8b909e; --text3:#555b6a;
+  --success:#47ffb2; --warning:#ffb347; --danger:#ff4747;
+  --radius:10px; --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --display:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;line-height:1.6;}
+
+/* ── HEADER ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:50px;position:sticky;top:0;z-index:100;gap:12px;}
+.logo{font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.pulse{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.8);}}
+.header-tabs{display:flex;gap:4px;}
+.htab{background:none;border:1px solid var(--border);border-radius:7px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:6px 14px;transition:all .2s;text-transform:uppercase;}
+.htab.active{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);}
+.htab:hover:not(.active){border-color:var(--border2);color:var(--text);}
+.header-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.home-link{color:var(--text3);font-family:var(--mono);font-size:10px;text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;transition:all .2s;}
+.home-link:hover{border-color:var(--border2);color:var(--text2);}
+
+/* ── PANELS ── */
+.panel{display:none;min-height:calc(100vh - 50px);}
+.panel.active{display:block;}
+
+/* ── HISTORIAL PLACEHOLDER ── */
+.hist-wrap{max-width:700px;margin:80px auto;text-align:center;padding:0 24px;}
+.hist-icon{font-size:56px;margin-bottom:20px;opacity:.4;}
+.hist-title{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.03em;margin-bottom:10px;}
+.hist-sub{color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:32px;}
+.hist-badge{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px 20px;font-family:var(--mono);font-size:11px;color:var(--text3);}
+.hist-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--warning);animation:pulse 2s ease-in-out infinite;}
+
+/* ══════════════════════════════════════════════
+   COTIZADOR STYLES (todo el bloque original)
+══════════════════════════════════════════════ */
+.cot-wrap{display:block;min-height:calc(100vh - 50px);}
+.cot-main{padding:28px 32px;max-width:780px;margin:0 auto;}
+.section-title{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.03em;margin-bottom:3px;display:flex;align-items:center;gap:10px;}
+.tag{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--accent);background:rgba(232,255,71,.1);border:1px solid rgba(232,255,71,.2);padding:2px 8px;border-radius:4px;letter-spacing:.08em;}
+.section-sub{color:var(--text2);font-size:12px;margin-bottom:22px;}
+.progress-bar{height:2px;background:var(--border);border-radius:2px;margin-bottom:22px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .4s ease;width:0%;}
+.step-indicator{display:flex;gap:5px;align-items:center;}
+.step-dot{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--text3);transition:all .3s;cursor:pointer;}
+.step-dot.active{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.08);}
+.step-dot.done{border-color:var(--success);background:rgba(71,255,178,.12);color:var(--success);}
+.step-line{width:18px;height:1px;background:var(--border);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;transition:border-color .2s;}
+.card:hover{border-color:var(--border2);}
+.card-title{font-family:var(--display);font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:7px;margin-bottom:16px;}
+.card-title .icon{width:20px;height:20px;background:var(--surface2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.fg{display:grid;gap:12px;}
+.fg.c2{grid-template-columns:1fr 1fr;}
+.fg.c3{grid-template-columns:1fr 1fr 1fr;}
+.fg.c4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);}
+.field label .req{color:var(--accent3);margin-left:2px;}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--sans);font-size:13px;padding:9px 12px;transition:border-color .2s,box-shadow .2s;outline:none;width:100%;}
+input:focus,select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(71,200,255,.1);}
+input::placeholder{color:var(--text3);}
+select option{background:var(--surface2);}
+.iu{position:relative;}
+.iu input{padding-right:40px;}
+.iu .unit{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--text3);pointer-events:none;}
+.bolsa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.bo{background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:13px 10px;cursor:pointer;transition:all .2s;text-align:center;user-select:none;}
+.bo:hover{border-color:var(--border2);}
+.bo.selected{border-color:var(--accent);background:rgba(232,255,71,.06);}
+.bo .bo-icon{font-size:20px;margin-bottom:5px;}
+.bo .bo-name{font-family:var(--display);font-weight:600;font-size:12px;color:var(--text);margin-bottom:1px;}
+.bo .bo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.bo.selected .bo-name{color:var(--accent);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);}
+.toggle-row:last-child{border-bottom:none;}
+.tl{font-size:13px;color:var(--text);}
+.tl small{display:block;font-size:10px;color:var(--text3);font-family:var(--mono);}
+.toggle{position:relative;width:38px;height:21px;cursor:pointer;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;inset:0;background:var(--surface2);border:1.5px solid var(--border2);border-radius:11px;transition:all .2s;}
+.toggle input:checked+.toggle-track{background:rgba(232,255,71,.15);border-color:var(--accent);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:13px;height:13px;background:var(--text3);border-radius:50%;transition:all .2s;pointer-events:none;}
+.toggle input:checked~.toggle-thumb{left:20px;background:var(--accent);}
+.cond{display:none;}
+.cond.on{display:block;animation:fi .2s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+.color-row{display:grid;grid-template-columns:26px 1fr 100px 70px 70px 28px;align-items:center;gap:8px;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;transition:border-color .2s;}
+.color-row:hover{border-color:var(--border2);}
+.color-row.analyzed{border-color:rgba(71,255,178,.3);}
+.color-swatch{width:24px;height:24px;border-radius:5px;border:1px solid var(--border2);flex-shrink:0;cursor:pointer;}
+.color-row .rm{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:2px;border-radius:4px;line-height:1;text-align:center;}
+.color-row .rm:hover{color:var(--accent3);}
+.color-row .pct-val{font-family:var(--mono);font-size:12px;color:var(--accent2);text-align:center;padding:0 4px;}
+.color-row .pct-val.empty{color:var(--text3);}
+.color-row .area-val{font-family:var(--mono);font-size:11px;color:var(--text3);text-align:right;padding:0 4px;}
+.pantone-combo{display:grid;grid-template-columns:1fr 90px;gap:6px;}
+.add-btn{background:none;border:1.5px dashed var(--border2);border-radius:7px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:9px;width:100%;transition:all .2s;text-transform:uppercase;}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,255,71,.04);}
+.add-btn:disabled{opacity:.3;cursor:not-allowed;}
+.cob-result{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:14px;}
+.cob-item .cob-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
+.cob-item .cob-val{font-family:var(--mono);font-size:16px;font-weight:500;}
+.cob-item .cob-val.ok{color:var(--success);}
+.cob-item .cob-val.warn{color:var(--warning);}
+.cob-item .cob-val.hi{color:var(--accent);}
+.analyze-btn{background:rgba(71,255,178,.08);border:1px solid rgba(71,255,178,.25);border-radius:7px;color:var(--success);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:9px 14px;width:100%;transition:all .2s;text-transform:uppercase;margin-top:10px;}
+.analyze-btn:hover{background:rgba(71,255,178,.16);border-color:var(--success);}
+.analyze-btn:disabled{opacity:.4;cursor:not-allowed;}
+.arte-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer;transition:all .25s;background:var(--surface2);position:relative;overflow:hidden;}
+.arte-zone:hover,.arte-zone.drag-over{border-color:var(--accent2);background:rgba(71,200,255,.04);}
+.arte-zone.has-file{border-color:var(--success);border-style:solid;background:rgba(71,255,178,.03);}
+.arte-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.analyzing{display:none;align-items:center;gap:9px;padding:11px 14px;background:rgba(71,200,255,.06);border:1px solid rgba(71,200,255,.2);border-radius:8px;margin-top:10px;}
+.analyzing.on{display:flex;}
+.spin{width:15px;height:15px;border:2px solid rgba(71,200,255,.2);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.det-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:10px;display:none;}
+.det-box.on{display:block;}
+.det-title{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.det-title::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--success);}
+.det-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:10px;}
+.det-item{background:var(--surface);border-radius:6px;padding:9px 11px;border:1px solid var(--border);}
+.det-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;}
+.det-value{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--accent2);}
+.det-value .u{font-size:9px;color:var(--text3);margin-left:2px;}
+.apply-btn{background:rgba(71,200,255,.1);border:1px solid rgba(71,200,255,.3);border-radius:7px;color:var(--accent2);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:8px 14px;width:100%;transition:all .2s;text-transform:uppercase;}
+.apply-btn:hover{background:rgba(71,200,255,.18);border-color:var(--accent2);}
+.arte-canvas-preview{display:none;margin-top:10px;border-radius:7px;overflow:hidden;border:1px solid var(--border);max-height:180px;}
+.arte-canvas-preview.on{display:block;}
+.arte-canvas-preview canvas{width:100%;display:block;}
+.impacto-clise{background:rgba(255,107,71,.06);border:1px solid rgba(255,107,71,.2);border-radius:7px;padding:12px 14px;margin-top:10px;display:none;}
+.impacto-clise.on{display:block;}
+.ic-label{font-family:var(--mono);font-size:9px;color:var(--accent3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.ic-val{font-family:var(--mono);font-size:18px;color:var(--accent3);font-weight:500;}
+.ic-sub{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px;}
+.pallet-result{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:12px;}
+.pr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.pr-item .pr-label{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
+.pr-item .pr-val{font-family:var(--mono);font-size:16px;color:var(--accent);font-weight:500;}
+.pr-item .pr-sub{font-family:var(--mono);font-size:9px;color:var(--text3);}
+.fab{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#0e0f11;border:none;border-radius:50px;font-family:var(--display);font-weight:700;font-size:13px;padding:14px 22px;cursor:pointer;box-shadow:0 6px 24px rgba(232,255,71,.35);display:flex;align-items:center;gap:9px;transition:all .25s;z-index:200;}
+.fab:hover{background:#f5ff7a;transform:translateY(-2px);box-shadow:0 10px 30px rgba(232,255,71,.4);}
+.fab .fab-price{font-family:var(--mono);font-size:15px;font-weight:500;}
+.fab .fab-label{font-size:11px;opacity:.7;}
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;opacity:0;pointer-events:none;transition:opacity .3s;}
+.drawer-overlay.open{opacity:1;pointer-events:all;}
+.sidebar{position:fixed;top:0;right:0;bottom:0;width:370px;background:var(--surface);border-left:1px solid var(--border);padding:22px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;z-index:400;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+.sidebar.open{transform:translateX(0);}
+.drawer-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:11px;border-bottom:1px solid var(--border);}
+.drawer-close{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--text2);cursor:pointer;font-size:16px;padding:4px 10px;transition:all .2s;}
+.drawer-close:hover{border-color:var(--accent3);color:var(--accent3);}
+.drawer-title{font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);}
+.cost-section-title{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:7px;}
+.cost-line{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.cost-line:last-child{border-bottom:none;}
+.cost-line .cn{color:var(--text2);}
+.cost-line .cv{font-family:var(--mono);font-size:11px;color:var(--text);}
+.cost-line.warn .cv{color:var(--accent3);}
+.cdiv{height:1px;background:var(--border2);margin:8px 0;}
+.cost-total{display:flex;justify-content:space-between;align-items:flex-end;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border2);}
+.ct-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);}
+.ct-val{font-family:var(--display);font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.03em;}
+.ct-sub{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:1px;}
+.margin-row{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);}
+.margin-row label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);flex:1;}
+.margin-row input{width:58px;text-align:center;font-family:var(--mono);font-size:12px;padding:6px 7px;}
+.price-final{background:linear-gradient(135deg,rgba(232,255,71,.08),rgba(71,200,255,.05));border:1px solid rgba(232,255,71,.2);border-radius:9px;padding:14px;text-align:center;}
+.pf-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px;}
+.pf-total{font-family:var(--display);font-size:28px;font-weight:800;color:var(--accent);letter-spacing:-.04em;}
+.pf-unit{font-family:var(--mono);font-size:10px;color:var(--text2);margin-top:2px;}
+.skel{background:var(--surface2);border-radius:3px;height:12px;width:60px;animation:shimmer 1.5s ease-in-out infinite;display:inline-block;}
+@keyframes shimmer{0%,100%{opacity:.3;}50%{opacity:.7;}}
+.cta-group{display:flex;flex-direction:column;gap:7px;margin-top:auto;}
+.btn-primary{background:var(--accent);border:none;border-radius:8px;color:#0e0f11;cursor:pointer;font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.02em;padding:12px;width:100%;transition:all .2s;text-transform:uppercase;}
+.btn-primary:hover{background:#f5ff7a;transform:translateY(-1px);}
+.btn-secondary{background:none;border:1.5px solid var(--border2);border-radius:8px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:10px;width:100%;transition:all .2s;text-transform:uppercase;}
+.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2);}
+.nav-btns{display:flex;gap:9px;margin-top:6px;padding-bottom:28px;}
+.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface);border:1px solid var(--border2);border-radius:9px;padding:12px 16px;font-size:12px;color:var(--text);box-shadow:0 8px 28px rgba(0,0,0,.4);opacity:0;transition:all .3s;z-index:999;max-width:300px;white-space:nowrap;}
+.notif.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.notif.success{border-color:rgba(71,255,178,.4);}
+.notif.error{border-color:rgba(255,71,71,.4);}
+.notif.warn{border-color:rgba(255,179,71,.4);}
+.res-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.res-row .rk{color:var(--text3);}
+.res-row .rv{color:var(--text);font-family:var(--mono);font-size:11px;}
+
+/* API key config banner */
+.api-banner{background:rgba(255,107,71,.06);border:1px solid rgba(255,107,71,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;color:var(--accent3);}
+.api-banner input{flex:1;font-size:11px;padding:6px 10px;}
+.api-banner button{background:rgba(255,107,71,.15);border:1px solid rgba(255,107,71,.3);border-radius:6px;color:var(--accent3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:6px 12px;white-space:nowrap;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="pulse"></div>VENTAS</div>
+  <div class="header-tabs">
+    <button class="htab active" onclick="switchTab('cotizador')">Cotizador</button>
+    <button class="htab" onclick="switchTab('historial')">Historial</button>
+  </div>
+  <div class="header-right">
+    <a href="https://rocafranco.github.io/alamo-erp/" class="home-link">← ERP Home</a>
+  </div>
+</header>
+
+<!-- ══════ TAB: COTIZADOR ══════ -->
+<div class="panel active" id="panel-cotizador">
+<div class="cot-wrap">
+<div class="cot-main" id="mainArea">
+
+<!-- API key config (shown only if not set) -->
+<div class="api-banner" id="apiBanner">
+  <span>🔑 API Key Claude (para análisis de arte):</span>
+  <input type="password" id="apiKeyInput" placeholder="sk-ant-..." value="">
+  <button onclick="saveApiKey()">Guardar</button>
+</div>
+
+<!-- Step indicator (inside main, not header) -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">COTIZADOR BOLSAS v2</div>
+  <div class="step-indicator">
+    <div class="step-dot active" id="sd1" onclick="goSec(0)">1</div><div class="step-line"></div>
+    <div class="step-dot" id="sd2" onclick="goSec(1)">2</div><div class="step-line"></div>
+    <div class="step-dot" id="sd3" onclick="goSec(2)">3</div><div class="step-line"></div>
+    <div class="step-dot" id="sd4" onclick="goSec(3)">4</div>
+  </div>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="pFill"></div></div>
+
+<!-- ════ PASO 1 ════ -->
+<div id="sec0">
+  <div class="section-title">Datos del pedido <span class="tag">PASO 1</span></div>
+  <div class="section-sub">Cliente, cantidad y tipo de bolsa</div>
+  <div class="card">
+    <div class="card-title"><span class="icon">👤</span>Cliente</div>
+    <div class="fg c2">
+      <div class="field"><label>Razón social <span class="req">*</span></label><input id="cliente" placeholder="Nombre del cliente" oninput="recalc()"></div>
+      <div class="field"><label>Nro. pedido / ref.</label><input id="nroPedido" placeholder="PED-2026-001"></div>
+      <div class="field"><label>Cantidad de bolsas <span class="req">*</span></label><div class="iu"><input type="number" id="cantidad" placeholder="0" min="1" oninput="recalc()"><span class="unit">UND</span></div></div>
+      <div class="field"><label>Fecha de entrega</label><input type="date" id="fechaEntrega"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="icon">🗂️</span>Tipo de bolsa <span class="req">*</span></div>
+    <div class="bolsa-grid">
+      <div class="bo" onclick="selBolsa('papel','Papel multicapa',this)"><div class="bo-icon">📄</div><div class="bo-name">Papel multicapa</div><div class="bo-sub">1–5 hojas, plano</div></div>
+      <div class="bo" onclick="selBolsa('polipapel','Polipapel',this)"><div class="bo-icon">🔗</div><div class="bo-name">Polipapel</div><div class="bo-sub">Rafipel — plano</div></div>
+      <div class="bo" onclick="selBolsa('rafia_conv','Rafia convencional',this)"><div class="bo-icon">🧵</div><div class="bo-name">Rafia conv.</div><div class="bo-sub">Tubular sin laminar</div></div>
+      <div class="bo" onclick="selBolsa('rafia_lam','Rafia laminada',this)"><div class="bo-icon">✨</div><div class="bo-name">Rafia laminada</div><div class="bo-sub">Tubular con laminado</div></div>
+      <div class="bo" onclick="selBolsa('biopp','BioPP',this)"><div class="bo-icon">🌿</div><div class="bo-name">BioPP</div><div class="bo-sub">Polipropileno bio</div></div>
+    </div>
+  </div>
+  <div class="card cond" id="secDim">
+    <div class="card-title"><span class="icon">📐</span>Dimensiones</div>
+    <div class="fg c3" style="align-items:end;">
+      <div class="field"><label>Largo <span class="req">*</span></label><div class="iu"><input type="number" id="dLargo" placeholder="0" step="0.1" oninput="recalc()"><span class="unit">cm</span></div></div>
+      <div class="field"><label>Ancho (1 cara) <span class="req">*</span></label><div class="iu"><input type="number" id="dAncho" placeholder="0" step="0.1" oninput="recalc()"><span class="unit">cm</span></div></div>
+      <div class="field"><label>Fuelle</label><div class="iu"><input type="number" id="dFuelle" placeholder="0" step="0.1" min="0" oninput="recalc()"><span class="unit">cm</span></div></div>
+    </div>
+    <div id="dimCalcBox" style="display:none;margin-top:12px;padding:11px 13px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Dimensiones reales del ARTE</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="dimCalcGrid"></div>
+    </div>
+    <div class="cond" id="secRafiaLam" style="margin-top:14px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Laminado</div>
+      <div class="fg c2">
+        <div class="field"><label>Gramaje final laminado (g/m²)</label><div class="iu"><input type="number" id="rafiaGramajeFinal" value="70" min="55" max="150" step="1" oninput="recalc()"><span class="unit">g/m²</span></div><span style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:3px;">Base 55 g/m² · laminado = final − 55</span></div>
+        <div class="field"><label>¿Laminado con color?</label><select id="rafiaMasterbatch" onchange="recalc()"><option value="no">No — transparente</option><option value="si">Sí — con pigmento</option></select></div>
+      </div>
+      <div id="rafiaLamResult" style="display:none;margin-top:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Por bolsa</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA BASE</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="rafiaBaseKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LAMINADO (PP+PE)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="rafiaLamKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaLamTotal">—</div></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 6px;">Total pedido (incl. 5% desp.)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="rafiaBaseTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LAMINADO (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="rafiaLamTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaLamTotalPedido">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cond" id="secRafiaConv" style="margin-top:14px;">
+      <div id="rafiaConvResult" style="display:none;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA RAFIA (65 g/m²)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="rafiaConvKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaConvTotal">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TELA (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="rafiaConvTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent);" id="rafiaConvTotalPedido">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cond" id="secBiopp" style="margin-top:14px;">
+      <div id="bioppResult" style="display:none;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (55 g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="bioppRafiaKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LÁM. BIOPP (25 g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="bioppLaminaKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA PP+PE (15)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="bioppMezclaKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="bioppTotal">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="bioppRafiaTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">LÁM. BIOPP (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="bioppLaminaTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="bioppMezclaTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="bioppTotalPedido">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cond" id="secPolipapel" style="margin-top:14px;">
+      <div id="polipapelResult" style="display:none;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">PAPEL (g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="polipapelPapelKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (55 g/m²)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="polipapelRafiaKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA PP+PE (15)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent2);" id="polipapelMezclaKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL/BOLSA</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="polipapelTotal">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">PAPEL (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="polipapelPapelTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">RAFIA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="polipapelRafiaTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">MEZCLA (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--success);" id="polipapelMezclaTotalKg">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL (kg)</div><div style="font-family:var(--mono);font-size:13px;color:var(--accent);" id="polipapelTotalPedido">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cond" id="secCapas" style="margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Capas de papel</span>
+        <div style="display:flex;gap:6px;">
+          <button onclick="addCapa()" style="background:none;border:1px solid var(--border2);border-radius:5px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:4px 10px;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">+ capa</button>
+          <button onclick="rmCapa()" style="background:none;border:1px solid var(--border2);border-radius:5px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:10px;padding:4px 10px;" onmouseover="this.style.borderColor='var(--accent3)';this.style.color='var(--accent3)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">− capa</button>
+        </div>
+      </div>
+      <div id="capasList"></div>
+      <div id="papelTotalBox" style="display:none;margin-top:8px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL G/BOLSA</div><div style="font-family:var(--mono);font-size:14px;color:var(--accent2);" id="papelTotalGBolsa">—</div></div>
+          <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3);">TOTAL KG PEDIDO (incl. 5%)</div><div style="font-family:var(--mono);font-size:14px;color:var(--success);" id="papelTotalKgPedido">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PASO 2 ════ -->
+<div id="sec1" style="display:none;">
+  <div class="section-title">Arte e impresión <span class="tag">PASO 2</span></div>
+  <div class="section-sub">El PDF del arte se analiza con IA para detectar dimensiones y pantones</div>
+  <div class="card">
+    <div class="card-title"><span class="icon">🎨</span>Arte (PDF o imagen)</div>
+    <div class="arte-zone" id="arteZone">
+      <input type="file" accept=".pdf,image/*" id="arteFile" onchange="handleArte(event)">
+      <div id="arteEmpty"><div style="font-size:28px;margin-bottom:8px;opacity:.4;">⬆</div><div style="font-family:var(--display);font-weight:600;font-size:13px;margin-bottom:3px;">Arrastrá el PDF del arte acá</div><div style="color:var(--text2);font-size:11px;">PDF vectorial, JPG o PNG — se analiza automáticamente</div></div>
+      <div id="arteLoaded" style="display:none;"><div style="font-size:24px;margin-bottom:5px;">✅</div><div style="font-family:var(--display);font-weight:600;font-size:13px;" id="arteFileName">—</div><div style="color:var(--text2);font-size:11px;">Archivo cargado</div></div>
+    </div>
+    <div class="analyzing" id="analyzingBox"><div class="spin"></div><span style="font-family:var(--mono);font-size:10px;color:var(--accent2);letter-spacing:.06em;" id="analyzingText">ANALIZANDO ARTE CON IA...</span></div>
+    <div class="arte-canvas-preview" id="canvasPreview"><canvas id="arteCanvas"></canvas></div>
+    <div class="det-box" id="detBox">
+      <div class="det-title">Datos detectados del arte</div>
+      <div class="det-grid">
+        <div class="det-item"><div class="det-label">Largo</div><div class="det-value" id="detL">—</div></div>
+        <div class="det-item"><div class="det-label">Ancho (1 cara)</div><div class="det-value" id="detA">—</div></div>
+        <div class="det-item"><div class="det-label">Fuelle</div><div class="det-value" id="detF">—</div></div>
+        <div class="det-item"><div class="det-label">Colores</div><div class="det-value" id="detC">—</div></div>
+      </div>
+      <button class="apply-btn" onclick="applyDetected()" style="margin-bottom:8px;">↳ Aplicar dimensiones al formulario</button>
+      <button class="analyze-btn" id="analyzeCobBtn" onclick="analyzeCoverageWithAI()" disabled>🔬 Calcular cobertura real por color</button>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="card-title" style="margin-bottom:0;"><span class="icon">🖨️</span>Colores de impresión <small style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:5px;">MÁX. 6</small></div>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);" id="colorCount">0 colores</span>
+    </div>
+    <div style="display:grid;grid-template-columns:26px 1fr 100px 70px 70px 28px;gap:8px;padding:0 11px;margin-bottom:5px;">
+      <span></span><span style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;">Nombre · Nro. pantone</span><span style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;text-align:center;">% cob.</span><span style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;text-align:right;">cm²</span><span></span><span></span>
+    </div>
+    <div id="colorList"></div>
+    <button class="add-btn" id="addColorBtn" onclick="addColor()">+ Agregar pantone</button>
+    <div class="cob-result" id="cobResult" style="display:none;">
+      <div class="cob-item"><div class="cob-label">Área impresa</div><div class="cob-val hi" id="cobAreaVal">—</div></div>
+      <div class="cob-item"><div class="cob-label">% del arte</div><div class="cob-val ok" id="cobPctVal">—</div></div>
+      <div class="cob-item"><div class="cob-label">Área libre</div><div class="cob-val" id="cobLibreVal" style="color:var(--text2);">—</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🔲</span>Clisé</div>
+    <div class="toggle-row">
+      <div class="tl">¿Requiere clisé nuevo?<small>Vida útil 6–8 años si no cambia la imagen</small></div>
+      <label class="toggle"><input type="checkbox" id="tieneClise" onchange="onClise()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+    <div class="cond" id="cliseOpts" style="margin-top:11px;">
+      <div class="fg c2">
+        <div class="field"><label>Costo del clisé ($) <span class="req">*</span></label><input type="number" id="costoClise" placeholder="0" oninput="recalc()"></div>
+        <div class="field"><label>¿Quién absorbe?</label><select id="cobraClise" onchange="recalc()"><option value="cliente">Cliente — se suma al precio</option><option value="fabrica">Fábrica — impacto en margen</option><option value="parcial">Parcialmente (50% c/u)</option></select></div>
+      </div>
+      <div class="impacto-clise" id="impactoClise"><div class="ic-label">⚠ Impacto en costo si fábrica absorbe</div><div class="ic-val" id="icVal">—</div><div class="ic-sub" id="icSub">por bolsa</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PASO 3 ════ -->
+<div id="sec2" style="display:none;">
+  <div class="section-title">Insumos y terminación <span class="tag">PASO 3</span></div>
+  <div class="section-sub">Polietileno, costura, paletizado y logística</div>
+  <div class="card cond" id="secPE">
+    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🧴</span>Polietileno</div>
+    <div class="toggle-row">
+      <div class="tl">¿Lleva lámina PE?<small>tubera papel</small></div>
+      <label class="toggle"><input type="checkbox" id="tienelamina" onchange="toggleSub('laminaOpts',this)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+    <div class="cond" id="laminaOpts" style="margin-top:10px;">
+      <div class="fg c2">
+        <div class="field"><label>Formato lámina (cm)</label><div class="iu"><input type="number" id="laminaFto" placeholder="91" oninput="recalc()"><span class="unit">cm</span></div></div>
+        <div class="field"><label>Micronaje</label><div class="iu"><input type="number" id="laminaMic" placeholder="14" oninput="recalc()"><span class="unit">mic</span></div></div>
+      </div>
+    </div>
+    <div class="toggle-row" style="margin-top:6px;">
+      <div class="tl">¿Lleva bolsa PE interior?<small>manga PE</small></div>
+      <label class="toggle"><input type="checkbox" id="tieneBolsaPE" onchange="toggleSub('bolsaPEOpts',this)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+    <div class="cond" id="bolsaPEOpts" style="margin-top:10px;">
+      <div class="fg c4">
+        <div class="field"><label>Ancho (cm)</label><input type="number" id="bpeAncho" placeholder="58" oninput="recalc()"></div>
+        <div class="field"><label>Largo (cm)</label><input type="number" id="bpeLargo" placeholder="110" oninput="recalc()"></div>
+        <div class="field"><label>Micronaje</label><input type="number" id="bpeMic" placeholder="50" oninput="recalc()"></div>
+        <div class="field"><label>Densidad</label><select id="bpeDensidad" onchange="recalc()"><option value="0.92">Baja — 0.92</option><option value="0.95">Alta — 0.95</option></select></div>
+      </div>
+    </div>
+  </div>
+  <div class="card cond" id="secCrepe">
+    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🎀</span>Crepe</div>
+    <div class="toggle-row">
+      <div class="tl">¿Lleva crepe?<small>papel y polipapel</small></div>
+      <label class="toggle"><input type="checkbox" id="tieneCrepe" onchange="toggleSub('crepeOpts',this);recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+    <div class="cond" id="crepeOpts" style="margin-top:10px;">
+      <div class="field"><label>Color de crepe</label><select id="crepeColor" onchange="recalc()"><option value="natural">Natural</option><option value="blanco">Blanco</option><option value="azul">Azul</option><option value="rojo">Rojo</option><option value="verde">Verde</option></select></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px;"><span class="icon">🧶</span>Costura y empaque</div>
+    <div class="fg c2">
+      <div class="field"><label>Abre fácil</label><select id="abreFacil" onchange="recalc()"><option value="no">No</option><option value="si">Sí</option></select></div>
+      <div class="field"><label>Bolsas por paquete</label><div class="iu"><input type="number" id="bolsasPaquete" placeholder="25" min="1" oninput="recalc();calcPallet();const d=document.getElementById('bxpDisplay');if(d)d.textContent=this.value||'—'"><span class="unit">und</span></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px;"><span class="icon">📦</span>Paletizado</div>
+    <div class="fg c2">
+      <div class="field"><label>Bolsas por paquete</label><div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:var(--mono);font-size:13px;color:var(--text3);" id="bxpDisplay">— (completar arriba)</div></div>
+      <div class="field"><label>Máx. bolsas por pallet</label><div class="iu"><input type="number" id="maxBolsasPallet" placeholder="500" min="1" oninput="calcPallet()"><span class="unit">und</span></div></div>
+    </div>
+    <div style="margin-top:12px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Opciones de armado</div>
+      <div class="fg c3">
+        <div class="toggle-row" style="border:none;padding:0;align-items:center;gap:8px;flex-direction:row-reverse;justify-content:flex-end;"><div class="tl">Rack</div><label class="toggle"><input type="checkbox" id="tieneRack" onchange="recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+        <div class="toggle-row" style="border:none;padding:0;align-items:center;gap:8px;flex-direction:row-reverse;justify-content:flex-end;"><div class="tl">Corralito</div><label class="toggle"><input type="checkbox" id="tieneCorralito" onchange="recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+        <div class="toggle-row" style="border:none;padding:0;align-items:center;gap:8px;flex-direction:row-reverse;justify-content:flex-end;"><div class="tl">Tapa</div><label class="toggle"><input type="checkbox" id="tieneTapa" onchange="recalc()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+      </div>
+      <div style="margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--text3);padding:7px 10px;background:var(--surface2);border-radius:5px;border:1px solid var(--border);">🎬 Film stretch incluido en todos los pallets como costo fijo</div>
+    </div>
+    <div class="pallet-result" id="palletResult" style="display:none;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;">Cálculo de pallets</div>
+      <div class="pr-grid">
+        <div class="pr-item"><div class="pr-label">Paquetes totales</div><div class="pr-val" id="prPaquetes">—</div></div>
+        <div class="pr-item"><div class="pr-label">Pallets totales</div><div class="pr-val" id="prPallets">—</div></div>
+        <div class="pr-item"><div class="pr-label">Vol. estimado</div><div class="pr-val" id="prM3">—</div><div class="pr-sub">m³ aprox.</div></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <div class="field"><label>Costo logístico ($)</label><div class="iu"><input type="number" id="costoLog" placeholder="0" oninput="recalc()"><span class="unit">ARS</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PASO 4 ════ -->
+<div id="sec3" style="display:none;">
+  <div class="section-title">Resumen del pedido <span class="tag">PASO 4</span></div>
+  <div class="section-sub">Revisá todo antes de guardar la cotización</div>
+  <div class="card"><div id="resumenContent" style="color:var(--text2);font-size:12px;">Completá los pasos anteriores.</div></div>
+</div>
+
+<div class="nav-btns" id="navBtns">
+  <button class="btn-secondary" id="btnBack" onclick="prevSec()" style="display:none;">← Anterior</button>
+  <button class="btn-primary" id="btnNext" onclick="nextSec()" style="margin-left:auto;">Continuar →</button>
+</div>
+</div><!-- /cot-main -->
+
+<!-- FLOATING BUTTON -->
+<button class="fab" onclick="toggleDrawer()" id="fabBtn" style="display:none;">
+  <span>💰</span>
+  <div><div class="fab-label">Ver costo</div><div class="fab-price" id="fabPrice">$—</div></div>
+</button>
+
+<!-- OVERLAY + SIDEBAR -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="drawer-header">
+    <div class="drawer-title">Resumen de costo</div>
+    <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+  </div>
+  <div>
+    <div class="cost-section-title">Materias primas</div>
+    <div class="cost-line"><span class="cn">Papel / sustrato</span><span class="cv" id="sPapel"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Rafia / tela</span><span class="cv" id="sRafia"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Lám. BioPP / mezcla</span><span class="cv" id="sMezcla"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Tinta</span><span class="cv" id="sTinta"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">PE / lámina</span><span class="cv" id="sPE"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Crepe / hilo</span><span class="cv" id="sCrepe"><span class="skel"></span></span></div>
+  </div>
+  <div class="cdiv"></div>
+  <div>
+    <div class="cost-section-title">Proceso fabril</div>
+    <div class="cost-line"><span class="cn">Impresión</span><span class="cv" id="sImp"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Laminadora</span><span class="cv" id="sLam"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Tubera</span><span class="cv" id="sTub"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Costura</span><span class="cv" id="sCos"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Paletizado</span><span class="cv" id="sPal"><span class="skel"></span></span></div>
+  </div>
+  <div class="cdiv"></div>
+  <div>
+    <div class="cost-section-title">Otros costos</div>
+    <div class="cost-line"><span class="cn">Clisé absorbido</span><span class="cv warn" id="sClise"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Costos fijos (30%)</span><span class="cv" id="sFijos"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Film stretch</span><span class="cv" id="sFilm"><span class="skel"></span></span></div>
+    <div class="cost-line"><span class="cn">Logística</span><span class="cv" id="sLog"><span class="skel"></span></span></div>
+  </div>
+  <div class="cdiv"></div>
+  <div class="cost-total">
+    <div><div class="ct-label">Costo fabril / bolsa</div><div class="ct-sub" id="ctSub">total: —</div></div>
+    <div style="text-align:right;"><div class="ct-val" id="ctVal">$—</div></div>
+  </div>
+  <div class="margin-row">
+    <label>Margen ganancia</label>
+    <div class="iu" style="width:65px;"><input type="number" id="margenPct" value="25" min="0" max="300" step="1" oninput="recalc()"><span class="unit">%</span></div>
+  </div>
+  <div class="price-final">
+    <div class="pf-label">Precio de venta sugerido</div>
+    <div class="pf-total" id="pfTotal">$—</div>
+    <div class="pf-unit" id="pfUnit">por bolsa · total: $—</div>
+  </div>
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:9px;">KG por pedido (incl. 5% desperdicio)</div>
+    <div id="kgPedidoList" style="font-family:var(--mono);font-size:11px;color:var(--text2);">—</div>
+  </div>
+  <div style="flex:1;"></div>
+  <div class="cta-group">
+    <button class="btn-primary" onclick="genCotizacion()">Guardar cotización</button>
+    <button class="btn-secondary" onclick="limpiar()">Nuevo pedido</button>
+  </div>
+</div>
+</div><!-- /cot-wrap -->
+</div><!-- /panel-cotizador -->
+
+<!-- ══════ TAB: HISTORIAL ══════ -->
+<div class="panel" id="panel-historial">
+  <div class="hist-wrap">
+    <div class="hist-icon">📊</div>
+    <div class="hist-title">Historial de Ventas</div>
+    <div class="hist-sub">
+      Próximamente podrás cargar el historial completo de ventas para análisis de datos:<br>
+      evolución de precios, clientes top, mix de productos, márgenes por tipo de bolsa y más.
+    </div>
+    <div class="hist-badge">
+      <div class="dot"></div>
+      EN DESARROLLO — próxima fase
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ── API KEY ───────────────────────────────────────────────────────────────────
+let ANTHROPIC_KEY = localStorage.getItem('alamo_api_key') || '';
+function saveApiKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (v) { ANTHROPIC_KEY = v; localStorage.setItem('alamo_api_key', v); document.getElementById('apiBanner').style.display = 'none'; notify('API Key guardada ✓', 'success'); }
+}
+function initApiBanner() {
+  if (ANTHROPIC_KEY) { document.getElementById('apiBanner').style.display = 'none'; }
+  else { document.getElementById('apiKeyInput').value = ''; }
+}
+
+// ── TAB SWITCH ────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.htab').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(tab === 'cotizador' ? 'cotiz' : 'histor')));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  const fab = document.getElementById('fabBtn');
+  if (fab) fab.style.display = tab === 'cotizador' ? 'flex' : 'none';
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const S = { sec: 0, tipoBolsa: null, tipoNombre: '', capas: [], detected: null, artBase64: null, artMediaType: null, cobPct: null };
+const SECS = ['sec0','sec1','sec2','sec3'];
+
+function goSec(i) {
+  SECS.forEach((id, j) => document.getElementById(id).style.display = j === i ? 'block' : 'none');
+  S.sec = i; updDots(); updNav();
+  document.getElementById('pFill').style.width = ((i + 1) / 4 * 100) + '%';
+  if (i === 3) buildResumen();
+}
+function nextSec() { if (S.sec < 3) goSec(S.sec + 1); }
+function prevSec() { if (S.sec > 0) goSec(S.sec - 1); }
+function updDots() {
+  for (let i = 1; i <= 4; i++) {
+    const d = document.getElementById('sd' + i);
+    d.className = 'step-dot';
+    if (i - 1 < S.sec) d.classList.add('done');
+    else if (i - 1 === S.sec) d.classList.add('active');
+  }
+}
+function updNav() {
+  document.getElementById('btnBack').style.display = S.sec > 0 ? 'block' : 'none';
+  const nb = document.getElementById('btnNext');
+  nb.textContent = S.sec === 3 ? 'Guardar cotización ✓' : 'Continuar →';
+  nb.onclick = S.sec === 3 ? genCotizacion : nextSec;
+}
+
+// ── TIPO DE BOLSA ─────────────────────────────────────────────────────────────
+function selBolsa(tipo, nombre, el) {
+  S.tipoBolsa = tipo; S.tipoNombre = nombre;
+  document.querySelectorAll('.bo').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  show('secDim', true);
+  show('secRafiaLam',  tipo === 'rafia_lam');
+  show('secRafiaConv', tipo === 'rafia_conv');
+  show('secBiopp',     tipo === 'biopp');
+  show('secPolipapel', tipo === 'polipapel');
+  show('secCapas',     tipo === 'papel');
+  show('secPE',        tipo === 'papel');
+  show('secCrepe',     ['papel','polipapel'].includes(tipo));
+  if (tipo === 'papel' && S.capas.length === 0) initCapas(3);
+  if (tipo === 'polipapel' && S.capas.length === 0) initCapas(1);
+  // Show FAB
+  document.getElementById('fabBtn').style.display = 'flex';
+  recalc();
+  notify('Tipo: ' + nombre, 'success');
+}
+
+// ── CAPAS PAPEL ───────────────────────────────────────────────────────────────
+const GRAMAJES_DEFAULT = [80, 70, 70, 60, 60];
+let capaCount = 0;
+function initCapas(n) {
+  S.capas = []; document.getElementById('capasList').innerHTML = '';
+  for (let i = 0; i < n; i++) addCapaRow(i);
+}
+function addCapa() {
+  if (S.capas.length >= 5) { notify('Máximo 5 capas', 'warn'); return; }
+  addCapaRow(S.capas.length); recalc();
+}
+function rmCapa() {
+  if (S.capas.length <= 1) { notify('Mínimo 1 capa', 'warn'); return; }
+  const list = document.getElementById('capasList');
+  list.removeChild(list.lastChild); S.capas.pop(); recalc();
+}
+function addCapaRow(i) {
+  const id = 'capa_' + capaCount++;
+  S.capas.push(id);
+  const row = document.createElement('div');
+  row.id = id;
+  row.style.cssText = 'display:grid;grid-template-columns:28px 1fr 90px 60px;gap:6px;align-items:center;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;';
+  row.innerHTML = `<span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;">${i+1}</span>
+    <select onchange="recalc()" style="font-size:12px;padding:7px 9px;"><option value="blanco" ${i===0?'selected':''}>Blanco</option><option value="natural">Natural (Kraft)</option><option value="marron_cal">Marrón Calandrado</option></select>
+    <div style="position:relative;"><input type="number" value="${GRAMAJES_DEFAULT[i]||80}" min="40" max="150" style="padding-right:38px;" oninput="recalc()"><span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--text3);">g/m²</span></div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--accent2);padding:0 6px;text-align:center;" class="capa-kg-${i}">—</div>`;
+  document.getElementById('capasList').appendChild(row);
+}
+
+// ── DIMENSIONES ───────────────────────────────────────────────────────────────
+function calcDim() {
+  const largo  = parseFloat(document.getElementById('dLargo').value)  || 0;
+  const ancho  = parseFloat(document.getElementById('dAncho').value)  || 0;
+  const fuelle = parseFloat(document.getElementById('dFuelle').value) || 0;
+  if (!largo || !ancho) { document.getElementById('dimCalcBox').style.display = 'none'; return null; }
+  const isPapel = ['papel','polipapel'].includes(S.tipoBolsa);
+  const anchoReal = isPapel ? (ancho*2)+(fuelle*2)+3 : (ancho*2)+fuelle;
+  const areaArte = largo * anchoReal;
+  const areaM2   = areaArte / 10000;
+  document.getElementById('dimCalcBox').style.display = 'block';
+  document.getElementById('dimCalcGrid').innerHTML = `
+    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">LARGO</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent2)">${largo.toFixed(1)} cm</div></div>
+    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">ANCHO REAL</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent2)">${anchoReal.toFixed(1)} cm</div></div>
+    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">ÁREA ARTE</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent)">${areaArte.toFixed(0)} cm²</div></div>
+    <div><div style="font-family:var(--mono);font-size:9px;color:var(--text3)">ÁREA M²</div><div style="font-family:var(--mono);font-size:15px;color:var(--accent)">${areaM2.toFixed(4)} m²</div></div>`;
+  return { largo, ancho, anchoReal, fuelle, areaArte, areaM2 };
+}
+
+// ── ARTE / PDF ────────────────────────────────────────────────────────────────
+async function handleArte(e) {
+  const file = e.target.files[0]; if (!file) return;
+  document.getElementById('arteEmpty').style.display = 'none';
+  document.getElementById('arteLoaded').style.display = 'block';
+  document.getElementById('arteFileName').textContent = file.name;
+  document.getElementById('arteZone').classList.add('has-file');
+  document.getElementById('analyzingBox').classList.add('on');
+  document.getElementById('detBox').classList.remove('on');
+  S.artBase64 = null; S.artMediaType = null;
+  try {
+    if (file.type === 'application/pdf') {
+      const ab = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+      const page = await pdf.getPage(1);
+      const vp = page.getViewport({scale: 1.5});
+      const canvas = document.getElementById('arteCanvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({canvasContext: ctx, viewport: vp}).promise;
+      document.getElementById('canvasPreview').classList.add('on');
+      S.artBase64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+      S.artMediaType = 'image/jpeg';
+    } else {
+      const b64url = await toBase64(file);
+      S.artBase64 = b64url.split(',')[1]; S.artMediaType = file.type;
+      const img = document.createElement('img');
+      img.src = b64url; img.style.cssText = 'width:100%;display:block;';
+      const cp = document.getElementById('canvasPreview');
+      cp.innerHTML = ''; cp.appendChild(img); cp.classList.add('on');
+    }
+    if (!ANTHROPIC_KEY) { notify('Configurá la API Key para análisis IA', 'warn'); return; }
+    await analyzeDimensions(S.artBase64, S.artMediaType);
+    enableAnalyzeBtn();
+  } catch(err) {
+    console.error(err);
+    const m = file.name.match(/(\d+)[x×_](\d+)[x×_](\d+)/i);
+    if (m) { S.detected = {largo:+m[1], ancho:+m[2], fuelle:+m[3]}; showDetected(S.detected); }
+    else notify('No se pudo analizar. Ingresá los datos manualmente.', 'error');
+  } finally { document.getElementById('analyzingBox').classList.remove('on'); }
+}
+function toBase64(file) { return new Promise((res,rej) => { const r = new FileReader(); r.onload = e => res(e.target.result); r.onerror = rej; r.readAsDataURL(file); }); }
+
+async function analyzeDimensions(base64, mediaType) {
+  const prompt = `Analizá esta imagen de arte de bolsa industrial. Extraé SOLO las dimensiones escritas en texto. Formato típico: "Medida LARGO x ANCHO x FUELLE" en cm. FUELLE puede ser 0. Respondé SOLO JSON: {"largo":numero_o_null,"ancho":numero_o_null,"fuelle":numero}`;
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 200,
+      messages: [{role:'user', content:[{type:'image', source:{type:'base64', media_type:mediaType, data:base64}},{type:'text', text:prompt}]}]})
+  });
+  const data = await resp.json();
+  const m = (data.content?.[0]?.text || '').match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('No JSON');
+  S.detected = JSON.parse(m[0]);
+  showDetected(S.detected);
+}
+
+function showDetected(r) {
+  document.getElementById('detL').innerHTML = r.largo ? `${r.largo}<span class="u">cm</span>` : '—';
+  document.getElementById('detA').innerHTML = r.ancho ? `${r.ancho}<span class="u">cm</span>` : '—';
+  document.getElementById('detF').innerHTML = r.fuelle != null ? `${r.fuelle}<span class="u">cm</span>` : '0 cm';
+  document.getElementById('detC').textContent = 'Cargá pantones y analizá cobertura';
+  document.getElementById('detBox').classList.add('on');
+}
+function applyDetected() {
+  const d = S.detected; if (!d) return;
+  if (d.largo) document.getElementById('dLargo').value = d.largo;
+  if (d.ancho) document.getElementById('dAncho').value = d.ancho;
+  if (d.fuelle != null) document.getElementById('dFuelle').value = d.fuelle || 0;
+  show('secDim', true); recalc(); notify('Dimensiones aplicadas ✓', 'success');
+}
+
+const az = document.getElementById('arteZone');
+az.addEventListener('dragover', e => { e.preventDefault(); az.classList.add('drag-over'); });
+az.addEventListener('dragleave', () => az.classList.remove('drag-over'));
+az.addEventListener('drop', e => { e.preventDefault(); az.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) { const dt = new DataTransfer(); dt.items.add(f); document.getElementById('arteFile').files = dt.files; handleArte({target:{files:[f]}}); } });
+
+// ── COLORS ────────────────────────────────────────────────────────────────────
+let colorIdx = 0;
+function addColor(nombre='', pantone='', hex='#444444') {
+  const cnt = document.getElementById('colorList').children.length;
+  if (cnt >= 6) { notify('Máximo 6 colores', 'warn'); return; }
+  const id = 'col_' + colorIdx++;
+  const div = document.createElement('div');
+  div.id = id; div.className = 'color-row';
+  div.innerHTML = `<input type="color" class="color-swatch" value="${hex}">
+    <div class="pantone-combo"><input type="text" placeholder="Nombre (ej: AZUL REFLEX)" value="${nombre}" style="font-size:12px;" oninput="enableAnalyzeBtn()"><input type="text" placeholder="Nro." value="${pantone}" style="font-size:12px;"></div>
+    <div class="pct-val empty" id="pct_${id}">—</div>
+    <div class="area-val" id="area_${id}">—</div>
+    <button class="rm" onclick="rmColor('${id}')">×</button>`;
+  document.getElementById('colorList').appendChild(div);
+  updColorCount();
+}
+function rmColor(id) { document.getElementById(id)?.remove(); updColorCount(); enableAnalyzeBtn(); recalc(); }
+function updColorCount() {
+  const cnt = document.getElementById('colorList').children.length;
+  document.getElementById('colorCount').textContent = cnt + (cnt === 1 ? ' color' : ' colores');
+  document.getElementById('addColorBtn').disabled = cnt >= 6;
+  recalc();
+}
+function enableAnalyzeBtn() {
+  const btn = document.getElementById('analyzeCobBtn');
+  if (btn) btn.disabled = !(S.artBase64 && document.getElementById('colorList').children.length > 0 && ANTHROPIC_KEY);
+}
+function updCobResult(areaArte, totalPct, areImp, areLibre) {
+  document.getElementById('cobResult').style.display = 'grid';
+  const p = document.getElementById('cobPctVal');
+  p.textContent = totalPct.toFixed(2) + '%';
+  p.className = 'cob-val ' + (totalPct > 80 ? 'hi' : totalPct > 50 ? 'warn' : 'ok');
+  document.getElementById('cobAreaVal').textContent = areImp.toFixed(1) + ' cm²';
+  document.getElementById('cobLibreVal').textContent = areLibre.toFixed(1) + ' cm²';
+}
+
+async function analyzeCoverageWithAI() {
+  if (!S.artBase64) { notify('Primero cargá el arte', 'warn'); return; }
+  if (!ANTHROPIC_KEY) { notify('Configurá la API Key primero', 'warn'); return; }
+  const rows = document.querySelectorAll('#colorList .color-row');
+  if (!rows.length) { notify('Cargá al menos un pantone', 'warn'); return; }
+  const dim = calcDim(); if (!dim) { notify('Completá las dimensiones', 'warn'); return; }
+  const ab = document.getElementById('analyzingBox');
+  ab.classList.add('on'); document.getElementById('analyzingText').textContent = 'CALCULANDO COBERTURA REAL...';
+  const coloresInfo = [];
+  rows.forEach(row => {
+    const inp = row.querySelectorAll('input[type=text]');
+    const n = inp[0]?.value?.trim() || ''; const nr = inp[1]?.value?.trim() || '';
+    if (n) coloresInfo.push({nombre: n, nro: nr});
+  });
+  const colorStr = coloresInfo.map((c,i) => `${i+1}. ${c.nombre}${c.nro?' (Pantone '+c.nro+')':''}`).join('\n');
+  const prompt = `Sos experto en impresión flexográfica industrial.
+Arte de bolsa ${dim.largo}cm largo × ${dim.anchoReal.toFixed(1)}cm ancho real. Área total: ${dim.areaArte.toFixed(0)} cm².
+Colores declarados:\n${colorStr}
+REGLAS: BLANCO/papel = NO es color impreso. Medí con PRECISIÓN la cobertura real de cada color.
+Respondé SOLO JSON: {"colores":[{"nombre":"...","pct_cobertura":numero,"area_cm2":numero,"hex":"#xxxxxx"}],"pct_total_impreso":numero,"area_total_impresa_cm2":numero,"area_libre_cm2":numero}`;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600,
+        messages: [{role:'user', content:[{type:'image', source:{type:'base64', media_type:S.artMediaType, data:S.artBase64}},{type:'text', text:prompt}]}]})
+    });
+    const data = await resp.json();
+    const m = (data.content?.[0]?.text || '').match(/\{[\s\S]*\}/);
+    if (!m) throw new Error('No JSON');
+    const result = JSON.parse(m[0]);
+    rows.forEach((row, i) => {
+      const c = result.colores?.[i]; if (!c) return;
+      row.classList.add('analyzed');
+      const pctEl = row.querySelector('[id^="pct_"]');
+      if (pctEl) { pctEl.textContent = c.pct_cobertura.toFixed(2); pctEl.className = 'pct-val'; }
+      const areaEl = row.querySelector('[id^="area_"]');
+      if (areaEl) areaEl.textContent = c.area_cm2.toFixed(1) + ' cm²';
+      const sw = row.querySelector('.color-swatch'); if (sw && c.hex) sw.value = c.hex;
+    });
+    updCobResult(dim.areaArte, result.pct_total_impreso || 0, result.area_total_impresa_cm2 || 0, result.area_libre_cm2 || 0);
+    S.cobPct = result.pct_total_impreso || 0;
+    recalc(); notify('Cobertura calculada ✓', 'success');
+  } catch(err) { console.error(err); notify('Error al calcular cobertura', 'error'); }
+  finally { ab.classList.remove('on'); document.getElementById('analyzingText').textContent = 'ANALIZANDO ARTE CON IA...'; }
+}
+
+// ── CLISÉ ─────────────────────────────────────────────────────────────────────
+function onClise() { const on = document.getElementById('tieneClise').checked; toggleSub('cliseOpts', {checked: on}); recalc(); }
+function calcImpactoClise() {
+  const tiene = document.getElementById('tieneClise').checked;
+  const box = document.getElementById('impactoClise');
+  if (!tiene) { box.classList.remove('on'); document.getElementById('sClise').innerHTML = '—'; return 0; }
+  const costo = parseFloat(document.getElementById('costoClise').value) || 0;
+  const quien = document.getElementById('cobraClise').value;
+  const cant = parseFloat(document.getElementById('cantidad').value) || 1;
+  let fabAbsorbe = quien === 'fabrica' ? costo : quien === 'parcial' ? costo * 0.5 : 0;
+  const porBolsa = fabAbsorbe / cant;
+  if (fabAbsorbe > 0) {
+    box.classList.add('on');
+    document.getElementById('icVal').textContent = '-$' + porBolsa.toFixed(4);
+    document.getElementById('icSub').textContent = 'La fábrica absorbe $' + fabAbsorbe.toLocaleString('es-AR', {maximumFractionDigits:0});
+    document.getElementById('sClise').textContent = '$' + porBolsa.toFixed(2);
+  } else { box.classList.remove('on'); document.getElementById('sClise').textContent = '—'; }
+  return porBolsa;
+}
+
+// ── PALETIZADO ────────────────────────────────────────────────────────────────
+function calcPallet() {
+  const bp = parseFloat(document.getElementById('bolsasPaquete')?.value) || 0;
+  const cant = parseFloat(document.getElementById('cantidad').value) || 0;
+  const bxpallet = parseFloat(document.getElementById('maxBolsasPallet')?.value) || 0;
+  if (!bp || !cant || !bxpallet) { document.getElementById('palletResult').style.display = 'none'; return; }
+  const paquetes = Math.ceil(cant / bp);
+  const pallets = Math.ceil(cant / bxpallet);
+  const largo = parseFloat(document.getElementById('dLargo').value) || 50;
+  const ancho = parseFloat(document.getElementById('dAncho').value) || 30;
+  const fuelle = parseFloat(document.getElementById('dFuelle').value) || 0;
+  const isPapel = ['papel','polipapel'].includes(S.tipoBolsa);
+  const anchoReal = isPapel ? (ancho*2)+(fuelle*2)+3 : (ancho*2)+fuelle;
+  const altoBolsa = fuelle > 0 ? fuelle * 0.3 : 3;
+  const altoPallet = (bp * altoBolsa) / 100;
+  const vol = (largo/100) * (anchoReal/100) * altoPallet * pallets;
+  document.getElementById('palletResult').style.display = 'block';
+  document.getElementById('prPaquetes').textContent = paquetes.toLocaleString('es-AR');
+  document.getElementById('prPallets').textContent = pallets;
+  document.getElementById('prM3').textContent = vol.toFixed(1);
+}
+
+// ── PRECIOS REFERENCIA ────────────────────────────────────────────────────────
+const PR = {
+  papel_kg: 1250, rafia_kg: 180, grumo_kg: 1950, lamina_biopp_kg: 3500,
+  tinta_kg: 480, lamina_kg: 2500, crepe_kg: 1100,
+  hora_imp: 2800, hora_lam: 1900, hora_tub: 1700, hora_cos: 1300, hora_pal: 900,
+  stretch_pallet: 2800, rack: 1200, corralito: 1500, tapa: 600,
+  desperdicio: 0.05,
+};
+
+// ── RECALC ────────────────────────────────────────────────────────────────────
+function recalc() {
+  calcDim(); calcPallet();
+  const cant = parseFloat(document.getElementById('cantidad').value) || 0;
+  if (!cant || !S.tipoBolsa) { resetSidebar(); return; }
+  const largo  = parseFloat(document.getElementById('dLargo').value) || 0;
+  const ancho  = parseFloat(document.getElementById('dAncho').value) || 0;
+  const fuelle = parseFloat(document.getElementById('dFuelle').value) || 0;
+  if (!largo || !ancho) { resetSidebar(); return; }
+  const isPapel = ['papel','polipapel'].includes(S.tipoBolsa);
+  const anchoReal = isPapel ? (ancho*2)+(fuelle*2)+3 : (ancho*2)+fuelle;
+  const areaM2 = (largo * anchoReal) / 10000;
+  const DESP = 1 + PR.desperdicio;
+  let cPapel = 0, cRafia = 0, cLamBiopp = 0, cMezcla = 0;
+
+  if (S.tipoBolsa === 'papel') {
+    let totalGrBolsa = 0;
+    document.getElementById('capasList')?.querySelectorAll('div[id^="capa_"]').forEach((row, i) => {
+      const inp = row.querySelectorAll('input[type=number]')[0];
+      const gr = parseFloat(inp?.value || 80);
+      const kgCapa = areaM2 * (gr / 1000) * DESP;
+      cPapel += kgCapa * PR.papel_kg; totalGrBolsa += kgCapa * 1000;
+      const kgEl = row.querySelector('.capa-kg-' + i);
+      if (kgEl) kgEl.textContent = (kgCapa * 1000).toFixed(1) + 'g';
+    });
+    const ptb = document.getElementById('papelTotalBox');
+    if (ptb && totalGrBolsa > 0) {
+      ptb.style.display = 'block';
+      const e1 = document.getElementById('papelTotalGBolsa'); if (e1) e1.textContent = totalGrBolsa.toFixed(1) + 'g';
+      const e2 = document.getElementById('papelTotalKgPedido'); if (e2) e2.textContent = ((totalGrBolsa/1000)*cant).toFixed(1) + ' kg';
+    }
+  } else if (S.tipoBolsa === 'polipapel') {
+    const papelGrRaw = document.getElementById('capasList')?.querySelector('input[type=number]')?.value;
+    const papelGr = parseFloat(papelGrRaw) || 0;
+    const kgPapel = papelGr > 0 ? areaM2 * (papelGr/1000) * DESP : 0;
+    const kgRafia = areaM2 * (55/1000) * DESP;
+    const kgMezcla = areaM2 * (15/1000) * DESP;
+    if (papelGr > 0) cPapel = kgPapel * PR.papel_kg;
+    cRafia = kgRafia * PR.rafia_kg; cMezcla = kgMezcla * PR.grumo_kg;
+    const r = document.getElementById('polipapelResult');
+    if (r) {
+      r.style.display = 'block';
+      const u = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      u('polipapelPapelKg', papelGr > 0 ? (kgPapel*1000).toFixed(1)+'g' : '—');
+      u('polipapelRafiaKg', (kgRafia*1000).toFixed(1)+'g');
+      u('polipapelMezclaKg', (kgMezcla*1000).toFixed(1)+'g');
+      u('polipapelTotal', papelGr > 0 ? ((kgPapel+kgRafia+kgMezcla)*1000).toFixed(1)+'g' : '—');
+      u('polipapelPapelTotalKg', papelGr > 0 ? (kgPapel*cant).toFixed(1)+' kg' : '—');
+      u('polipapelRafiaTotalKg', (kgRafia*cant).toFixed(1)+' kg');
+      u('polipapelMezclaTotalKg', (kgMezcla*cant).toFixed(1)+' kg');
+      u('polipapelTotalPedido', papelGr > 0 ? ((kgPapel+kgRafia+kgMezcla)*cant).toFixed(1)+' kg' : '—');
+    }
+  } else if (S.tipoBolsa === 'rafia_conv') {
+    const kgR = areaM2 * (65/1000) * DESP; cRafia = kgR * PR.rafia_kg;
+    const r = document.getElementById('rafiaConvResult');
+    if (r) { r.style.display='block'; const u=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+      u('rafiaConvKg',(kgR*1000).toFixed(1)+'g'); u('rafiaConvTotal',(kgR*1000).toFixed(1)+'g');
+      u('rafiaConvTotalKg',(kgR*cant).toFixed(1)+' kg'); u('rafiaConvTotalPedido',(kgR*cant).toFixed(1)+' kg'); }
+  } else if (S.tipoBolsa === 'rafia_lam') {
+    const gramajeFinal = parseFloat(document.getElementById('rafiaGramajeFinal')?.value) || 70;
+    const grLam = Math.max(0, gramajeFinal - 55);
+    const kgTela = areaM2 * (55/1000) * DESP; const kgLam = areaM2 * (grLam/1000) * DESP;
+    cRafia = kgTela * PR.rafia_kg; cMezcla = kgLam * PR.grumo_kg;
+    const r = document.getElementById('rafiaLamResult');
+    if (r) { r.style.display='block'; const u=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+      u('rafiaBaseKg',(kgTela*1000).toFixed(1)+'g'); u('rafiaLamKg',(kgLam*1000).toFixed(1)+'g');
+      u('rafiaLamTotal',((kgTela+kgLam)*1000).toFixed(1)+'g');
+      u('rafiaBaseTotalKg',(kgTela*cant).toFixed(1)+' kg'); u('rafiaLamTotalKg',(kgLam*cant).toFixed(1)+' kg');
+      u('rafiaLamTotalPedido',((kgTela+kgLam)*cant).toFixed(1)+' kg'); }
+  } else if (S.tipoBolsa === 'biopp') {
+    const kgRb = areaM2*(55/1000)*DESP, kgLb = areaM2*(25/1000)*DESP, kgMb = areaM2*(15/1000)*DESP;
+    cRafia = kgRb*PR.rafia_kg; cLamBiopp = kgLb*PR.lamina_biopp_kg; cMezcla = kgMb*PR.grumo_kg;
+    const r = document.getElementById('bioppResult');
+    if (r) { r.style.display='block'; const u=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+      u('bioppRafiaKg',(kgRb*1000).toFixed(1)+'g'); u('bioppLaminaKg',(kgLb*1000).toFixed(1)+'g');
+      u('bioppMezclaKg',(kgMb*1000).toFixed(1)+'g'); u('bioppTotal',((kgRb+kgLb+kgMb)*1000).toFixed(1)+'g');
+      u('bioppRafiaTotalKg',(kgRb*cant).toFixed(1)+' kg'); u('bioppLaminaTotalKg',(kgLb*cant).toFixed(1)+' kg');
+      u('bioppMezclaTotalKg',(kgMb*cant).toFixed(1)+' kg'); u('bioppTotalPedido',((kgRb+kgLb+kgMb)*cant).toFixed(1)+' kg'); }
+  }
+
+  const cobPct = ((S.cobPct != null ? S.cobPct : 40)) / 100;
+  const nCol = document.getElementById('colorList').children.length || 1;
+  const kgTinta = areaM2 * cobPct * nCol * 0.008;
+  const cTinta = kgTinta * PR.tinta_kg;
+
+  let cPE = 0;
+  if (document.getElementById('tienelamina')?.checked) {
+    const mic = parseFloat(document.getElementById('laminaMic').value) || 14;
+    cPE += areaM2 * (mic/1000) * 1.22 * PR.lamina_kg;
+  }
+  if (document.getElementById('tieneBolsaPE')?.checked) {
+    const ba = parseFloat(document.getElementById('bpeAncho').value)||0;
+    const bl = parseFloat(document.getElementById('bpeLargo').value)||0;
+    const bm = parseFloat(document.getElementById('bpeMic').value)||50;
+    const dens = parseFloat(document.getElementById('bpeDensidad').value)||0.92;
+    if (ba && bl) cPE += (ba/100)*(bl/100)*(bm/1000)*dens*PR.lamina_kg;
+  }
+  const cCrepe = document.getElementById('tieneCrepe')?.checked ? 0.0035 * PR.crepe_kg : 0;
+
+  const ml = largo / 100;
+  const setupPorBolsa = (nCol * 40 * 60) / cant;
+  const velImp = isPapel ? 80 : 70;
+  const tImp = (ml / velImp) + setupPorBolsa / 60;
+  const cImp = (tImp / 60) * PR.hora_imp;
+  const needsLam = ['rafia_lam','biopp','polipapel'].includes(S.tipoBolsa);
+  const cLam = needsLam ? (ml / 120 / 60) * PR.hora_lam : 0;
+  const cTub = (ml / (isPapel ? 60 : 45) / 60) * PR.hora_tub;
+  const velCos = anchoReal > 60 ? 28 : 42;
+  const cCos = (1 / velCos / 60) * PR.hora_cos;
+
+  const bxpallet = parseFloat(document.getElementById('maxBolsasPallet')?.value) || 500;
+  const pallets = Math.ceil(cant / bxpallet);
+  let cPal = (1 / 15 / 60) * PR.hora_pal;
+  cPal += (pallets * PR.stretch_pallet) / cant;
+  if (document.getElementById('tieneRack')?.checked) cPal += (pallets * PR.rack) / cant;
+  if (document.getElementById('tieneCorralito')?.checked) cPal += (pallets * PR.corralito) / cant;
+  if (document.getElementById('tieneTapa')?.checked) cPal += (pallets * PR.tapa) / cant;
+
+  const cClise = calcImpactoClise() || 0;
+  const fabril = cImp + cLam + cTub + cCos + cPal;
+  const cFijos = fabril * 0.30;
+  const cFilm = (pallets * PR.stretch_pallet) / cant;
+  const cLog = (parseFloat(document.getElementById('costoLog').value) || 0) / cant;
+  const total = cPapel+cRafia+cLamBiopp+cMezcla+cTinta+cPE+cCrepe+cImp+cLam+cTub+cCos+cPal+cClise+cFijos+cLog;
+  const margen = parseFloat(document.getElementById('margenPct').value) || 25;
+  const pventa = total * (1 + margen / 100);
+
+  upd('sPapel', cPapel); upd('sRafia', cRafia + cLamBiopp); upd('sMezcla', cMezcla);
+  upd('sTinta', cTinta); upd('sPE', cPE); upd('sCrepe', cCrepe);
+  upd('sImp', cImp); upd('sLam', cLam); upd('sTub', cTub); upd('sCos', cCos); upd('sPal', cPal);
+  upd('sFijos', cFijos); upd('sFilm', cFilm); upd('sLog', cLog);
+  document.getElementById('ctVal').textContent = '$' + total.toFixed(2);
+  document.getElementById('ctSub').textContent = 'total: $' + (total*cant).toLocaleString('es-AR', {maximumFractionDigits:0});
+  document.getElementById('pfTotal').textContent = '$' + pventa.toFixed(2);
+  document.getElementById('pfUnit').textContent = 'por bolsa · total: $' + (pventa*cant).toLocaleString('es-AR', {maximumFractionDigits:0});
+  document.getElementById('fabPrice').textContent = '$' + pventa.toFixed(2) + '/bolsa';
+
+  const kgLines = [];
+  if (cPapel > 0) { const gr = S.tipoBolsa==='papel' ? getTotalGrPapel() : 80; kgLines.push(['Papel', areaM2*cant*(gr/1000)*DESP]); }
+  if (cRafia > 0) kgLines.push(['Rafia', areaM2*cant*(S.tipoBolsa==='rafia_conv'?65:55)/1000*DESP]);
+  if (cLamBiopp > 0) kgLines.push(['Lám. BioPP', areaM2*cant*25/1000*DESP]);
+  if (cMezcla > 0) { const grM = S.tipoBolsa==='rafia_lam' ? Math.max(0,(parseFloat(document.getElementById('rafiaGramajeFinal')?.value)||70)-55) : 15; kgLines.push(['PP+PE mezcla', areaM2*cant*grM/1000*DESP]); }
+  if (cTinta > 0) kgLines.push(['Tinta (est.)', kgTinta * cant]);
+  const el = document.getElementById('kgPedidoList');
+  if (el) el.innerHTML = kgLines.length ? kgLines.map(([n,kg]) => `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3)">${n}</span><span style="color:var(--accent2)">${kg.toFixed(1)} kg</span></div>`).join('') : '—';
+}
+
+function upd(id, val) {
+  const el = document.getElementById(id); if (!el) return;
+  el.textContent = typeof val === 'number' ? (val > 0.001 ? '$' + val.toFixed(2) : '—') : val;
+}
+function resetSidebar() {
+  ['sPapel','sRafia','sMezcla','sTinta','sPE','sCrepe','sImp','sLam','sTub','sCos','sPal','sClise','sFijos','sFilm','sLog'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = '<span class="skel"></span>';
+  });
+  document.getElementById('ctVal').textContent = '$—';
+  document.getElementById('pfTotal').textContent = '$—';
+  document.getElementById('pfUnit').textContent = 'por bolsa · total: $—';
+}
+function getTotalGrPapel() {
+  let total = 0;
+  document.getElementById('capasList')?.querySelectorAll('input[type=number]').forEach(inp => { total += parseFloat(inp.value) || 0; });
+  return total || 80;
+}
+
+// ── RESUMEN ───────────────────────────────────────────────────────────────────
+function buildResumen() {
+  const g = id => document.getElementById(id)?.value || '—';
+  const rows = [
+    ['Cliente', g('cliente')], ['Pedido', g('nroPedido')],
+    ['Cantidad', g('cantidad') + ' bolsas'], ['Tipo', S.tipoNombre || '—'],
+    ['Dimensiones', `${g('dLargo')} × ${g('dAncho')} × ${g('dFuelle')} cm`],
+    ['Colores', document.getElementById('colorList').children.length + ' pantone(s)'],
+    ['Clisé', document.getElementById('tieneClise')?.checked ? 'Sí' : 'No'],
+    ['Crepe', document.getElementById('tieneCrepe')?.checked ? g('crepeColor') : 'No'],
+    ['Entrega', g('fechaEntrega')],
+  ];
+  document.getElementById('resumenContent').innerHTML = rows.map(([k,v]) => `<div class="res-row"><span class="rk">${k}</span><span class="rv">${v}</span></div>`).join('');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function show(id, visible) {
+  const el = document.getElementById(id); if (!el) return;
+  if (visible) { el.classList.add('on'); el.style.display = 'block'; }
+  else { el.classList.remove('on'); el.style.display = 'none'; }
+}
+function toggleSub(id, chk) { show(id, chk.checked !== undefined ? chk.checked : chk); recalc(); }
+function toggleDrawer() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('drawerOverlay').classList.toggle('open');
+}
+let nt;
+function notify(msg, type='') {
+  const n = document.getElementById('notif');
+  n.textContent = msg; n.className = 'notif show ' + type;
+  clearTimeout(nt); nt = setTimeout(() => n.classList.remove('show'), 3200);
+}
+function genCotizacion() { notify('⚠ Generación PDF disponible en próxima versión', 'warn'); }
+function limpiar() { if (confirm('¿Nuevo pedido?')) location.reload(); }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+initApiBanner();
+goSec(0);
+resetSidebar();
+</script>
+</body>
+</html>
