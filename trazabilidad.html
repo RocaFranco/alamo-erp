@@ -1271,152 +1271,103 @@ function renderStockDashboard(sbData, smpData) {
 }
 
 // ── Parser: SB tab → 3 bobina tables ──
+// Layout: LEFT (Para Laminar) cols A-G, RIGHT (Laminado + Convencional) cols I-N side-by-side
+// Para Laminar TOTAL: col A (idx 0)="TOTAL", Metros=col B (idx 1), KG=col D (idx 3)
+// Laminado TOTAL (1st in right): col I (idx 8)="TOTAL", Metros=col K (idx 10), KG=col M (idx 12)
+// Convencional TOTAL (2nd in right): same columns as Laminado
 function parseBobinas(data) {
-  // Table keywords to look for
-  const TABLES = [
-    { key: 'para laminar', nombre: 'Bobinas Para Laminar' },
-    { key: 'laminada',     nombre: 'Bobinas Laminadas' },
-    { key: 'convencional', nombre: 'Bobinas Convencional' },
+  const result = [
+    { nombre: 'Para Laminar', totalMts: 0, totalKg: 0, rows: [] },
+    { nombre: 'Laminado',     totalMts: 0, totalKg: 0, rows: [] },
+    { nombre: 'Convencional', totalMts: 0, totalKg: 0, rows: [] },
   ];
+  let rightTotals = 0;
 
-  const results = TABLES.map(t => ({ ...t, rows: [], totalMts: 0, totalKg: 0 }));
+  for (const row of (data || [])) {
+    if (!row) continue;
+    const leftLabel  = String(row[0] ?? '').trim();
+    const rightLabel = String(row[8] ?? '').trim();
 
-  // Find which row each table starts at
-  let currentTable = -1;
-  let mtsCol = -1, kgCol = -1;
-  let headerFound = false;
-
-  for (let r = 0; r < data.length; r++) {
-    const row = data[r] || [];
-    const rowText = row.join('|').toLowerCase();
-
-    // Detect table header
-    const tIdx = TABLES.findIndex(t => rowText.includes(t.key));
-    if (tIdx >= 0) {
-      currentTable = tIdx;
-      headerFound = false;
-      mtsCol = -1; kgCol = -1;
-      continue;
+    // Para Laminar: col A = "TOTAL"
+    if (/^total$/i.test(leftLabel)) {
+      result[0].totalMts = parseNum(row[1]);
+      result[0].totalKg  = parseNum(row[3]);
     }
 
-    if (currentTable < 0) continue;
-
-    // Look for column headers (mts, kg)
-    if (!headerFound) {
-      mtsCol = row.findIndex(c => /^mts|metros/i.test(String(c).trim()));
-      kgCol  = row.findIndex(c => /^kg|kilo/i.test(String(c).trim()));
-      if (mtsCol >= 0 || kgCol >= 0) {
-        headerFound = true;
-        continue;
+    // Right section: col I = "TOTAL" — first = Laminado, second = Convencional
+    if (/^total$/i.test(rightLabel)) {
+      const idx = rightTotals === 0 ? 1 : 2;
+      if (idx < 3) {
+        result[idx].totalMts = parseNum(row[10]);
+        result[idx].totalKg  = parseNum(row[12]);
       }
-      // Also detect by position if row has numbers in expected positions
-      const hasNums = row.some(c => parseNum(c) > 0);
-      if (hasNums && row[0] && String(row[0]).trim()) {
-        // Guess: col 0 = name, col 1 = mts, col 2 = kg
-        mtsCol = 1; kgCol = 2; headerFound = true;
-      }
-      continue;
-    }
-
-    // Skip empty rows (but they might signal end of table)
-    if (!row[0] && !row[1] && !row[2]) continue;
-
-    const nombre = String(row[0] || '').trim();
-    const mtsVal = mtsCol >= 0 ? parseNum(row[mtsCol]) : 0;
-    const kgVal  = kgCol  >= 0 ? parseNum(row[kgCol])  : 0;
-
-    // Total row
-    if (/total/i.test(nombre)) {
-      results[currentTable].totalMts = mtsVal || results[currentTable].totalMts;
-      results[currentTable].totalKg  = kgVal  || results[currentTable].totalKg;
-      continue;
-    }
-
-    // Skip header-like rows
-    if (!nombre || /artículo|articulo|descripción|item/i.test(nombre)) continue;
-
-    // Data row
-    if (nombre && (mtsVal > 0 || kgVal > 0)) {
-      results[currentTable].rows.push({ nombre, mts: mtsVal, kg: kgVal });
-      results[currentTable].totalMts += mtsVal;
-      results[currentTable].totalKg  += kgVal;
+      rightTotals++;
     }
   }
 
-  return results;
+  return result;
 }
 
 // ── Parser: SMP tab → MP table + cuchillas table ──
+// Layout: LEFT cols A-F (Código, Descripción, Entradas KG, Salidas KG, STOCK KG)
+//         RIGHT cols ~J-M (Artículo, Entrada, Salida, Stock) — "Stock Varios" section
 function parseSMP(data) {
-  const mp = [];
-  const cuchillas = [];
+  const mp = [], cuchillas = [];
+  if (!data?.length) return { mp, cuchillas };
 
-  // Find where the cuchillas table starts (look for "cuchilla" keyword in any column > 2)
-  let cuchillasStartCol = -1;
-  let mpHeaderRow = -1, cuchillasHeaderRow = -1;
-  let mpNameCol = 0, mpCantCol = 1, mpUndCol = 2;
+  // Scan for header rows dynamically
+  let mpDescCol = 2, mpStockCol = 5;
+  let cuchNombreCol = -1, cuchStockCol = -1;
+  let mpStartRow = -1, cuchStartRow = -1;
 
   for (let r = 0; r < data.length; r++) {
     const row = data[r] || [];
-    const rowText = row.join('|').toLowerCase();
 
-    // Find cuchillas section header (usually on the right side of the sheet)
-    if (/cuchilla/i.test(rowText)) {
-      // Find which column it's in
-      const cIdx = row.findIndex(c => /cuchilla/i.test(String(c)));
-      if (cIdx > 2 && cuchillasStartCol < 0) {
-        cuchillasStartCol = cIdx;
-        cuchillasHeaderRow = r;
+    // MP header: find row with "STOCK KG" in first 8 cols
+    if (mpStartRow < 0) {
+      const si = row.findIndex((c, i) => i < 8 && /stock\s*kg/i.test(String(c)));
+      if (si >= 0) {
+        mpStartRow = r;
+        mpStockCol = si;
+        const di = row.findIndex((c, i) => i < si && /descripci/i.test(String(c)));
+        if (di >= 0) mpDescCol = di;
       }
     }
 
-    // MP column headers
-    if (mpHeaderRow < 0 && (/material|materia|descripci/i.test(rowText))) {
-      mpHeaderRow = r;
-      mpNameCol = row.findIndex(c => /material|materia|descripci/i.test(String(c)));
-      mpCantCol = row.findIndex(c => /cantidad|stock|cant/i.test(String(c)));
-      mpUndCol  = row.findIndex(c => /unidad|und\b|kg|lt/i.test(String(c)));
-      if (mpNameCol < 0) mpNameCol = 0;
-      if (mpCantCol < 0) mpCantCol = 1;
-      if (mpUndCol  < 0) mpUndCol  = 2;
+    // Cuchillas header: find "Artículo" in cols 7+
+    if (cuchStartRow < 0) {
+      const ai = row.findIndex((c, i) => i >= 7 && /artículo|articulo/i.test(String(c)));
+      if (ai >= 0) {
+        cuchStartRow = r;
+        cuchNombreCol = ai;
+        const si2 = row.findIndex((c, i) => i > ai && /^stock$/i.test(String(c)));
+        cuchStockCol = si2 >= 0 ? si2 : ai + 3;
+      }
     }
   }
 
-  // Extract MP rows
-  let inMP = false;
-  let inCuch = false;
-  for (let r = 0; r < data.length; r++) {
-    const row = data[r] || [];
-    if (r === mpHeaderRow) { inMP = true; continue; }
-    if (r === cuchillasHeaderRow) { inCuch = true; inMP = false; }
-
-    if (inMP) {
-      const nombre = String(row[mpNameCol] || '').trim();
-      if (!nombre || /total|subtotal/i.test(nombre)) continue;
-      if (/material|materia|descripci/i.test(nombre)) continue;
-      const cant = parseNum(row[mpCantCol]);
-      const und  = String(row[mpUndCol] || '').trim();
-      if (nombre && cant >= 0) mp.push({ nombre, cantidad: cant, unidad: und });
-    }
-
-    if (inCuch && cuchillasStartCol >= 0) {
-      const nombre = String(row[cuchillasStartCol] || '').trim();
-      if (!nombre || /cuchilla|total/i.test(nombre)) continue;
-      const cant = parseNum(row[cuchillasStartCol + 1]);
-      const und  = String(row[cuchillasStartCol + 2] || 'u').trim();
-      if (nombre) cuchillas.push({ nombre, cantidad: cant, unidad: und });
+  // Extract MP rows (show all items, including those with 0 stock)
+  if (mpStartRow >= 0) {
+    for (let r = mpStartRow + 1; r < data.length; r++) {
+      const row = data[r] || [];
+      const desc = String(row[mpDescCol] ?? '').trim();
+      if (!desc || /descripci|total|subtotal/i.test(desc)) continue;
+      const stock = parseNum(row[mpStockCol]);
+      mp.push({ nombre: desc, cantidad: stock, unidad: 'KG' });
     }
   }
 
-  // Fallback: if no headers detected, scan raw data
-  if (mp.length === 0 && cuchillasStartCol < 0) {
-    for (const row of data) {
-      if (!row || !row[0]) continue;
-      const nombre = String(row[0]).trim();
-      if (!nombre || /material|total|stock/i.test(nombre)) continue;
-      const cant = parseNum(row[1]);
-      const und  = String(row[2] || '').trim();
-      if (nombre && cant > 0) mp.push({ nombre, cantidad: cant, unidad: und });
+  // Extract cuchillas (skip header-like rows and date entries)
+  if (cuchStartRow >= 0 && cuchNombreCol >= 0) {
+    for (let r = cuchStartRow + 1; r < data.length; r++) {
+      const row = data[r] || [];
+      const nombre = String(row[cuchNombreCol] ?? '').trim();
+      if (!nombre) continue;
+      if (/artículo|articulo|fecha|entrada|salida|^stock$/i.test(nombre)) continue;
+      // Skip date-like patterns (e.g. "9/9/25")
+      if (/^\d{1,2}\/\d/.test(nombre)) continue;
+      const stock = parseNum(row[cuchStockCol]);
+      cuchillas.push({ nombre, cantidad: stock, unidad: 'u' });
     }
   }
 

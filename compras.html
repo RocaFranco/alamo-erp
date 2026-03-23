@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compras — Alamo ERP</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --bg:#0e0f11; --surf:#16181c; --surf2:#1e2127; --surf3:#23272f;
+  --b:#2a2d35; --b2:#353942;
+  --acc:#e8ff47; --acc2:#47c8ff; --acc3:#ff6b47;
+  --ok:#47ffb2; --warn:#ffb347; --text:#f0f2f5; --t2:#8b909e; --t3:#555b6a;
+  --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --disp:'Syne',sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;overflow-x:hidden;}
+
+/* ── ACCESS DENIED ── */
+#accessDenied{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;}
+.denied-card{background:var(--surf);border:1px solid rgba(255,107,71,.3);border-radius:16px;padding:48px 40px;max-width:380px;width:90%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.denied-icon{width:56px;height:56px;color:var(--acc3);}
+.denied-title{font-family:var(--disp);font-size:20px;font-weight:800;color:var(--acc3);}
+.denied-msg{color:var(--t2);font-size:13px;line-height:1.6;}
+.denied-email{font-family:var(--mono);font-size:11px;color:var(--t3);background:var(--surf2);padding:6px 12px;border-radius:6px;}
+.denied-back{color:var(--acc2);font-size:12px;text-decoration:none;margin-top:4px;}
+.denied-back:hover{text-decoration:underline;}
+
+/* ── LOGIN OVERLAY ── */
+#loginOverlay{position:fixed;inset:0;background:rgba(14,15,17,0.97);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(8px);}
+.login-card{background:var(--surf);border:1px solid var(--b);border-radius:20px;padding:52px 60px;text-align:center;max-width:420px;width:90%;box-shadow:0 40px 120px rgba(0,0,0,0.6);}
+.login-logo{font-family:var(--disp);font-size:36px;font-weight:800;color:var(--acc);letter-spacing:-1px;margin-bottom:4px;}
+.login-logo span{color:var(--text);}
+.login-sub-title{font-family:var(--disp);font-size:13px;color:var(--t2);text-transform:uppercase;letter-spacing:3px;margin-bottom:32px;}
+.login-desc{color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:36px;}
+.btn-google{display:inline-flex;align-items:center;gap:12px;background:var(--text);color:#1a1a1a;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:var(--sans);}
+.btn-google:hover{background:#fff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.btn-google svg{width:20px;height:20px;}
+
+/* ── HEADER ── */
+#header{position:sticky;top:0;height:50px;background:var(--surf);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100;}
+.header-left{display:flex;align-items:center;gap:10px;min-width:220px;}
+.pulse-dot{width:8px;height:8px;background:var(--ok);border-radius:50%;position:relative;flex-shrink:0;}
+.pulse-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:1.5px solid var(--ok);animation:pulse 2s ease-out infinite;}
+@keyframes pulse{0%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(2.2);}}
+.header-title{font-family:var(--disp);font-size:16px;font-weight:800;color:var(--text);letter-spacing:1px;}
+.badge-live{background:rgba(71,255,178,0.12);color:var(--ok);border:1px solid rgba(71,255,178,0.25);border-radius:4px;padding:1px 7px;font-size:9px;font-family:var(--mono);font-weight:500;letter-spacing:1px;text-transform:uppercase;}
+.header-tabs{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;}
+.tab-btn{background:none;border:none;color:var(--t2);font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);background:var(--surf2);}
+.tab-btn.active{color:var(--acc);background:rgba(232,255,71,0.08);}
+.header-right{display:flex;align-items:center;gap:8px;min-width:220px;justify-content:flex-end;}
+.btn-icon{background:var(--surf2);border:1px solid var(--b);color:var(--t2);border-radius:7px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;font-size:14px;}
+.btn-icon:hover{color:var(--text);border-color:var(--b2);background:var(--surf3);}
+.btn-icon.spinning svg{animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.btn-sm{background:var(--surf2);border:1px solid var(--b);color:var(--t2);border-radius:7px;padding:0 12px;height:32px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--sans);font-weight:500;transition:all 0.15s;text-decoration:none;white-space:nowrap;}
+.btn-sm:hover{color:var(--text);border-color:var(--b2);}
+.btn-logout{color:var(--acc3);}
+.btn-logout:hover{border-color:var(--acc3);background:rgba(255,107,71,0.08);}
+.btn-currency{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:1px;}
+.btn-currency.active-ars{color:var(--acc);border-color:rgba(232,255,71,0.3);background:rgba(232,255,71,0.07);}
+.btn-currency.active-usd{color:var(--acc2);border-color:rgba(71,200,255,0.3);background:rgba(71,200,255,0.07);}
+.user-badge{display:none;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--t2);background:var(--surf2);border:1px solid var(--b);padding:4px 10px;border-radius:20px;}
+.user-dot{width:6px;height:6px;background:var(--ok);border-radius:50%;}
+
+/* ── APP ── */
+#app{display:none;flex-direction:column;min-height:calc(100vh - 50px);}
+#app.visible{display:flex;}
+.panel{display:none;padding:24px 28px;max-width:1500px;width:100%;margin:0 auto;}
+.panel.active{display:block;}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:14px 18px;margin-bottom:20px;}
+.filter-bar select,.filter-bar input{background:var(--surf2);border:1px solid var(--b);color:var(--text);border-radius:8px;padding:7px 12px;font-family:var(--mono);font-size:12px;cursor:pointer;transition:border-color 0.15s;}
+.filter-bar select:focus,.filter-bar input:focus{outline:none;border-color:var(--acc2);}
+.filter-bar select{min-width:130px;}
+.filter-bar input{min-width:200px;}
+.filter-label{font-size:10px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+.btn-apply{background:var(--acc);color:#0e0f11;border:none;border-radius:8px;padding:7px 18px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.btn-apply:hover{background:#f5ff6e;}
+.btn-clear{background:var(--surf3);color:var(--t2);border:1px solid var(--b);border-radius:8px;padding:7px 14px;font-family:var(--sans);font-size:12px;cursor:pointer;transition:all 0.15s;}
+.btn-clear:hover{color:var(--text);border-color:var(--b2);}
+.filter-results{font-family:var(--mono);font-size:11px;color:var(--t2);margin-left:auto;}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;}
+.kpi-card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.kpi-card:hover{border-color:var(--b2);}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc);opacity:0.6;}
+.kpi-card:nth-child(2)::before{background:var(--acc2);}
+.kpi-card:nth-child(3)::before{background:var(--ok);}
+.kpi-card:nth-child(4)::before{background:var(--warn);}
+.kpi-card:nth-child(5)::before{background:var(--acc3);}
+.kpi-card:nth-child(6)::before{background:var(--t3);}
+.kpi-label{font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:1.5px;font-family:var(--mono);margin-bottom:8px;}
+.kpi-value{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text);line-height:1;margin-bottom:3px;}
+.kpi-unit{font-size:10px;color:var(--t3);font-family:var(--mono);}
+.kpi-warn{color:var(--warn);}
+.kpi-danger{color:var(--acc3);}
+
+/* ── SECTION ── */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-family:var(--disp);font-size:15px;font-weight:700;color:var(--text);}
+.section-sub{font-size:11px;color:var(--t2);font-family:var(--mono);}
+
+/* ── CHART ── */
+.chart-wrap{background:var(--surf);border:1px solid var(--b);border-radius:14px;padding:20px 22px;margin-bottom:20px;}
+.chart-legend{display:flex;gap:20px;align-items:center;}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--t2);font-family:var(--mono);}
+.leg-dot{width:10px;height:10px;border-radius:2px;}
+.chart-bars-wrap{overflow-x:auto;padding-bottom:4px;}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:180px;min-width:600px;padding-top:10px;}
+.chart-col{display:flex;flex-direction:column;align-items:center;gap:0;min-width:44px;flex:1;}
+.bar-wrap{flex:1;display:flex;align-items:flex-end;width:100%;gap:3px;justify-content:center;}
+.bar{border-radius:4px 4px 0 0;transition:height 0.6s cubic-bezier(0.16,1,0.3,1);min-height:2px;width:16px;cursor:pointer;position:relative;}
+.bar:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surf3);border:1px solid var(--b2);border-radius:6px;padding:5px 10px;font-size:11px;font-family:var(--mono);color:var(--text);white-space:nowrap;pointer-events:none;z-index:10;}
+.bar-ars{background:var(--acc);opacity:0.85;}
+.bar-usd{background:var(--acc2);opacity:0.85;}
+.bar-current .bar-ars,.bar-current .bar-usd{opacity:1;}
+.bar-label{font-size:9px;color:var(--t2);font-family:var(--mono);margin-top:6px;text-align:center;white-space:nowrap;}
+.bar-label.current{color:var(--acc);}
+
+/* ── TWO-COL GRID ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+
+/* ── TABLE WRAP ── */
+.table-wrap{background:var(--surf);border:1px solid var(--b);border-radius:14px;overflow:hidden;margin-bottom:20px;}
+.table-head-row{background:var(--surf3);padding:12px 18px;font-family:var(--disp);font-size:13px;font-weight:700;color:var(--text);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;}
+.table-scroll{overflow:auto;max-height:400px;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:var(--surf2);padding:9px 12px;font-size:10px;font-family:var(--mono);color:var(--t2);text-transform:uppercase;letter-spacing:1px;text-align:left;border-bottom:1px solid var(--b);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:var(--text);}
+thead th.sorted-asc::after{content:' ↑';}
+thead th.sorted-desc::after{content:' ↓';}
+thead th.num{text-align:right;}
+tbody td{padding:8px 12px;font-size:12px;border-bottom:1px solid rgba(42,45,53,0.6);color:var(--text);vertical-align:middle;}
+tbody td.num{text-align:right;font-family:var(--mono);}
+tbody td.mono{font-family:var(--mono);}
+tbody td.muted{color:var(--t2);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,0.02);}
+tbody tr.expanded-parent{background:rgba(71,200,255,0.04);}
+tbody tr.detail-row td{background:var(--surf2);padding:16px 18px;border-bottom:1px solid var(--b);}
+
+/* ── CHIPS ── */
+.chip{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:10px;font-family:var(--mono);font-weight:500;white-space:nowrap;}
+.chip-pitec{background:rgba(232,255,71,0.12);color:var(--acc);border:1px solid rgba(232,255,71,0.25);}
+.chip-alamo{background:rgba(71,200,255,0.12);color:var(--acc2);border:1px solid rgba(71,200,255,0.25);}
+.chip-mant{background:rgba(255,179,71,0.12);color:var(--warn);border:1px solid rgba(255,179,71,0.25);}
+.chip-empty{background:rgba(85,91,106,0.15);color:var(--t3);border:1px solid rgba(85,91,106,0.2);}
+.chip-ok{background:rgba(71,255,178,0.12);color:var(--ok);border:1px solid rgba(71,255,178,0.25);}
+.chip-warn{background:rgba(255,179,71,0.12);color:var(--warn);border:1px solid rgba(255,179,71,0.25);}
+.chip-danger{background:rgba(255,107,71,0.12);color:var(--acc3);border:1px solid rgba(255,107,71,0.25);}
+.chip-neutral{background:rgba(139,144,158,0.12);color:var(--t2);border:1px solid rgba(139,144,158,0.2);}
+
+/* ── FABRICA CARDS ── */
+.fab-card{background:var(--surf);border-radius:14px;padding:20px;border:1px solid var(--b);}
+.fab-card.pitec{border-top:3px solid var(--acc);}
+.fab-card.alamo{border-top:3px solid var(--acc2);}
+.fab-card.mant{border-top:3px solid var(--warn);}
+.fab-card-title{font-family:var(--disp);font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;}
+.fab-metric{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.fab-metric-label{font-size:10px;color:var(--t2);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
+.fab-metric-val{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text);}
+.fab-footer{font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:12px;padding-top:10px;border-top:1px solid var(--b);}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surf2);border-top:1px solid var(--b);}
+.pag-info{font-size:11px;color:var(--t2);font-family:var(--mono);}
+.pag-btns{display:flex;gap:8px;}
+.btn-pag{background:var(--surf3);border:1px solid var(--b);color:var(--t2);border-radius:6px;padding:5px 12px;font-size:11px;font-family:var(--mono);cursor:pointer;transition:all 0.15s;}
+.btn-pag:hover:not(:disabled){color:var(--text);border-color:var(--b2);}
+.btn-pag:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-pag.current-pag{color:var(--acc);border-color:rgba(232,255,71,0.3);background:rgba(232,255,71,0.06);}
+
+/* ── INSUMOS TOGGLE ── */
+.sub-toggle{display:flex;gap:4px;background:var(--surf2);border:1px solid var(--b);border-radius:10px;padding:4px;}
+.sub-btn{background:none;border:none;color:var(--t2);font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 18px;border-radius:7px;cursor:pointer;transition:all 0.15s;}
+.sub-btn:hover{color:var(--text);}
+.sub-btn.active{background:var(--surf3);color:var(--acc2);border:1px solid rgba(71,200,255,0.2);}
+
+/* ── LOADING / ERROR ── */
+.loading-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:16px;color:var(--t2);}
+.spinner{width:32px;height:32px;border:2px solid var(--b2);border-top-color:var(--acc);border-radius:50%;animation:spin 0.7s linear infinite;}
+.error-box{background:rgba(255,107,71,0.07);border:1px solid rgba(255,107,71,0.2);border-radius:12px;padding:24px;color:var(--acc3);text-align:center;}
+.error-box p{margin-bottom:14px;font-size:13px;}
+.btn-retry{background:rgba(255,107,71,0.12);border:1px solid rgba(255,107,71,0.3);color:var(--acc3);border-radius:7px;padding:8px 20px;cursor:pointer;font-family:var(--sans);font-size:13px;transition:all 0.15s;}
+.btn-retry:hover{background:rgba(255,107,71,0.2);}
+
+/* ── DETAIL EXPAND ── */
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.detail-field{display:flex;flex-direction:column;gap:3px;}
+.detail-field-label{font-size:9px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
+.detail-field-val{font-size:12px;color:var(--text);}
+.detail-field-val.mono{font-family:var(--mono);}
+
+/* ── PROVEEDOR TABLE ── */
+.prov-search{background:var(--surf2);border:1px solid var(--b);color:var(--text);border-radius:8px;padding:8px 14px;font-family:var(--mono);font-size:13px;width:300px;}
+.prov-search:focus{outline:none;border-color:var(--acc2);}
+
+/* ── INSUMOS KPI MINI ── */
+.insumos-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+.mini-kpi{background:var(--surf);border:1px solid var(--b);border-radius:10px;padding:14px 16px;}
+.mini-kpi-label{font-size:9px;color:var(--t2);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.mini-kpi-val{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--text);}
+
+/* ── EMPTY STATE ── */
+.empty-state{padding:40px;text-align:center;color:var(--t3);font-size:13px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1200px){.kpi-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}.two-col,.three-col{grid-template-columns:1fr;}.detail-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.kpi-strip{grid-template-columns:1fr 1fr;}.header-tabs .tab-btn{padding:6px 8px;font-size:11px;}#header{padding:0 12px;gap:8px;}.badge-live{display:none;}.panel{padding:16px;}}
+</style>
+</head>
+<body>
+
+<!-- ACCESS DENIED -->
+<div id="accessDenied" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;">
+  <div class="denied-card">
+    <svg class="denied-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    <div class="denied-title">Acceso no autorizado</div>
+    <div class="denied-msg">Tu cuenta de Google no tiene permiso para acceder a este módulo. Contactá al administrador del ERP Alamo para solicitar acceso.</div>
+    <div class="denied-email" id="deniedEmail"></div>
+    <a class="denied-back" href="https://rocafranco.github.io/alamo-erp/">← Volver al ERP Home</a>
+  </div>
+</div>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">ALAMO<span>ERP</span></div>
+    <div class="login-sub-title">Módulo de Compras</div>
+    <p class="login-desc">Accedé con tu cuenta de Google para ver las órdenes de compra y análisis de proveedores en tiempo real.</p>
+    <button class="btn-google" onclick="handleLogin()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Ingresar con Google
+    </button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="header-left">
+    <div class="pulse-dot"></div>
+    <span class="header-title">COMPRAS</span>
+    <span class="badge-live">ÓRDENES EN VIVO</span>
+  </div>
+
+  <nav class="header-tabs">
+    <button class="tab-btn active" data-panel="resumen" onclick="switchTab('resumen')">Resumen</button>
+    <button class="tab-btn" data-panel="ordenes" onclick="switchTab('ordenes')">Órdenes</button>
+    <button class="tab-btn" data-panel="insumos" onclick="switchTab('insumos')">Insumos</button>
+    <button class="tab-btn" data-panel="proveedores" onclick="switchTab('proveedores')">Proveedores</button>
+  </nav>
+
+  <div class="header-right">
+    <button class="btn-sm btn-currency active-ars" id="currencyToggle" onclick="toggleCurrency()" title="Cambiar moneda">
+      <span id="currencyLabel">ARS $</span>
+    </button>
+    <button class="btn-icon" id="refreshBtn" onclick="doRefresh()" title="Actualizar datos">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+    </button>
+    <div class="user-badge" id="userBadge">
+      <div class="user-dot"></div>
+      <span id="userEmailLabel"></span>
+    </div>
+    <button class="btn-sm btn-logout" id="logoutBtn" onclick="handleLogout()" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Salir
+    </button>
+    <a class="btn-sm" href="https://rocafranco.github.io/alamo-erp/" title="Volver al ERP">← ERP Home</a>
+  </div>
+</header>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- PANEL: RESUMEN -->
+  <div class="panel active" id="panel-resumen">
+    <div class="filter-bar" id="resumenFilterBar">
+      <span class="filter-label">Año</span>
+      <select id="resAno" onchange="applyResumen()">
+        <option value="all">Todos</option>
+      </select>
+      <span class="filter-label">Fábrica</span>
+      <select id="resFabrica" onchange="applyResumen()">
+        <option value="all">Todas</option>
+        <option value="Pitec">Pitec</option>
+        <option value="Alamo">Alamo</option>
+        <option value="Mantenimiento Alamo">Mantenimiento Alamo</option>
+        <option value="sin">Sin asignar</option>
+      </select>
+      <span class="filter-label">Categoría</span>
+      <select id="resCat" onchange="applyResumen()">
+        <option value="all">Todas</option>
+      </select>
+    </div>
+
+    <div class="kpi-strip" id="resKpiStrip">
+      <div class="kpi-card"><div class="kpi-label">Total OC</div><div class="kpi-value" id="kpiOC">—</div><div class="kpi-unit">órdenes</div></div>
+      <div class="kpi-card"><div class="kpi-label" id="kpiMontoLabel">Total ARS</div><div class="kpi-value" id="kpiMonto">—</div><div class="kpi-unit" id="kpiMontoUnit">pesos</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total USD</div><div class="kpi-value" id="kpiUSD">—</div><div class="kpi-unit">dólares</div></div>
+      <div class="kpi-card"><div class="kpi-label">Pend. pago</div><div class="kpi-value kpi-warn" id="kpiPendPago">—</div><div class="kpi-unit">sin pagar</div></div>
+      <div class="kpi-card"><div class="kpi-label">Con atraso</div><div class="kpi-value kpi-danger" id="kpiAtraso">—</div><div class="kpi-unit">órdenes</div></div>
+      <div class="kpi-card"><div class="kpi-label">Sin fábrica</div><div class="kpi-value" id="kpiSinFab">—</div><div class="kpi-unit">sin asignar</div></div>
+    </div>
+
+    <div class="chart-wrap" id="chartWrap">
+      <div class="section-head">
+        <span class="section-title" id="chartTitle">Compras mensuales</span>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--acc)"></div> ARS</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--acc2)"></div> USD</div>
+        </div>
+      </div>
+      <div class="chart-bars-wrap">
+        <div class="chart-bars" id="chartBars">
+          <div class="loading-box" style="height:180px;width:100%;"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="table-wrap">
+        <div class="table-head-row">
+          <span>Top 10 Proveedores</span>
+          <span class="section-sub" id="topProvTitle">por ARS</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Proveedor</th>
+                <th class="num">OC</th>
+                <th class="num" id="topArsHeader">ARS</th>
+                <th class="num" id="topUsdHeader">USD</th>
+                <th class="num">% Total</th>
+              </tr>
+            </thead>
+            <tbody id="topProvBody"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-head" style="margin-bottom:12px">
+          <span class="section-title">Por Fábrica</span>
+          <span class="section-sub" id="sinFabNote"></span>
+        </div>
+        <div class="three-col" id="fabCards">
+          <div class="fab-card pitec" id="fabPitec">
+            <div class="fab-card-title">Pitec</div>
+            <div class="fab-metric"><span class="fab-metric-label">Órdenes</span><span class="fab-metric-val" id="fabPitecOC">—</span></div>
+            <div class="fab-metric"><span class="fab-metric-label">ARS</span><span class="fab-metric-val" id="fabPitecARS">—</span></div>
+            <div class="fab-metric"><span class="fab-metric-label">USD</span><span class="fab-metric-val" id="fabPitecUSD">—</span></div>
+          </div>
+          <div class="fab-card alamo" id="fabAlamo">
+            <div class="fab-card-title">Alamo</div>
+            <div class="fab-metric"><span class="fab-metric-label">Órdenes</span><span class="fab-metric-val" id="fabAlamoOC">—</span></div>
+            <div class="fab-metric"><span class="fab-metric-label">ARS</span><span class="fab-metric-val" id="fabAlamoARS">—</span></div>
+            <div class="fab-metric"><span class="fab-metric-label">USD</span><span class="fab-metric-val" id="fabAlamoUSD">—</span></div>
+          </div>
+          <div class="fab-card mant" id="fabMant">
+            <div class="fab-card-title">Mant. Alamo</div>
+            <div class="fab-metric"><span class="fab-metric-label">Órdenes</span><span class="fab-metric-val" id="fabMantOC">—</span></div>
+            <div class="fab-metric"><span class="fab-metric-label">ARS</span><span class="fab-metric-val" id="fabMantARS">—</span></div>
+            <div class="fab-metric"><span class="fab-metric-label">USD</span><span class="fab-metric-val" id="fabMantUSD">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: ÓRDENES -->
+  <div class="panel" id="panel-ordenes">
+    <div class="filter-bar">
+      <input type="text" id="ordSearch" placeholder="Buscar OC, proveedor, descripción..." oninput="applyOrdenesFilter()">
+      <span class="filter-label">Año</span>
+      <select id="ordAno" onchange="applyOrdenesFilter()">
+        <option value="all">Todos</option>
+      </select>
+      <span class="filter-label">Fábrica</span>
+      <select id="ordFabrica" onchange="applyOrdenesFilter()">
+        <option value="all">Todas</option>
+        <option value="Pitec">Pitec</option>
+        <option value="Alamo">Alamo</option>
+        <option value="Mantenimiento Alamo">Mant. Alamo</option>
+        <option value="sin">Sin asignar</option>
+      </select>
+      <span class="filter-label">Cat.</span>
+      <select id="ordCat" onchange="applyOrdenesFilter()">
+        <option value="all">Todas</option>
+      </select>
+      <span class="filter-label">Estado</span>
+      <select id="ordEstado" onchange="applyOrdenesFilter()">
+        <option value="all">Todos</option>
+      </select>
+      <span class="filter-label">Pagado</span>
+      <select id="ordPagado" onchange="applyOrdenesFilter()">
+        <option value="all">Todos</option>
+        <option value="si">Sí</option>
+        <option value="no">No</option>
+      </select>
+      <button class="btn-clear" onclick="clearOrdenesFilters()">Limpiar</button>
+      <span class="filter-results" id="ordResultCount">—</span>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <span>Órdenes de Compra</span>
+        <span class="section-sub" id="ordTableSub"></span>
+      </div>
+      <div class="table-scroll" style="max-height:60vh;">
+        <table id="ordTable">
+          <thead>
+            <tr>
+              <th onclick="sortOrdenes('oc')">OC</th>
+              <th onclick="sortOrdenes('fecha')">Fecha</th>
+              <th>Fábrica</th>
+              <th onclick="sortOrdenes('categoria')">Categoría</th>
+              <th>Descripción</th>
+              <th onclick="sortOrdenes('proveedor')">Proveedor</th>
+              <th class="num" onclick="sortOrdenes('importe_ars')">ARS</th>
+              <th class="num" onclick="sortOrdenes('importe_usd')">USD</th>
+              <th>Estado</th>
+              <th>Pagado</th>
+            </tr>
+          </thead>
+          <tbody id="ordBody"><tr><td colspan="10" class="empty-state">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="ordPagination">
+        <span class="pag-info" id="pagInfo">—</span>
+        <div class="pag-btns" id="pagBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL: INSUMOS -->
+  <div class="panel" id="panel-insumos">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-family:var(--disp);font-size:18px;font-weight:800;color:var(--text);">Insumos</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:2px;">Análisis detallado por tipo de insumo</div>
+      </div>
+      <div class="sub-toggle">
+        <button class="sub-btn active" id="btnTinta" onclick="switchInsumo('tinta')">Tintas</button>
+        <button class="sub-btn" id="btnPapel" onclick="switchInsumo('papel')">Papel</button>
+      </div>
+    </div>
+
+    <div id="insumosContent">
+      <div class="loading-box"><div class="spinner"></div><span>Cargando insumos...</span></div>
+    </div>
+  </div>
+
+  <!-- PANEL: PROVEEDORES -->
+  <div class="panel" id="panel-proveedores">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-family:var(--disp);font-size:18px;font-weight:800;color:var(--text);">Proveedores</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:2px;" id="provCount">—</div>
+      </div>
+      <input class="prov-search" type="text" id="provSearch" placeholder="Buscar por nombre o número..." oninput="filterProveedores()">
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-scroll" style="max-height:70vh;">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortProveedores('nro')">Nro</th>
+              <th onclick="sortProveedores('nombre')">Nombre</th>
+              <th>Moneda</th>
+              <th>Categorías</th>
+              <th class="num" onclick="sortProveedores('totalOC')">Total OC</th>
+              <th class="num" onclick="sortProveedores('totalARS')">Total ARS</th>
+              <th class="num" onclick="sortProveedores('totalUSD')">Total USD</th>
+            </tr>
+          </thead>
+          <tbody id="provBody"><tr><td colspan="7" class="empty-state">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const CLIENT_ID  = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
+const SCOPES     = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+const SHEET_ID   = '1EHWoF4WzSPypZ66zbs9JEjv4kzVKCcrwHdnHRDsHeJE';
+const EMAILS_AUTORIZADOS = ['franco.bauer98@gmail.com'];
+
+const MESES_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MESES_LONG  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const NOW = new Date();
+const AÑO_ACTUAL = NOW.getFullYear();
+const MES_ACTUAL = NOW.getMonth(); // 0-indexed
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let accessToken       = null;
+let tokenClient       = null;
+let tokenRefreshTimer = null;
+let activeTab         = 'resumen';
+let moneda            = 'ARS';
+
+let allOrdenes    = [];
+let allProveedores= [];
+let tintaData     = null;
+let papelData     = null;
+let tintaLoaded   = false;
+let papelLoaded   = false;
+let insumoActivo  = 'tinta';
+
+let ordFiltered   = [];
+let currentPage   = 0;
+const PAGE_SIZE   = 50;
+
+let ordSort = { col: 'fecha', dir: 'desc' };
+let provSort = { col: 'nro', dir: 'asc' };
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function parseNum(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  const s = String(v).trim().replace(/[$\s%]/g, '');
+  if (!s || s === '-') return 0;
+  // Argentine format: 1.234.567,89
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) {
+    return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+  if (s.includes(',') && !s.includes('.')) {
+    return parseFloat(s.replace(',', '.')) || 0;
+  }
+  return parseFloat(s.replace(/[^0-9.\-]/g, '')) || 0;
+}
+
+function parseDate(v) {
+  if (!v) return null;
+  const s = String(v).trim();
+  // dd-mm-yyyy or dd/mm/yyyy
+  const m1 = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (m1) return new Date(+m1[3], +m1[2]-1, +m1[1]);
+  // yyyy-mm-dd
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
+  return null;
+}
+
+function fmt(n, dec=0) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n.toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function fmtARS(n) {
+  if (!n && n !== 0) return '—';
+  if (Math.abs(n) >= 1e9) return '$ ' + fmt(n/1e9, 2) + ' B';
+  if (Math.abs(n) >= 1e6) return '$ ' + fmt(n/1e6, 1) + ' M';
+  return '$ ' + fmt(n, 0);
+}
+
+function fmtUSD(n) {
+  if (!n && n !== 0) return '—';
+  if (Math.abs(n) >= 1e6) return 'U$S ' + fmt(n/1e6, 2) + ' M';
+  return 'U$S ' + fmt(n, 0);
+}
+
+function fmtMoneda(ars, usd) {
+  return moneda === 'ARS' ? fmtARS(ars) : fmtUSD(usd);
+}
+
+function fabricaChip(fab) {
+  const f = String(fab || '').trim();
+  if (f === 'Pitec')              return `<span class="chip chip-pitec">Pitec</span>`;
+  if (f === 'Alamo')              return `<span class="chip chip-alamo">Alamo</span>`;
+  if (f === 'Mantenimiento Alamo')return `<span class="chip chip-mant">Mant. Alamo</span>`;
+  return `<span class="chip chip-empty">—</span>`;
+}
+
+function estadoChip(estado) {
+  const e = String(estado || '').trim();
+  if (!e) return `<span class="chip chip-neutral">—</span>`;
+  const el = e.toLowerCase();
+  if (el.includes('entregado') || el.includes('recibido') || el.includes('completo')) return `<span class="chip chip-ok">${e}</span>`;
+  if (el.includes('parcial')) return `<span class="chip chip-warn">${e}</span>`;
+  if (el.includes('pendiente') || el.includes('espera')) return `<span class="chip chip-warn">${e}</span>`;
+  if (el.includes('cancelado') || el.includes('rechazado')) return `<span class="chip chip-danger">${e}</span>`;
+  return `<span class="chip chip-neutral">${e}</span>`;
+}
+
+function pagadoChip(v) {
+  const s = String(v || '').trim().toLowerCase();
+  if (s === 'si' || s === 'sí' || s === 's') return `<span class="chip chip-ok">Sí</span>`;
+  if (s === 'no' || s === 'n') return `<span class="chip chip-danger">No</span>`;
+  return `<span class="chip chip-neutral">—</span>`;
+}
+
+function truncate(s, n=35) {
+  s = String(s || '');
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function readSheet(range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`);
+  const data = await resp.json();
+  return data.values || [];
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+window.onload = function() {
+  const initGSI = () => {
+    if (typeof google === 'undefined' || !google.accounts) { setTimeout(initGSI, 200); return; }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: onTokenReceived,
+    });
+  };
+  initGSI();
+};
+
+function handleLogin() {
+  if (!tokenClient) { alert('Google Identity Services aún cargando, intentá de nuevo.'); return; }
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+async function onTokenReceived(resp) {
+  if (resp.error) { console.error('Auth error:', resp); return; }
+  accessToken = resp.access_token;
+
+  try {
+    const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const uData = await uResp.json();
+    const email = (uData.email || '').toLowerCase();
+
+    if (!EMAILS_AUTORIZADOS.includes(email)) {
+      google.accounts.oauth2.revoke(accessToken, () => {});
+      accessToken = null;
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('deniedEmail').textContent = uData.email || email;
+      const ad = document.getElementById('accessDenied');
+      ad.style.display = 'flex';
+      return;
+    }
+
+    document.getElementById('userEmailLabel').textContent = uData.email || email;
+    document.getElementById('userBadge').style.display = 'flex';
+  } catch(e) {
+    console.warn('No se pudo verificar email:', e);
+  }
+
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('logoutBtn').style.display = 'flex';
+
+  loadAll();
+
+  if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+  tokenRefreshTimer = setInterval(() => {
+    tokenClient.requestAccessToken({ prompt: '' });
+  }, 55 * 60 * 1000);
+}
+
+function handleLogout() {
+  if (tokenRefreshTimer) clearInterval(tokenRefreshTimer);
+  if (accessToken) { google.accounts.oauth2.revoke(accessToken, () => {}); accessToken = null; }
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('userBadge').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+  allOrdenes = []; allProveedores = []; tintaData = null; papelData = null;
+  tintaLoaded = false; papelLoaded = false;
+}
+
+// ─── LOAD ALL ─────────────────────────────────────────────────────────────────
+async function loadAll() {
+  setRefreshSpinner(true);
+  try {
+    const [ordeRows, provRows] = await Promise.all([
+      readSheet("Órdenes!A1:Z5000"),
+      readSheet("Proveedores!A1:G200"),
+    ]);
+    parseOrdenes(ordeRows);
+    parseProveedores(provRows);
+    buildDropdowns();
+    applyResumen();
+    renderOrdenesTable();
+    renderProveedores();
+    if (activeTab === 'insumos') loadInsumos();
+  } catch(e) {
+    console.error('Error cargando datos:', e);
+    showError('panel-resumen', 'Error al cargar datos: ' + e.message);
+  }
+  setRefreshSpinner(false);
+}
+
+function parseOrdenes(rows) {
+  if (!rows || rows.length < 2) { allOrdenes = []; return; }
+  // row 0 = headers
+  allOrdenes = rows.slice(1).map((r, idx) => {
+    const raw = (i) => (r[i] !== undefined && r[i] !== null) ? r[i] : '';
+    const dateObj = parseDate(raw(1));
+    return {
+      _idx:         idx,
+      oc:           raw(0),
+      fecha_raw:    raw(1),
+      fecha:        dateObj,
+      año:          dateObj ? String(dateObj.getFullYear()) : '',
+      mes:          dateObj ? dateObj.getMonth() : -1,
+      ymkey:        dateObj ? `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}` : '',
+      fabrica:      String(raw(2)).trim(),
+      categoria:    String(raw(3)).trim(),
+      descripcion:  String(raw(4)).trim(),
+      cantidad:     parseNum(raw(5)),
+      unidad:       String(raw(6)).trim(),
+      proveedor:    String(raw(7)).trim(),
+      precio_unit:  parseNum(raw(8)),
+      importe_ars:  parseNum(raw(9)),
+      costo_usd:    parseNum(raw(10)),
+      importe_usd:  parseNum(raw(11)),
+      n_esp:        raw(12),
+      fecha_entrega:raw(13),
+      fecha_recep:  raw(14),
+      cant_entregada:parseNum(raw(15)),
+      estado:       String(raw(16)).trim(),
+      dias_atraso:  parseNum(raw(17)),
+      entregado:    String(raw(18)).trim(),
+      factura:      String(raw(19)).trim(),
+      tipo_factura: String(raw(20)).trim(),
+      cant_facturada:parseNum(raw(21)),
+      coincide:     String(raw(22)).trim(),
+      forma_pago:   String(raw(23)).trim(),
+      pagado:       String(raw(24)).trim(),
+      obs:          String(raw(25)).trim(),
+    };
+  }).filter(r => r.oc || r.proveedor); // skip empty rows
+}
+
+function parseProveedores(rows) {
+  if (!rows || rows.length < 2) { allProveedores = []; return; }
+  allProveedores = rows.slice(1).map(r => {
+    const raw = (i) => (r[i] !== undefined && r[i] !== null) ? r[i] : '';
+    return {
+      nro:    raw(0),
+      nombre: String(raw(1)).trim(),
+      moneda: String(raw(2)).trim(),
+      cat1:   String(raw(3)).trim(),
+      cat2:   String(raw(4)).trim(),
+      cat3:   String(raw(5)).trim(),
+      cat4:   String(raw(6)).trim(),
+      // computed after join
+      totalOC:  0,
+      totalARS: 0,
+      totalUSD: 0,
+    };
+  }).filter(r => r.nombre);
+  joinProveedoresData();
+}
+
+function joinProveedoresData() {
+  // reset
+  allProveedores.forEach(p => { p.totalOC = 0; p.totalARS = 0; p.totalUSD = 0; });
+  const map = {};
+  allProveedores.forEach(p => { map[p.nombre.toLowerCase()] = p; });
+  allOrdenes.forEach(o => {
+    const key = (o.proveedor || '').toLowerCase();
+    if (map[key]) {
+      map[key].totalOC++;
+      map[key].totalARS += o.importe_ars || 0;
+      map[key].totalUSD += o.importe_usd || 0;
+    }
+  });
+}
+
+// ─── DROPDOWNS ───────────────────────────────────────────────────────────────
+function buildDropdowns() {
+  const years = [...new Set(allOrdenes.map(r => r.año).filter(Boolean))].sort().reverse();
+  const cats  = [...new Set(allOrdenes.map(r => r.categoria).filter(Boolean))].sort();
+  const estados = [...new Set(allOrdenes.map(r => r.estado).filter(Boolean))].sort();
+
+  ['resAno','ordAno'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">Todos</option>';
+    years.forEach(y => sel.innerHTML += `<option value="${y}">${y}</option>`);
+    if (cur) sel.value = cur;
+  });
+
+  ['resCat','ordCat'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">Todas</option>';
+    cats.forEach(c => sel.innerHTML += `<option value="${escH(c)}">${escH(c)}</option>`);
+    if (cur) sel.value = cur;
+  });
+
+  const ordEstado = document.getElementById('ordEstado');
+  const curE = ordEstado.value;
+  ordEstado.innerHTML = '<option value="all">Todos</option>';
+  estados.forEach(e => ordEstado.innerHTML += `<option value="${escH(e)}">${escH(e)}</option>`);
+  if (curE) ordEstado.value = curE;
+}
+
+// ─── FILTERS ─────────────────────────────────────────────────────────────────
+function getResumenFilters() {
+  return {
+    year:     document.getElementById('resAno').value,
+    fabrica:  document.getElementById('resFabrica').value,
+    categoria:document.getElementById('resCat').value,
+  };
+}
+
+function getOrdenesFilters() {
+  return {
+    year:     document.getElementById('ordAno').value,
+    fabrica:  document.getElementById('ordFabrica').value,
+    categoria:document.getElementById('ordCat').value,
+    estado:   document.getElementById('ordEstado').value,
+    pagado:   document.getElementById('ordPagado').value,
+    search:   (document.getElementById('ordSearch').value || '').toLowerCase().trim(),
+  };
+}
+
+function filterOrdenes(f) {
+  return allOrdenes.filter(r => {
+    if (f.year !== 'all' && r.año !== f.year) return false;
+    if (f.fabrica !== 'all') {
+      if (f.fabrica === 'sin' && r.fabrica) return false;
+      if (f.fabrica !== 'sin' && r.fabrica !== f.fabrica) return false;
+    }
+    if (f.categoria !== 'all' && r.categoria !== f.categoria) return false;
+    if (f.estado && f.estado !== 'all' && r.estado !== f.estado) return false;
+    if (f.pagado && f.pagado !== 'all') {
+      const p = r.pagado.toLowerCase();
+      if (f.pagado === 'si' && p !== 'si' && p !== 'sí' && p !== 's') return false;
+      if (f.pagado === 'no' && (p === 'si' || p === 'sí' || p === 's')) return false;
+    }
+    if (f.search) {
+      const q = f.search;
+      if (!String(r.proveedor).toLowerCase().includes(q) &&
+          !String(r.descripcion).toLowerCase().includes(q) &&
+          !String(r.oc).toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+// ─── RESUMEN ─────────────────────────────────────────────────────────────────
+function applyResumen() {
+  const f = getResumenFilters();
+  const data = filterOrdenes({ year: f.year, fabrica: f.fabrica, categoria: f.categoria });
+  renderResumenKPIs(data);
+  renderChart(data, f);
+  renderTopProveedores(data);
+  renderFabricaCards(data);
+}
+
+function renderResumenKPIs(data) {
+  const totalOC   = data.length;
+  const totalARS  = data.reduce((s,r) => s + (r.importe_ars||0), 0);
+  const totalUSD  = data.reduce((s,r) => s + (r.importe_usd||0), 0);
+  const pendPago  = data.filter(r => { const p = r.pagado.toLowerCase(); return p !== 'si' && p !== 'sí' && p !== 's'; }).length;
+  const conAtraso = data.filter(r => r.dias_atraso > 0).length;
+  const sinFab    = data.filter(r => !r.fabrica).length;
+
+  document.getElementById('kpiOC').textContent = fmt(totalOC);
+  document.getElementById('kpiMonto').textContent = moneda === 'ARS' ? fmtARS(totalARS) : fmtUSD(totalUSD);
+  document.getElementById('kpiMontoLabel').textContent = moneda === 'ARS' ? 'Total ARS' : 'Total USD';
+  document.getElementById('kpiMontoUnit').textContent = moneda === 'ARS' ? 'pesos' : 'dólares';
+  document.getElementById('kpiUSD').textContent = fmtUSD(totalUSD);
+  document.getElementById('kpiPendPago').textContent = fmt(pendPago);
+  document.getElementById('kpiAtraso').textContent = fmt(conAtraso);
+  document.getElementById('kpiSinFab').textContent = fmt(sinFab);
+}
+
+function renderChart(data, f) {
+  // Build last 18 months
+  const months = [];
+  for (let i = 17; i >= 0; i--) {
+    const d = new Date(AÑO_ACTUAL, MES_ACTUAL - i, 1);
+    months.push({
+      key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+      label: MESES_SHORT[d.getMonth()],
+      year: d.getFullYear(),
+      isCurrent: d.getFullYear() === AÑO_ACTUAL && d.getMonth() === MES_ACTUAL,
+      ars: 0, usd: 0, oc: 0,
+    });
+  }
+  const mMap = {};
+  months.forEach(m => { mMap[m.key] = m; });
+
+  data.forEach(r => {
+    if (mMap[r.ymkey]) {
+      mMap[r.ymkey].ars += r.importe_ars || 0;
+      mMap[r.ymkey].usd += r.importe_usd || 0;
+      mMap[r.ymkey].oc++;
+    }
+  });
+
+  const maxARS = Math.max(...months.map(m => m.ars), 1);
+  const maxUSD = Math.max(...months.map(m => m.usd), 1);
+
+  const yearLabel = f.year === 'all' ? 'últimos 18 meses' : f.year;
+  document.getElementById('chartTitle').textContent = `Compras mensuales — ${yearLabel}`;
+
+  document.getElementById('chartBars').innerHTML = months.map(m => {
+    const pARS = Math.round((m.ars / maxARS) * 100);
+    const pUSD = Math.round((m.usd / maxUSD) * 100);
+    const isCur = m.isCurrent;
+    return `
+      <div class="chart-col ${isCur ? 'bar-current' : ''}">
+        <div class="bar-wrap">
+          <div class="bar bar-ars" style="height:${pARS}%" title="${m.label} ${m.year} ARS: ${fmtARS(m.ars)} (${m.oc} OC)"></div>
+          <div class="bar bar-usd" style="height:${pUSD}%" title="${m.label} ${m.year} USD: ${fmtUSD(m.usd)}"></div>
+        </div>
+        <div class="bar-label ${isCur ? 'current' : ''}">${m.label}<br><span style="color:var(--t3);font-size:8px">${String(m.year).slice(2)}</span></div>
+      </div>`;
+  }).join('');
+}
+
+function renderTopProveedores(data) {
+  const map = {};
+  data.forEach(r => {
+    const p = r.proveedor || '(Sin proveedor)';
+    if (!map[p]) map[p] = { nombre: p, oc: 0, ars: 0, usd: 0 };
+    map[p].oc++;
+    map[p].ars += r.importe_ars || 0;
+    map[p].usd += r.importe_usd || 0;
+  });
+
+  const list = Object.values(map).sort((a,b) => b.ars - a.ars).slice(0, 10);
+  const totalARS = data.reduce((s,r) => s + (r.importe_ars||0), 0);
+
+  const colors = ['var(--acc)','var(--acc2)','var(--ok)','var(--warn)','var(--acc3)'];
+
+  document.getElementById('topProvBody').innerHTML = list.length ? list.map((p, i) => `
+    <tr>
+      <td class="mono muted" style="font-size:11px">${i+1}</td>
+      <td style="color:${colors[i%colors.length]||'var(--text)'};">${escH(p.nombre)}</td>
+      <td class="num">${fmt(p.oc)}</td>
+      <td class="num">${fmtARS(p.ars)}</td>
+      <td class="num">${fmtUSD(p.usd)}</td>
+      <td class="num muted">${totalARS > 0 ? fmt((p.ars/totalARS)*100,1)+'%' : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Sin datos</td></tr>';
+}
+
+function renderFabricaCards(data) {
+  const fabricas = ['Pitec','Alamo','Mantenimiento Alamo'];
+  const ids = ['Pitec','Alamo','Mant'];
+  fabricas.forEach((fab, i) => {
+    const rows = data.filter(r => r.fabrica === fab);
+    const oc  = rows.length;
+    const ars = rows.reduce((s,r) => s + (r.importe_ars||0), 0);
+    const usd = rows.reduce((s,r) => s + (r.importe_usd||0), 0);
+    document.getElementById(`fab${ids[i]}OC`).textContent  = fmt(oc);
+    document.getElementById(`fab${ids[i]}ARS`).textContent = fmtARS(ars);
+    document.getElementById(`fab${ids[i]}USD`).textContent = fmtUSD(usd);
+  });
+  const sinFab = data.filter(r => !r.fabrica).length;
+  document.getElementById('sinFabNote').textContent = sinFab > 0 ? `Sin asignar: ${fmt(sinFab)} órdenes` : '';
+}
+
+// ─── ÓRDENES TABLE ────────────────────────────────────────────────────────────
+function applyOrdenesFilter() {
+  const f = getOrdenesFilters();
+  ordFiltered = filterOrdenes(f);
+
+  // sort
+  ordFiltered.sort((a, b) => {
+    let av = a[ordSort.col], bv = b[ordSort.col];
+    if (ordSort.col === 'fecha') { av = a.fecha ? a.fecha.getTime() : 0; bv = b.fecha ? b.fecha.getTime() : 0; }
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return ordSort.dir === 'asc' ? -1 : 1;
+    if (av > bv) return ordSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  currentPage = 0;
+  document.getElementById('ordResultCount').textContent = `Mostrando ${ordFiltered.length} de ${allOrdenes.length} órdenes`;
+  renderOrdenesPage();
+}
+
+function renderOrdenesTable() {
+  applyOrdenesFilter();
+}
+
+function sortOrdenes(col) {
+  if (ordSort.col === col) {
+    ordSort.dir = ordSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordSort.col = col;
+    ordSort.dir = col === 'importe_ars' || col === 'importe_usd' ? 'desc' : 'asc';
+  }
+  applyOrdenesFilter();
+}
+
+function clearOrdenesFilters() {
+  document.getElementById('ordSearch').value = '';
+  document.getElementById('ordAno').value = 'all';
+  document.getElementById('ordFabrica').value = 'all';
+  document.getElementById('ordCat').value = 'all';
+  document.getElementById('ordEstado').value = 'all';
+  document.getElementById('ordPagado').value = 'all';
+  applyOrdenesFilter();
+}
+
+function renderOrdenesPage() {
+  const start = currentPage * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, ordFiltered.length);
+  const page  = ordFiltered.slice(start, end);
+  const totalPages = Math.ceil(ordFiltered.length / PAGE_SIZE);
+
+  const tbody = document.getElementById('ordBody');
+  if (!page.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No se encontraron órdenes con los filtros actuales.</td></tr>';
+  } else {
+    tbody.innerHTML = page.map((r, i) => {
+      const ri = start + i;
+      const dateStr = r.fecha ? `${String(r.fecha.getDate()).padStart(2,'0')}-${String(r.fecha.getMonth()+1).padStart(2,'0')}-${r.fecha.getFullYear()}` : String(r.fecha_raw);
+      return `
+        <tr onclick="toggleDetail(${r._idx})" style="cursor:pointer" id="row-${r._idx}">
+          <td class="mono" style="font-size:11px;color:var(--t2)">${escH(String(r.oc))}</td>
+          <td class="mono" style="font-size:11px;white-space:nowrap">${dateStr}</td>
+          <td>${fabricaChip(r.fabrica)}</td>
+          <td style="font-size:11px;color:var(--t2)">${escH(r.categoria) || '—'}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escH(r.descripcion)}">${escH(truncate(r.descripcion, 40))}</td>
+          <td style="font-size:12px">${escH(truncate(r.proveedor, 28))}</td>
+          <td class="num" style="font-size:12px">${fmtARS(r.importe_ars)}</td>
+          <td class="num" style="font-size:12px;color:var(--t2)">${fmtUSD(r.importe_usd)}</td>
+          <td>${estadoChip(r.estado)}</td>
+          <td>${pagadoChip(r.pagado)}</td>
+        </tr>
+        <tr id="detail-${r._idx}" style="display:none">
+          <td colspan="10" class="detail-row">
+            ${buildDetailHTML(r)}
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  // Pagination
+  document.getElementById('pagInfo').textContent =
+    `Página ${currentPage+1} de ${totalPages || 1} — ${ordFiltered.length} órdenes`;
+
+  const pagBtns = document.getElementById('pagBtns');
+  const btns = [];
+  btns.push(`<button class="btn-pag" onclick="goPage(${currentPage-1})" ${currentPage===0?'disabled':''}>← Ant</button>`);
+
+  // page numbers
+  let pStart = Math.max(0, currentPage - 2);
+  let pEnd   = Math.min(totalPages - 1, currentPage + 2);
+  if (pStart > 0) btns.push(`<button class="btn-pag" onclick="goPage(0)">1</button>`);
+  if (pStart > 1) btns.push(`<span style="color:var(--t3);padding:0 4px;font-size:11px">…</span>`);
+  for (let p = pStart; p <= pEnd; p++) {
+    btns.push(`<button class="btn-pag ${p===currentPage?'current-pag':''}" onclick="goPage(${p})">${p+1}</button>`);
+  }
+  if (pEnd < totalPages - 2) btns.push(`<span style="color:var(--t3);padding:0 4px;font-size:11px">…</span>`);
+  if (pEnd < totalPages - 1) btns.push(`<button class="btn-pag" onclick="goPage(${totalPages-1})">${totalPages}</button>`);
+  btns.push(`<button class="btn-pag" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages-1?'disabled':''}>Sig →</button>`);
+
+  pagBtns.innerHTML = btns.join('');
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(ordFiltered.length / PAGE_SIZE);
+  if (p < 0 || p >= totalPages) return;
+  currentPage = p;
+  renderOrdenesPage();
+  document.getElementById('panel-ordenes').scrollTo(0,0);
+}
+
+function toggleDetail(idx) {
+  const detRow = document.getElementById(`detail-${idx}`);
+  const mainRow = document.getElementById(`row-${idx}`);
+  if (!detRow) return;
+  const visible = detRow.style.display !== 'none';
+  detRow.style.display = visible ? 'none' : 'table-row';
+  mainRow.classList.toggle('expanded-parent', !visible);
+}
+
+function buildDetailHTML(r) {
+  const fields = [
+    ['OC',           r.oc],
+    ['Fecha emisión',r.fecha_raw],
+    ['Fábrica',      r.fabrica || '—'],
+    ['Categoría',    r.categoria || '—'],
+    ['Descripción',  r.descripcion || '—'],
+    ['Proveedor',    r.proveedor || '—'],
+    ['Cantidad',     r.cantidad ? `${fmt(r.cantidad)} ${r.unidad}` : '—'],
+    ['Precio unit',  r.precio_unit ? fmtARS(r.precio_unit) : '—'],
+    ['Importe ARS',  fmtARS(r.importe_ars)],
+    ['Tipo de cambio',r.costo_usd ? `$ ${fmt(r.costo_usd,2)}` : '—'],
+    ['Importe USD',  fmtUSD(r.importe_usd)],
+    ['N° Esp. Téc.',  r.n_esp || '—'],
+    ['Fecha entrega',r.fecha_entrega || '—'],
+    ['Fecha recepción',r.fecha_recep || '—'],
+    ['Cant. entregada', r.cant_entregada ? fmt(r.cant_entregada) : '—'],
+    ['Estado',       r.estado || '—'],
+    ['Días atraso',  r.dias_atraso > 0 ? `<span style="color:var(--acc3)">${r.dias_atraso} días</span>` : '0'],
+    ['¿Entregó?',    r.entregado || '—'],
+    ['¿Llegó factura?', r.factura || '—'],
+    ['Tipo factura', r.tipo_factura || '—'],
+    ['Cant. facturada', r.cant_facturada ? fmt(r.cant_facturada) : '—'],
+    ['¿Coincide?',   r.coincide || '—'],
+    ['Forma de pago',r.forma_pago || '—'],
+    ['¿Se pagó?',    r.pagado || '—'],
+    ['Observaciones',r.obs || '—'],
+  ];
+  return `<div class="detail-grid">${fields.map(([l,v]) => `
+    <div class="detail-field">
+      <span class="detail-field-label">${escH(l)}</span>
+      <span class="detail-field-val">${v}</span>
+    </div>`).join('')}</div>`;
+}
+
+// ─── INSUMOS ─────────────────────────────────────────────────────────────────
+function switchInsumo(tipo) {
+  insumoActivo = tipo;
+  document.getElementById('btnTinta').classList.toggle('active', tipo === 'tinta');
+  document.getElementById('btnPapel').classList.toggle('active', tipo === 'papel');
+  loadInsumos();
+}
+
+async function loadInsumos() {
+  const cont = document.getElementById('insumosContent');
+  if (insumoActivo === 'tinta') {
+    if (!tintaLoaded) {
+      cont.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Cargando datos de Tinta...</span></div>';
+      try {
+        const rows = await readSheet('Tinta!A1:Z500');
+        tintaData = rows;
+        tintaLoaded = true;
+      } catch(e) {
+        cont.innerHTML = `<div class="error-box"><p>Error al cargar Tinta: ${escH(e.message)}</p><button class="btn-retry" onclick="tintaLoaded=false;loadInsumos()">Reintentar</button></div>`;
+        return;
+      }
+    }
+    renderInsumo('tinta', tintaData);
+  } else {
+    if (!papelLoaded) {
+      cont.innerHTML = '<div class="loading-box"><div class="spinner"></div><span>Cargando datos de Papel...</span></div>';
+      try {
+        const rows = await readSheet('Papel!A1:Z500');
+        papelData = rows;
+        papelLoaded = true;
+      } catch(e) {
+        cont.innerHTML = `<div class="error-box"><p>Error al cargar Papel: ${escH(e.message)}</p><button class="btn-retry" onclick="papelLoaded=false;loadInsumos()">Reintentar</button></div>`;
+        return;
+      }
+    }
+    renderInsumo('papel', papelData);
+  }
+}
+
+function renderInsumo(tipo, rows) {
+  const cont = document.getElementById('insumosContent');
+  const tipoLabel = tipo === 'tinta' ? 'Tinta' : 'Papel';
+  const color = tipo === 'tinta' ? 'var(--acc3)' : 'var(--acc2)';
+
+  // Also compute from Órdenes
+  const catKey = tipo === 'tinta' ? 'tinta' : 'papel';
+  const ordenesInsumo = allOrdenes.filter(r => r.categoria.toLowerCase().includes(catKey));
+  const totalARS = ordenesInsumo.reduce((s,r) => s+(r.importe_ars||0),0);
+  const totalUSD = ordenesInsumo.reduce((s,r) => s+(r.importe_usd||0),0);
+  const totalOC  = ordenesInsumo.length;
+
+  // Group by proveedor
+  const byProv = {};
+  ordenesInsumo.forEach(r => {
+    const p = r.proveedor || '(Sin proveedor)';
+    if (!byProv[p]) byProv[p] = { oc:0, ars:0, usd:0 };
+    byProv[p].oc++;
+    byProv[p].ars += r.importe_ars||0;
+    byProv[p].usd += r.importe_usd||0;
+  });
+  const provList = Object.entries(byProv).map(([n,v]) => ({nombre:n,...v})).sort((a,b) => b.ars - a.ars);
+
+  // Build sheet table
+  let sheetHTML = '';
+  if (rows && rows.length > 1) {
+    const headers = rows[0] || [];
+    const dataRows = rows.slice(1);
+    sheetHTML = `
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row">
+          <span>Planilla — ${tipoLabel}</span>
+          <span class="section-sub">${dataRows.length} filas</span>
+        </div>
+        <div class="table-scroll" style="max-height:350px">
+          <table>
+            <thead>
+              <tr>${headers.map(h => `<th>${escH(String(h))}</th>`).join('')}</tr>
+            </thead>
+            <tbody>
+              ${dataRows.map(row => `<tr>${headers.map((_,i) => `<td>${escH(String(row[i]||''))}</td>`).join('')}</tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } else {
+    sheetHTML = `<div style="color:var(--t3);font-size:12px;padding:16px">La planilla "${tipoLabel}" no tiene datos o no existe.</div>`;
+  }
+
+  cont.innerHTML = `
+    <div class="insumos-kpi">
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Total OC — ${tipoLabel}</div>
+        <div class="mini-kpi-val" style="color:${color}">${fmt(totalOC)}</div>
+      </div>
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Gasto ARS</div>
+        <div class="mini-kpi-val">${fmtARS(totalARS)}</div>
+      </div>
+      <div class="mini-kpi">
+        <div class="mini-kpi-label">Gasto USD</div>
+        <div class="mini-kpi-val" style="color:var(--acc2)">${fmtUSD(totalUSD)}</div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:20px">
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row">
+          <span>Proveedores — ${tipoLabel}</span>
+          <span class="section-sub">desde Órdenes, categoría = ${tipoLabel}</span>
+        </div>
+        <div class="table-scroll" style="max-height:350px">
+          <table>
+            <thead>
+              <tr>
+                <th>Proveedor</th>
+                <th class="num">OC</th>
+                <th class="num">ARS</th>
+                <th class="num">USD</th>
+                <th class="num">% total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${provList.length ? provList.map(p => `
+                <tr>
+                  <td>${escH(p.nombre)}</td>
+                  <td class="num">${fmt(p.oc)}</td>
+                  <td class="num">${fmtARS(p.ars)}</td>
+                  <td class="num">${fmtUSD(p.usd)}</td>
+                  <td class="num muted">${totalARS > 0 ? fmt((p.ars/totalARS)*100,1)+'%' : '—'}</td>
+                </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Sin datos en Órdenes para esta categoría.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-bottom:0">
+        <div class="table-head-row">
+          <span>Por año — ${tipoLabel}</span>
+        </div>
+        <div class="table-scroll" style="max-height:350px">
+          <table>
+            <thead><tr><th>Año</th><th class="num">OC</th><th class="num">ARS</th><th class="num">USD</th></tr></thead>
+            <tbody>
+              ${(() => {
+                const byYear = {};
+                ordenesInsumo.forEach(r => {
+                  if (!byYear[r.año]) byYear[r.año] = { oc:0, ars:0, usd:0 };
+                  byYear[r.año].oc++;
+                  byYear[r.año].ars += r.importe_ars||0;
+                  byYear[r.año].usd += r.importe_usd||0;
+                });
+                return Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([y,v]) =>
+                  `<tr><td class="mono">${y}</td><td class="num">${fmt(v.oc)}</td><td class="num">${fmtARS(v.ars)}</td><td class="num">${fmtUSD(v.usd)}</td></tr>`
+                ).join('') || '<tr><td colspan="4" class="empty-state">Sin datos</td></tr>';
+              })()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head" style="margin-bottom:12px">
+      <span class="section-title">Planilla ${tipoLabel}</span>
+    </div>
+    ${sheetHTML}
+  `;
+}
+
+// ─── PROVEEDORES ─────────────────────────────────────────────────────────────
+let provFiltered = [];
+
+function filterProveedores() {
+  const q = (document.getElementById('provSearch').value || '').toLowerCase().trim();
+  provFiltered = allProveedores.filter(p => {
+    if (!q) return true;
+    return String(p.nro).includes(q) || p.nombre.toLowerCase().includes(q);
+  });
+  sortAndRenderProveedores();
+}
+
+function sortProveedores(col) {
+  if (provSort.col === col) {
+    provSort.dir = provSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    provSort.col = col;
+    provSort.dir = col === 'totalOC' || col === 'totalARS' || col === 'totalUSD' ? 'desc' : 'asc';
+  }
+  sortAndRenderProveedores();
+}
+
+function renderProveedores() {
+  provFiltered = [...allProveedores];
+  sortAndRenderProveedores();
+  document.getElementById('provCount').textContent = `${allProveedores.length} proveedores registrados`;
+}
+
+function sortAndRenderProveedores() {
+  const sorted = [...provFiltered].sort((a, b) => {
+    let av = a[provSort.col], bv = b[provSort.col];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return provSort.dir === 'asc' ? -1 : 1;
+    if (av > bv) return provSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const tbody = document.getElementById('provBody');
+  if (!sorted.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontraron proveedores.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(p => {
+    const cats = [p.cat1, p.cat2, p.cat3, p.cat4].filter(Boolean);
+    const monedaChip = p.moneda === 'USD'
+      ? `<span class="chip chip-alamo">${escH(p.moneda)}</span>`
+      : p.moneda
+        ? `<span class="chip chip-neutral">${escH(p.moneda)}</span>`
+        : '—';
+    return `
+      <tr onclick="toggleProvDetail('${escH(p.nombre.replace(/'/g,"\\'"))}', this)" style="cursor:pointer" id="provrow-${p.nro}">
+        <td class="mono muted" style="font-size:11px">${escH(String(p.nro))}</td>
+        <td style="font-weight:500">${escH(p.nombre)}</td>
+        <td>${monedaChip}</td>
+        <td style="font-size:11px;color:var(--t2)">${cats.map(c=>`<span style="margin-right:6px">${escH(c)}</span>`).join('') || '—'}</td>
+        <td class="num">${p.totalOC > 0 ? fmt(p.totalOC) : '<span style="color:var(--t3)">0</span>'}</td>
+        <td class="num">${p.totalARS > 0 ? fmtARS(p.totalARS) : '<span style="color:var(--t3)">—</span>'}</td>
+        <td class="num">${p.totalUSD > 0 ? fmtUSD(p.totalUSD) : '<span style="color:var(--t3)">—</span>'}</td>
+      </tr>
+      <tr id="provdetail-${p.nro}" style="display:none">
+        <td colspan="7" class="detail-row">
+          ${buildProvDetailHTML(p.nombre)}
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function toggleProvDetail(nombre, rowEl) {
+  const nro = rowEl.id.replace('provrow-', '');
+  const det = document.getElementById(`provdetail-${nro}`);
+  if (!det) return;
+  const vis = det.style.display !== 'none';
+  det.style.display = vis ? 'none' : 'table-row';
+  rowEl.classList.toggle('expanded-parent', !vis);
+}
+
+function buildProvDetailHTML(nombre) {
+  const ocs = allOrdenes.filter(r => r.proveedor === nombre);
+  if (!ocs.length) return `<p style="color:var(--t3);font-size:12px">No hay órdenes de compra para este proveedor.</p>`;
+
+  const totalARS = ocs.reduce((s,r) => s+(r.importe_ars||0),0);
+  const totalUSD = ocs.reduce((s,r) => s+(r.importe_usd||0),0);
+
+  const recentOcs = [...ocs].sort((a,b) => (b.fecha?.getTime()||0) - (a.fecha?.getTime()||0)).slice(0, 20);
+
+  return `
+    <div style="margin-bottom:12px;display:flex;gap:20px;flex-wrap:wrap">
+      <div><span style="font-size:10px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px">Total OC</span><br><span style="font-family:var(--mono);color:var(--text)">${fmt(ocs.length)}</span></div>
+      <div><span style="font-size:10px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px">Total ARS</span><br><span style="font-family:var(--mono);color:var(--acc)">${fmtARS(totalARS)}</span></div>
+      <div><span style="font-size:10px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px">Total USD</span><br><span style="font-family:var(--mono);color:var(--acc2)">${fmtUSD(totalUSD)}</span></div>
+    </div>
+    <table style="font-size:11px">
+      <thead><tr><th>OC</th><th>Fecha</th><th>Fábrica</th><th>Descripción</th><th class="num">ARS</th><th class="num">USD</th><th>Estado</th><th>Pagado</th></tr></thead>
+      <tbody>
+        ${recentOcs.map(r => {
+          const dateStr = r.fecha ? `${String(r.fecha.getDate()).padStart(2,'0')}-${String(r.fecha.getMonth()+1).padStart(2,'0')}-${r.fecha.getFullYear()}` : String(r.fecha_raw);
+          return `<tr>
+            <td class="mono" style="color:var(--t2)">${escH(String(r.oc))}</td>
+            <td class="mono" style="white-space:nowrap">${dateStr}</td>
+            <td>${fabricaChip(r.fabrica)}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(truncate(r.descripcion,35))}</td>
+            <td class="num">${fmtARS(r.importe_ars)}</td>
+            <td class="num">${fmtUSD(r.importe_usd)}</td>
+            <td>${estadoChip(r.estado)}</td>
+            <td>${pagadoChip(r.pagado)}</td>
+          </tr>`;
+        }).join('')}
+        ${ocs.length > 20 ? `<tr><td colspan="8" style="text-align:center;color:var(--t3);font-size:11px;padding:8px">... y ${ocs.length - 20} órdenes más</td></tr>` : ''}
+      </tbody>
+    </table>`;
+}
+
+// ─── CURRENCY TOGGLE ─────────────────────────────────────────────────────────
+function toggleCurrency() {
+  moneda = moneda === 'ARS' ? 'USD' : 'ARS';
+  const btn = document.getElementById('currencyToggle');
+  document.getElementById('currencyLabel').textContent = moneda === 'ARS' ? 'ARS $' : 'USD $';
+  btn.className = `btn-sm btn-currency ${moneda === 'ARS' ? 'active-ars' : 'active-usd'}`;
+  // Re-render current visible panel
+  if (activeTab === 'resumen') applyResumen();
+  if (activeTab === 'ordenes') applyOrdenesFilter();
+  if (activeTab === 'insumos') {
+    if (insumoActivo === 'tinta' && tintaLoaded) renderInsumo('tinta', tintaData);
+    if (insumoActivo === 'papel' && papelLoaded) renderInsumo('papel', papelData);
+  }
+  if (activeTab === 'proveedores') sortAndRenderProveedores();
+}
+
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+
+  if (tab === 'ordenes' && !ordFiltered.length && allOrdenes.length) applyOrdenesFilter();
+  if (tab === 'insumos') loadInsumos();
+  if (tab === 'proveedores' && !provFiltered.length && allProveedores.length) filterProveedores();
+}
+
+// ─── REFRESH ─────────────────────────────────────────────────────────────────
+function doRefresh() {
+  tintaLoaded = false; papelLoaded = false;
+  tintaData = null; papelData = null;
+  loadAll();
+}
+
+function setRefreshSpinner(on) {
+  document.getElementById('refreshBtn').classList.toggle('spinning', on);
+}
+
+function showError(panelId, msg) {
+  const p = document.getElementById(`panel-${panelId}`);
+  if (p) {
+    const existing = p.querySelector('.kpi-strip, .filter-bar');
+    if (!existing) {
+      p.innerHTML = `<div class="error-box"><p>${escH(msg)}</p><button class="btn-retry" onclick="loadAll()">Reintentar</button></div>`;
+    }
+  }
+}
+
+function escH(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
