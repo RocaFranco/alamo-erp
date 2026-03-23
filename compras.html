@@ -674,25 +674,35 @@ function fmtARS(n) {
   return '$ ' + fmt(n, 0);
 }
 
-function fmtUSD(n) {
+function fmtUSD(n, dec = 0) {
   if (!n && n !== 0) return '—';
   const a = Math.abs(n);
   if (a >= 1e12) return 'U$S ' + fmt(n/1e12, 2) + ' B';
   if (a >= 1e9)  return 'U$S ' + fmt(n/1e9,  2) + ' Mil M';
   if (a >= 1e6)  return 'U$S ' + fmt(n/1e6,  2) + ' M';
-  return 'U$S ' + fmt(n, 0);
+  return 'U$S ' + fmt(n, dec);
 }
 
 function fmtMoneda(ars, usd) {
   return moneda === 'ARS' ? fmtARS(ars) : fmtUSD(usd);
 }
 
+// Flexible match for Mantenimiento tabs — tolerates typos like "Mantenimineto"
+function isMantAlamo(fab) {
+  const f = (fab || '').toLowerCase();
+  return f.includes('alamo') && (f.includes('mant') || f.includes('mantenimi'));
+}
+function isMantPitec(fab) {
+  const f = (fab || '').toLowerCase();
+  return f.includes('pitec') && (f.includes('mant') || f.includes('mantenimi'));
+}
+
 function fabricaChip(fab) {
   const f = String(fab || '').trim();
-  if (f === 'Pitec')               return `<span class="chip chip-pitec">Pitec</span>`;
-  if (f === 'Alamo')               return `<span class="chip chip-alamo">Alamo</span>`;
-  if (f === 'Mantenimiento Alamo') return `<span class="chip chip-mant">Mant. Alamo</span>`;
-  if (f === 'Mantenimiento Pitec') return `<span class="chip chip-pitec" style="opacity:0.75">Mant. Pitec</span>`;
+  if (isMantPitec(f)) return `<span class="chip chip-pitec" style="opacity:0.75">Mant. Pitec</span>`;
+  if (isMantAlamo(f)) return `<span class="chip chip-mant">Mant. Alamo</span>`;
+  if (f === 'Pitec')  return `<span class="chip chip-pitec">Pitec</span>`;
+  if (f === 'Alamo')  return `<span class="chip chip-alamo">Alamo</span>`;
   return `<span class="chip chip-empty">—</span>`;
 }
 
@@ -1009,14 +1019,23 @@ function joinProveedoresData() {
   // reset
   allProveedores.forEach(p => { p.totalOC = 0; p.totalARS = 0; p.totalUSD = 0; });
   const map = {};
-  allProveedores.forEach(p => { map[p.nombre.toLowerCase()] = p; });
+  const ocSets = {}; // proveedor lower-name → Set of unique OC numbers
+  allProveedores.forEach(p => {
+    const k = p.nombre.toLowerCase();
+    map[k] = p;
+    ocSets[k] = new Set();
+  });
   allOrdenes.forEach(o => {
     const key = (o.proveedor || '').toLowerCase();
     if (map[key]) {
-      map[key].totalOC++;
+      ocSets[key].add(String(o.oc));
       map[key].totalARS += o.importe_ars || 0;
       map[key].totalUSD += o.importe_usd || 0;
     }
+  });
+  // Apply unique OC counts
+  allProveedores.forEach(p => {
+    p.totalOC = ocSets[p.nombre.toLowerCase()]?.size || 0;
   });
 }
 
@@ -1857,8 +1876,9 @@ function loadPrecios() {
 // Normalize a description for grouping: lowercase, hyphens/underscores → space, collapse spaces
 function normalizeDescKey(desc) {
   return desc.toLowerCase()
-    .replace(/[-_]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/\s*[-_/\\]\s*/g, ' ')  // hyphens, underscores, slashes → space (with surrounding spaces)
+    .replace(/\s+/g, ' ')            // collapse multiple spaces
+    .replace(/\./g, '')              // remove stray periods
     .trim();
 }
 
@@ -1940,9 +1960,10 @@ function renderMantenimiento(fabrica) {
   const color = fabrica === 'Mantenimiento Alamo' ? 'var(--acc)' : 'var(--acc3)';
   const tabKey = fabrica === 'Mantenimiento Alamo' ? 'mant-alamo' : 'mant-pitec';
 
-  const ords = allOrdenes.filter(r => (r.fabrica || '').trim() === fabrica);
+  const isMant = tabKey === 'mant-alamo' ? isMantAlamo : isMantPitec;
+  const ords = allOrdenes.filter(r => isMant(r.fabrica));
   if (!ords.length) {
-    cont.innerHTML = `<div class="empty-state" style="padding:40px">No hay órdenes con fábrica "${fabrica}".<br><span style="font-size:11px;color:var(--t3)">Verificá que el nombre en el sheet coincida exactamente.</span></div>`;
+    cont.innerHTML = `<div class="empty-state" style="padding:40px">No hay órdenes con fábrica "${fabrica}".<br><span style="font-size:11px;color:var(--t3)">Si acabás de editar el sheet, presioná el botón ↺ para actualizar los datos.</span></div>`;
     return;
   }
 
@@ -2023,8 +2044,9 @@ function renderMantDetalle(tabKey, fabrica, catName) {
   const det = document.getElementById(`mantDetalle-${tabKey}`);
   if (!det || !catName) return;
 
+  const isMant = tabKey === 'mant-alamo' ? isMantAlamo : isMantPitec;
   const ords = allOrdenes.filter(r =>
-    (r.fabrica||'').trim() === fabrica && (r.categoria||'').trim() === catName
+    isMant(r.fabrica) && (r.categoria||'').trim() === catName
   );
   if (!ords.length) { det.innerHTML = ''; return; }
 
@@ -2285,7 +2307,7 @@ function renderPreciosTable() {
       <td>${p.empresa !== '—' ? `<span class="chip chip-${p.empresa.toLowerCase().includes('pitec')?'pitec':'alamo'}">${escH(p.empresa)}</span>` : '—'}</td>
       <td class="muted" style="font-size:12px;">${escH(p.proveedor)}</td>
       <td class="num">${p.precio_ars > 0 ? fmtARS(p.precio_ars) : '—'}</td>
-      <td class="num">${p.precio_usd > 0 ? fmtUSD(p.precio_usd) : '—'}</td>
+      <td class="num">${p.precio_usd > 0 ? fmtUSD(p.precio_usd, 2) : '—'}</td>
       <td class="num mono muted" style="font-size:11px;">${fmtDate(p.fecha_ultima)}</td>
       <td class="num mono muted" style="font-size:11px;">${p.n_oc}</td>
     </tr>`).join('');
