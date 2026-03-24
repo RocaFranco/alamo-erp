@@ -455,6 +455,111 @@ async function readXlsxTab(fileId, tabName) {
   return rows;
 }
 
+// ── Helpers de estilo ──────────────────────────────────────────────────────────
+function xlsxHex(c) {
+  // Convierte color SheetJS ({rgb:'FFAABBCC'} o {rgb:'AABBCC'}) a '#rrggbb'
+  if (!c?.rgb) return null;
+  const rgb = c.rgb;
+  return '#' + (rgb.length === 8 ? rgb.slice(2) : rgb);   // strip alpha if present
+}
+
+function isWhiteOrEmpty(hex) {
+  if (!hex) return true;
+  const h = hex.replace('#','').toLowerCase();
+  return h === 'ffffff' || h === 'ffffffff' || h === '000000' || h === '00000000';
+}
+
+function cellCss(s) {
+  if (!s) return '';
+  let css = '';
+
+  // Fondo
+  const bg = xlsxHex(s.fill?.fgColor);
+  if (bg && !isWhiteOrEmpty(bg)) css += `background:${bg};`;
+
+  // Fuente
+  const f = s.font || {};
+  if (f.bold)    css += 'font-weight:bold;';
+  if (f.italic)  css += 'font-style:italic;';
+  if (f.underline) css += 'text-decoration:underline;';
+  const fc = xlsxHex(f.color);
+  if (fc && !isWhiteOrEmpty(fc)) css += `color:${fc};`;
+  if (f.sz) css += `font-size:${Math.round(f.sz * 1.15)}px;`;
+
+  // Alineación
+  const a = s.alignment || {};
+  if (a.horizontal) css += `text-align:${a.horizontal};`;
+  if (a.vertical)   css += `vertical-align:${a.vertical};`;
+  if (a.wrapText)   css += 'white-space:normal;';
+
+  // Bordes
+  const B = s.border || {};
+  const bw = { thin:'1px', medium:'2px', thick:'3px', hair:'1px', dashed:'1px', dotted:'1px' };
+  const bs = { thin:'solid', medium:'solid', thick:'solid', hair:'solid', dashed:'dashed', dotted:'dotted' };
+  ['top','bottom','left','right'].forEach(side => {
+    const b = B[side];
+    if (b?.style) {
+      const bc = xlsxHex(b.color) || '#bbb';
+      css += `border-${side}:${bw[b.style]||'1px'} ${bs[b.style]||'solid'} ${bc};`;
+    }
+  });
+
+  return css;
+}
+
+// ── Renderer manual: lee .s de cada celda y genera HTML con estilos inline ─────
+function sheetToStyledHtml(ws) {
+  if (!ws['!ref']) return '<table></table>';
+  const range  = XLSX.utils.decode_range(ws['!ref']);
+  const merges = ws['!merges'] || [];
+  const cols   = ws['!cols']   || [];
+
+  // Mapa de merges
+  const mergeMap  = {};
+  const skipCells = new Set();
+  merges.forEach(m => {
+    mergeMap[`${m.s.r},${m.s.c}`] = { rs: m.e.r - m.s.r + 1, cs: m.e.c - m.s.c + 1 };
+    for (let r = m.s.r; r <= m.e.r; r++)
+      for (let c = m.s.c; c <= m.e.c; c++)
+        if (r !== m.s.r || c !== m.s.c) skipCells.add(`${r},${c}`);
+  });
+
+  // Anchos de columna (en px: 1 "char" ≈ 8px)
+  const colWidths = Array.from({ length: range.e.c - range.s.c + 1 }, (_, i) => {
+    const col = cols[range.s.c + i];
+    return col?.wpx ? `width:${col.wpx}px;` : col?.wch ? `width:${Math.round(col.wch * 7.5)}px;` : '';
+  });
+
+  let html = `<table style="border-collapse:collapse;font-size:12px;font-family:Calibri,Arial,sans-serif;">`;
+
+  // colgroup para anchos
+  if (colWidths.some(w => w)) {
+    html += '<colgroup>' + colWidths.map(w => `<col style="${w}">`).join('') + '</colgroup>';
+  }
+
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    html += '<tr>';
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const key  = `${r},${c}`;
+      if (skipCells.has(key)) continue;
+
+      const cell  = ws[XLSX.utils.encode_cell({ r, c })];
+      const merge = mergeMap[key];
+      const style = 'padding:3px 8px;' + cellCss(cell?.s);
+      const value = cell ? (cell.w || String(cell.v ?? '')) : '';
+
+      const mergeAttrs = merge
+        ? `${merge.rs > 1 ? ` rowspan="${merge.rs}"` : ''}${merge.cs > 1 ? ` colspan="${merge.cs}"` : ''}`
+        : '';
+
+      html += `<td${mergeAttrs} style="${style}">${escH(value)}</td>`;
+    }
+    html += '</tr>';
+  }
+
+  return html + '</table>';
+}
+
 // Devuelve HTML con formato completo del Excel (colores, celdas combinadas, bordes)
 async function getSheetHtml(fileId, tabName) {
   const cacheKey = `html::${fileId}::${tabName}`;
@@ -462,8 +567,8 @@ async function getSheetHtml(fileId, tabName) {
   const wb = await getWorkbook(fileId);
   const sheetName = findSheetName(wb, tabName);
   const ws = wb.Sheets[sheetName];
-  trimSheetRef(ws); // elimina filas/columnas vacías al final
-  const html = XLSX.utils.sheet_to_html(ws, { editable: false });
+  trimSheetRef(ws);
+  const html = sheetToStyledHtml(ws);   // renderer manual con estilos inline
   liqCache[cacheKey] = html;
   return html;
 }
