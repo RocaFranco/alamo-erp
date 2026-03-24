@@ -247,10 +247,15 @@ table.plain tbody tr:hover td{background:rgba(255,255,255,0.02);}
     <div id="pitec-vacaciones" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
-          <div style="font-family:var(--disp);font-size:18px;font-weight:800;">Vacaciones 2025/2026</div>
-          <div style="font-size:12px;color:var(--t3);margin-top:2px;">Nómina tomada del último mes cargado en Liquidaciones</div>
+          <div style="font-family:var(--disp);font-size:18px;font-weight:800;">Vacaciones</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:2px;">Seleccioná el período vacacional</div>
         </div>
-        <button class="btn-sm" onclick="loadVacaciones(true)">↺ Actualizar</button>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <select id="vacPeriodSelect" onchange="changeVacPeriod(this.value)"
+            style="background:var(--surf);color:var(--t1);border:1px solid var(--b2);border-radius:8px;padding:7px 12px;font-size:13px;font-family:var(--sans);cursor:pointer;">
+          </select>
+          <button class="btn-sm" onclick="loadVacaciones(true)">↺ Actualizar</button>
+        </div>
       </div>
       <div id="vacKpis" class="vac-kpis"></div>
       <div class="vac-table-wrap">
@@ -285,10 +290,12 @@ const ACCESS_SHEET_ID = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY      = 'RRHH';
 const ADMIN_EMAILS    = ['franco.bauer98@gmail.com'];
 
-// Vacaciones sheet (Pitec 2025/2026)
-const VAC_SHEET_ID   = '1TI9AM58IbMiYSXeh_88BvHyMLGZJhLcYcF-d4loand4';
-const VAC_TAB_NAME   = 'Hoja 1';
-const VAC_PERIODO    = '2025/26';
+// ─── VACACIONES — agregar aquí cada año nuevo ─────────────────────────────────
+// Para agregar 2026/27: copiar la línea de abajo, cambiar período, ID y pestaña
+const VAC_SHEETS = {
+  '2025/26': { id: '1TI9AM58IbMiYSXeh_88BvHyMLGZJhLcYcF-d4loand4', tab: 'Hoja 1' },
+  // '2026/27': { id: 'NUEVO_ID_AQUI', tab: 'Hoja 1' },
+};
 
 // Drive folders
 const RRHH_MAIN_FOLDER  = '15jroGxlV5ReTZA5Ep5a6WjkG-Jw2GnC5';
@@ -311,6 +318,8 @@ let selectedYear     = '2026';
 let selectedFile     = null;
 let liqCache         = {};
 const wbCache        = {};
+let selectedVacPeriod = Object.keys(VAC_SHEETS).sort().reverse()[0]; // último período por defecto
+let vacCache         = null;
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 function initGSI() {
@@ -409,13 +418,29 @@ function selectPlant(plant) {
 
 function goLanding() { showView('landing'); }
 
+function initVacPeriodSelect() {
+  const sel = document.getElementById('vacPeriodSelect');
+  if (!sel) return;
+  const periods = Object.keys(VAC_SHEETS).sort().reverse();
+  sel.innerHTML = periods.map(p =>
+    `<option value="${p}" ${p === selectedVacPeriod ? 'selected' : ''}>${p}</option>`
+  ).join('');
+}
+
+function changeVacPeriod(period) {
+  if (!VAC_SHEETS[period]) return;
+  selectedVacPeriod = period;
+  vacCache = null; // forzar recarga
+  loadVacaciones();
+}
+
 function switchPitecTab(tab) {
   pitecTab = tab;
   document.getElementById('pitec-liquidaciones').style.display = tab === 'liquidaciones' ? '' : 'none';
   document.getElementById('pitec-vacaciones').style.display    = tab === 'vacaciones'    ? '' : 'none';
   document.getElementById('ptab-liquidaciones').classList.toggle('active', tab === 'liquidaciones');
   document.getElementById('ptab-vacaciones').classList.toggle('active', tab === 'vacaciones');
-  if (tab === 'vacaciones') loadVacaciones();
+  if (tab === 'vacaciones') { initVacPeriodSelect(); loadVacaciones(); }
 }
 
 // ─── DRIVE ───────────────────────────────────────────────────────────────────
@@ -520,10 +545,13 @@ async function selectMonth(monthNum) {
 }
 
 // ─── VACACIONES ───────────────────────────────────────────────────────────────
-let vacCache = null;
+// vacCache and selectedVacPeriod are declared in STATE section above
 
 async function loadVacaciones(force = false) {
   if (vacCache && !force) { renderVacaciones(vacCache); return; }
+
+  const sheet = VAC_SHEETS[selectedVacPeriod];
+  if (!sheet) { console.error('Período vacacional no configurado:', selectedVacPeriod); return; }
 
   const tbody = document.getElementById('vacBody');
   const kpis  = document.getElementById('vacKpis');
@@ -531,7 +559,7 @@ async function loadVacaciones(force = false) {
   kpis.innerHTML  = '';
 
   try {
-    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${VAC_SHEET_ID}/values/${encodeURIComponent("'" + VAC_TAB_NAME + "'!A1:K200")}?valueRenderOption=FORMATTED_VALUE`;
+    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/${encodeURIComponent("'" + sheet.tab + "'!A1:K200")}?valueRenderOption=FORMATTED_VALUE`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     const data = await resp.json();
     if (data.error) throw new Error(`API ${data.error.code}: ${data.error.message}`);
@@ -630,7 +658,7 @@ function renderVacaciones(employees) {
       badge = `${e.diasCorr} días pend.`; statusClass = 'status-ok';
     }
 
-    const periodo = VAC_PERIODO;
+    const periodo = selectedVacPeriod;
 
     return `<tr>
       <td class="mono" style="color:var(--t2);font-size:12px;">${escH(e.legajo)}</td>
