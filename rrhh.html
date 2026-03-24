@@ -530,7 +530,7 @@ async function loadVacaciones(force = false) {
   kpis.innerHTML  = '';
 
   try {
-    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${VAC_SHEET_ID}/values/${encodeURIComponent(VAC_TAB_NAME + '!A1:K200')}?valueRenderOption=FORMATTED_VALUE`;
+    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${VAC_SHEET_ID}/values/${encodeURIComponent("'" + VAC_TAB_NAME + "'!A1:K200")}?valueRenderOption=FORMATTED_VALUE`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     const data = await resp.json();
     if (data.error) throw new Error(`API ${data.error.code}: ${data.error.message}`);
