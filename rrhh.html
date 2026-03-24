@@ -206,23 +206,18 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
     <!-- Month detail panel -->
     <div id="monthDetail" style="display:none;">
       <div class="card" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 20px 0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <div style="font-family:var(--disp);font-size:16px;font-weight:800;" id="monthDetailTitle"></div>
-            <a id="driveLink" href="#" target="_blank" style="font-size:11px;color:var(--acc2);font-family:var(--mono);text-decoration:none;opacity:0.7;" title="Abrir archivo en Google Drive">
-              Abrir en Drive ↗
-            </a>
-          </div>
+        <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:var(--disp);font-size:16px;font-weight:800;" id="monthDetailTitle"></div>
+          <a id="driveLink" href="#" target="_blank"
+             style="font-size:11px;color:var(--acc2);font-family:var(--mono);text-decoration:none;opacity:0.7;">
+            Abrir en Drive ↗
+          </a>
         </div>
-        <div class="liq-tabbar">
-          <button class="liq-tab active" onclick="switchLiqTab('1q')" id="liqtab-1q">Liquidación 1° Quincena</button>
-          <button class="liq-tab" onclick="switchLiqTab('2q')" id="liqtab-2q">Liquidación 2° Quincena</button>
-          <button class="liq-tab" onclick="switchLiqTab('sueldos')" id="liqtab-sueldos">Sueldos</button>
+        <div style="padding:0 20px 10px;font-size:11px;color:var(--t3);">
+          Usá las pestañas dentro del archivo para navegar entre 1Q · 2Q · Sueldos
         </div>
-        <div class="table-wrap">
-          <div id="liqContent">
-            <table><tbody><tr><td class="loading-state"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
-          </div>
+        <div id="liqContent" style="width:100%;min-height:620px;">
+          <div class="loading-state"><span class="spinner"></span>Cargando...</div>
         </div>
       </div>
     </div>
@@ -676,7 +671,6 @@ async function selectMonth(monthNum) {
   if (!f) return;
 
   selectedFile = f;
-  selectedLiqTab = '1q';
   renderMonthGrid();
 
   const detail = document.getElementById('monthDetail');
@@ -686,43 +680,15 @@ async function selectMonth(monthNum) {
   document.getElementById('driveLink').href =
     `https://drive.google.com/file/d/${f.id}/view`;
 
-  // Reset tab buttons
-  ['1q','2q','sueldos'].forEach(t =>
-    document.getElementById(`liqtab-${t}`).classList.toggle('active', t === '1q')
-  );
+  // Embeber Drive preview — renderiza el xlsx con 100% del formato original
+  const cont = document.getElementById('liqContent');
+  cont.innerHTML = `<div class="loading-state"><span class="spinner"></span>Cargando archivo...</div>`;
+  const previewUrl = `https://drive.google.com/file/d/${f.id}/preview`;
+  cont.innerHTML = `<iframe src="${previewUrl}"
+    style="width:100%;height:640px;border:none;display:block;"
+    allow="autoplay" allowfullscreen></iframe>`;
 
   setTimeout(() => detail.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  await loadLiqTab('1q');
-}
-
-// ─── LIQUIDACIONES ────────────────────────────────────────────────────────────
-async function switchLiqTab(tab) {
-  selectedLiqTab = tab;
-  ['1q','2q','sueldos'].forEach(t =>
-    document.getElementById(`liqtab-${t}`).classList.toggle('active', t === tab)
-  );
-  await loadLiqTab(tab);
-}
-
-async function loadLiqTab(tab) {
-  if (!selectedFile) return;
-  const cont = document.getElementById('liqContent');
-  cont.innerHTML = '<table><tbody><tr><td class="loading-state"><span class="spinner"></span>Cargando...</td></tr></tbody></table>';
-
-  const tabName = LIQ_TAB_NAMES[tab];
-  try {
-    const html = await getSheetHtml(selectedFile.id, tabName);
-    cont.innerHTML = `<div class="xlsx-frame">${html}</div>`;
-  } catch(e) {
-    cont.innerHTML = `<div style="padding:24px;color:var(--danger);font-size:13px;">
-      No se pudo cargar la pestaña <strong>"${escH(tabName)}"</strong>.<br>
-      <span style="color:var(--t3);font-size:12px;">${escH(e.message)}</span><br>
-      <a href="https://drive.google.com/file/d/${selectedFile.id}/view" target="_blank"
-         style="color:var(--acc2);font-size:12px;margin-top:10px;display:inline-block;">
-        Abrir directamente en Google Drive ↗
-      </a>
-    </div>`;
-  }
 }
 
 function buildTable(rows, tabName) {
