@@ -1246,8 +1246,8 @@ function renderChart(data, f) {
     return `
       <div class="chart-col ${isCur ? 'bar-current' : ''}">
         <div class="bar-vals">
-          <span style="color:#fff;font-size:10px;font-weight:700">${fmtARS(m.ars)}</span>
-          <span style="color:var(--acc2);font-size:10px;font-weight:600">${fmtUSD(m.usd)}</span>
+          <span style="color:#e8ff47;font-size:10px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,1),0 0 8px rgba(0,0,0,0.9)">${fmtARS(m.ars)}</span>
+          <span style="color:#5be8ff;font-size:10px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,1),0 0 8px rgba(0,0,0,0.9)">${fmtUSD(m.usd)}</span>
         </div>
         <div class="bar-wrap">
           <div class="bar bar-ars" style="height:${pARS}%" title="${m.label} ${m.year} ARS: ${fmtARS(m.ars)} (${m.oc} OC)"></div>
