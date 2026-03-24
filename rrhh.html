@@ -110,6 +110,12 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--b2);border-top-color:var(--acc2);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* ── XLSX FRAME — renderiza con el formato original del Excel ── */
+.xlsx-frame{background:#fff;color:#111;overflow:auto;max-height:65vh;padding:6px 10px;}
+.xlsx-frame table{border-collapse:collapse;font-size:12px;font-family:Calibri,Arial,sans-serif;}
+.xlsx-frame td,.xlsx-frame th{padding:3px 7px;min-width:50px;white-space:nowrap;}
+.xlsx-frame tr:hover td{filter:brightness(0.96);}
+
 /* ── NOTICE ── */
 .notice{background:rgba(71,200,255,0.06);border:1px solid rgba(71,200,255,0.15);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--t2);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 .notice span{color:var(--acc2);font-size:14px;}
@@ -382,7 +388,7 @@ async function loadAllYearFiles() {
     const folders = await driveList(RRHH_MAIN_FOLDER,
       ` and mimeType='application/vnd.google-apps.folder'`);
     folders.forEach(f => {
-      const yr = f.name.match(/\b(202\d|203\d)\b/)?.[0];
+      const yr = f.name.match(/\b(202[6-9]|203\d)\b/)?.[0]; // solo 2026 en adelante
       if (yr) yearFolders[yr] = f.id;
     });
   } catch(e) { /* use seed */ }
@@ -424,23 +430,33 @@ async function getWorkbook(fileId) {
 async function readXlsxTab(fileId, tabName) {
   const cacheKey = `${fileId}::${tabName}`;
   if (liqCache[cacheKey]) return liqCache[cacheKey];
-
   const wb = await getWorkbook(fileId);
-
-  // Try exact name first, then case-insensitive match
-  let sheetName = wb.SheetNames.find(n => n === tabName)
-    || wb.SheetNames.find(n => n.toLowerCase().trim() === tabName.toLowerCase().trim());
-
-  if (!sheetName) {
-    throw new Error(
-      `Pestaña "${tabName}" no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`
-    );
-  }
-
+  const sheetName = findSheetName(wb, tabName);
   const ws   = wb.Sheets[sheetName];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
   liqCache[cacheKey] = rows;
   return rows;
+}
+
+// Devuelve HTML con formato completo del Excel (colores, celdas combinadas, bordes)
+async function getSheetHtml(fileId, tabName) {
+  const cacheKey = `html::${fileId}::${tabName}`;
+  if (liqCache[cacheKey]) return liqCache[cacheKey];
+  const wb = await getWorkbook(fileId);
+  const sheetName = findSheetName(wb, tabName);
+  const ws   = wb.Sheets[sheetName];
+  const html = XLSX.utils.sheet_to_html(ws, { editable: false });
+  liqCache[cacheKey] = html;
+  return html;
+}
+
+function findSheetName(wb, tabName) {
+  const name = wb.SheetNames.find(n => n === tabName)
+    || wb.SheetNames.find(n => n.toLowerCase().trim() === tabName.toLowerCase().trim());
+  if (!name) throw new Error(
+    `Pestaña "${tabName}" no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`
+  );
+  return name;
 }
 
 // ─── PERSONAL ────────────────────────────────────────────────────────────────
@@ -467,27 +483,13 @@ async function loadPersonal() {
   sub.textContent = `Referencia: ${latestFile.name} ${latestYear} — actualizá subiendo el mes más reciente a la carpeta`;
 
   try {
+    const html = await getSheetHtml(latestFile.id, 'Lista Personal');
+    // Contar empleados para el stat (usamos rows sin formato)
     const rows = await readXlsxTab(latestFile.id, 'Lista Personal');
-
-    if (!rows || rows.length < 2) {
-      tbl.innerHTML = '<tbody><tr><td class="empty-state">Sin datos en la pestaña "Lista Personal".</td></tr></tbody>';
-      return;
-    }
-
-    // Find header row (first non-empty row)
-    let hIdx = 0;
-    while (hIdx < rows.length && !rows[hIdx].some(c => String(c||'').trim())) hIdx++;
-    const headers  = rows[hIdx] || [];
-    const dataRows = rows.slice(hIdx + 1).filter(r => r.some(c => String(c||'').trim()));
-    const numCols  = headers.length;
-
+    const dataRows = rows.slice(1).filter(r => r.some(c => String(c||'').trim()));
     stats.innerHTML = `<div class="stat-pill"><strong>${dataRows.length}</strong> empleados activos</div>`;
-
-    tbl.innerHTML = `
-      <thead><tr>${headers.map(h => `<th>${escH(String(h||''))}</th>`).join('')}</tr></thead>
-      <tbody>${dataRows.map(r =>
-        `<tr>${Array.from({length: numCols}, (_, i) => `<td>${escH(String(r[i]||''))}</td>`).join('')}</tr>`
-      ).join('')}</tbody>`;
+    // Reemplazar contenido del card con el HTML formateado del Excel
+    tbl.closest('.card').innerHTML = `<div class="xlsx-frame">${html}</div>`;
   } catch(e) {
     tbl.innerHTML = `<tbody><tr><td class="empty-state" style="color:var(--danger)">
       Error al cargar nómina: ${escH(e.message)}<br>
@@ -586,8 +588,8 @@ async function loadLiqTab(tab) {
 
   const tabName = LIQ_TAB_NAMES[tab];
   try {
-    const rows = await readXlsxTab(selectedFile.id, tabName);
-    cont.innerHTML = buildTable(rows, tabName);
+    const html = await getSheetHtml(selectedFile.id, tabName);
+    cont.innerHTML = `<div class="xlsx-frame">${html}</div>`;
   } catch(e) {
     cont.innerHTML = `<div style="padding:24px;color:var(--danger);font-size:13px;">
       No se pudo cargar la pestaña <strong>"${escH(tabName)}"</strong>.<br>
