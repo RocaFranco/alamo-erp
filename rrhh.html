@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RRHH — Alamo ERP</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --bg:#0e0f11; --surf:#16181c; --surf2:#1e2127; --surf3:#23272f;
+  --b:#2a2d35; --b2:#353942;
+  --acc:#e8ff47; --acc2:#47c8ff; --acc3:#ff6b47;
+  --ok:#47ffb2; --warn:#ffb347; --danger:#ff4747;
+  --text:#f0f2f5; --t2:#8b909e; --t3:#555b6a;
+  --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --disp:'Syne',sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;overflow-x:hidden;}
+
+/* ── LOGIN OVERLAY ── */
+#loginOverlay{position:fixed;inset:0;background:rgba(14,15,17,0.97);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(8px);}
+.login-card{background:var(--surf);border:1px solid var(--b);border-radius:20px;padding:52px 60px;text-align:center;max-width:420px;width:90%;box-shadow:0 40px 120px rgba(0,0,0,0.6);}
+.login-logo{font-family:var(--disp);font-size:36px;font-weight:800;color:var(--acc);letter-spacing:-1px;margin-bottom:4px;}
+.login-logo span{color:var(--text);}
+.login-sub{font-family:var(--disp);font-size:13px;color:var(--t2);text-transform:uppercase;letter-spacing:3px;margin-bottom:32px;}
+.login-desc{color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:36px;}
+.btn-google{display:inline-flex;align-items:center;gap:12px;background:var(--text);color:#1a1a1a;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:var(--sans);}
+.btn-google:hover{background:#fff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.btn-google svg{width:20px;height:20px;}
+
+/* ── ACCESS DENIED ── */
+#accessDenied{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;}
+.denied-card{background:var(--surf);border:1px solid rgba(255,107,71,.3);border-radius:16px;padding:48px 40px;max-width:380px;width:90%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.denied-title{font-family:var(--disp);font-size:20px;font-weight:800;color:var(--acc3);}
+.denied-msg{color:var(--t2);font-size:13px;line-height:1.6;}
+.denied-email{font-family:var(--mono);font-size:11px;color:var(--t3);background:var(--surf2);padding:6px 12px;border-radius:6px;}
+.denied-back{color:var(--acc2);font-size:12px;text-decoration:none;margin-top:4px;}
+.denied-back:hover{text-decoration:underline;}
+
+/* ── HEADER ── */
+#header{position:sticky;top:0;height:50px;background:var(--surf);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100;}
+.header-left{display:flex;align-items:center;gap:10px;min-width:200px;}
+.header-title{font-family:var(--disp);font-size:16px;font-weight:800;color:var(--text);letter-spacing:1px;}
+.badge-module{background:rgba(71,200,255,0.12);color:var(--acc2);border:1px solid rgba(71,200,255,0.25);border-radius:4px;padding:1px 7px;font-size:9px;font-family:var(--mono);font-weight:500;letter-spacing:1px;text-transform:uppercase;}
+.header-tabs{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;}
+.tab-btn{background:none;border:none;color:var(--t2);font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);background:var(--surf2);}
+.tab-btn.active{color:var(--acc);background:rgba(232,255,71,0.08);}
+.header-right{display:flex;align-items:center;gap:8px;min-width:200px;justify-content:flex-end;}
+.user-chip{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--b);border-radius:20px;padding:3px 12px 3px 6px;font-size:12px;color:var(--t2);}
+.user-dot{width:22px;height:22px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000;flex-shrink:0;}
+.btn-sm{background:var(--surf2);border:1px solid var(--b);color:var(--t2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-sm:hover{color:var(--text);border-color:var(--b2);}
+
+/* ── MAIN ── */
+#main{display:none;padding:28px 32px;max-width:1400px;margin:0 auto;}
+
+/* ── SECTION TITLES ── */
+.section-header{margin-bottom:20px;}
+.section-title{font-family:var(--disp);font-size:18px;font-weight:800;margin-bottom:4px;}
+.section-sub{font-size:12px;color:var(--t3);}
+
+/* ── CARD ── */
+.card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:20px;margin-bottom:20px;}
+
+/* ── YEAR SELECTOR ── */
+.year-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.year-label{font-size:11px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
+.year-btn{background:var(--surf);border:1px solid var(--b);color:var(--t2);border-radius:8px;padding:5px 18px;font-size:13px;font-family:var(--mono);cursor:pointer;transition:all 0.15s;}
+.year-btn:hover{border-color:var(--b2);color:var(--text);}
+.year-btn.active{background:rgba(232,255,71,0.08);border-color:var(--acc);color:var(--acc);font-weight:700;}
+
+/* ── MONTH GRID ── */
+.month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:28px;}
+@media(max-width:700px){.month-grid{grid-template-columns:repeat(4,1fr);}}
+.month-btn{background:var(--surf);border:1px solid var(--b);border-radius:10px;padding:14px 8px;text-align:center;cursor:pointer;transition:all 0.2s;user-select:none;}
+.month-btn:hover:not(.disabled){border-color:var(--b2);background:var(--surf2);}
+.month-btn.active{background:rgba(71,200,255,0.08);border-color:var(--acc2);box-shadow:0 0 0 1px var(--acc2);}
+.month-btn.disabled{opacity:0.25;cursor:default;pointer-events:none;}
+.month-name{font-weight:700;font-size:14px;color:var(--text);}
+.month-btn.active .month-name{color:var(--acc2);}
+.month-year{font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:2px;}
+
+/* ── LIQUIDACION TABS ── */
+.liq-tabbar{display:flex;gap:0;border-bottom:1px solid var(--b);margin-bottom:0;padding:0 20px;}
+.liq-tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--t2);font-size:12px;font-weight:600;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;padding:12px 18px;cursor:pointer;transition:all 0.15s;margin-bottom:-1px;white-space:nowrap;}
+.liq-tab:hover{color:var(--text);}
+.liq-tab.active{color:var(--acc2);border-bottom-color:var(--acc2);}
+
+/* ── TABLE ── */
+.table-wrap{overflow:auto;max-height:65vh;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead{position:sticky;top:0;z-index:2;}
+th{background:var(--surf2);color:var(--t2);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--b);font-weight:500;}
+td{padding:9px 12px;border-bottom:1px solid rgba(42,45,53,0.6);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(255,255,255,0.02);}
+.empty-state{text-align:center;color:var(--t3);padding:48px;font-size:13px;}
+.loading-state{text-align:center;color:var(--t2);padding:40px;font-size:13px;}
+
+/* ── PERSONAL HEADER STATS ── */
+.stat-pill{display:inline-flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--b);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--t2);}
+.stat-pill strong{color:var(--text);font-family:var(--mono);}
+
+/* ── SPINNER ── */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--b2);border-top-color:var(--acc2);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── NOTICE ── */
+.notice{background:rgba(71,200,255,0.06);border:1px solid rgba(71,200,255,0.15);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--t2);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.notice span{color:var(--acc2);font-size:14px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">RRHH<span>.</span></div>
+    <div class="login-sub">Alamo ERP</div>
+    <div class="login-desc">Acceso a liquidaciones de sueldos y nómina de personal.<br>Requiere autorización del administrador.</div>
+    <button class="btn-google" onclick="signIn()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Ingresar con Google
+    </button>
+  </div>
+</div>
+
+<!-- ACCESS DENIED -->
+<div id="accessDenied">
+  <div class="denied-card">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ff6b47" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+    <div class="denied-title">Sin acceso</div>
+    <div class="denied-msg">No tenés autorización para ver el módulo de RRHH.<br>Contactá al administrador del sistema.</div>
+    <div class="denied-email" id="deniedEmail">—</div>
+    <a href="index.html" class="denied-back">← Volver al inicio</a>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="header" style="display:none;">
+  <div class="header-left">
+    <div class="header-title">RRHH</div>
+    <span class="badge-module">PITEC</span>
+  </div>
+  <div class="header-tabs">
+    <button class="tab-btn active" onclick="switchTab('personal')" id="tab-personal">Personal</button>
+    <button class="tab-btn" onclick="switchTab('liquidaciones')" id="tab-liquidaciones">Liquidaciones</button>
+  </div>
+  <div class="header-right">
+    <div class="user-chip">
+      <div class="user-dot" id="userInitial">?</div>
+      <span id="userEmail" style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+    </div>
+    <button class="btn-sm" onclick="signOut()">Salir</button>
+    <a href="index.html" class="btn-sm">← ERP Home</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ── PERSONAL ── -->
+  <div id="section-personal">
+    <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="section-title">Lista de Personal</div>
+        <div class="section-sub" id="personalSub">Cargando nómina...</div>
+      </div>
+      <div id="personalStats" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+    <div class="notice"><span>ℹ</span> Nómina tomada siempre del archivo de quincenas más reciente cargado. Solo lectura.</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-wrap">
+        <table id="personalTable">
+          <tbody><tr><td class="loading-state"><span class="spinner"></span>Cargando lista de personal...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LIQUIDACIONES ── -->
+  <div id="section-liquidaciones" style="display:none;">
+    <div class="section-header">
+      <div class="section-title">Liquidaciones</div>
+      <div class="section-sub">Seleccioná año y mes para ver las liquidaciones de quincenas y sueldos</div>
+    </div>
+
+    <div class="year-bar">
+      <span class="year-label">Año</span>
+      <div id="yearSelector"></div>
+    </div>
+
+    <div id="monthGrid" class="month-grid"></div>
+
+    <!-- Month detail panel -->
+    <div id="monthDetail" style="display:none;">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-family:var(--disp);font-size:16px;font-weight:800;" id="monthDetailTitle"></div>
+            <a id="driveLink" href="#" target="_blank" style="font-size:11px;color:var(--acc2);font-family:var(--mono);text-decoration:none;opacity:0.7;" title="Abrir archivo en Google Drive">
+              Abrir en Drive ↗
+            </a>
+          </div>
+        </div>
+        <div class="liq-tabbar">
+          <button class="liq-tab active" onclick="switchLiqTab('1q')" id="liqtab-1q">Liquidación 1° Quincena</button>
+          <button class="liq-tab" onclick="switchLiqTab('2q')" id="liqtab-2q">Liquidación 2° Quincena</button>
+          <button class="liq-tab" onclick="switchLiqTab('sueldos')" id="liqtab-sueldos">Sueldos</button>
+        </div>
+        <div class="table-wrap">
+          <div id="liqContent">
+            <table><tbody><tr><td class="loading-state"><span class="spinner"></span>Cargando...</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const CLIENT_ID       = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
+const SCOPES          = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/userinfo.email';
+const ACCESS_SHEET_ID = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
+const MODULE_KEY      = 'RRHH';
+const ADMIN_EMAILS    = ['franco.bauer98@gmail.com'];
+
+// Drive folder IDs — se auto-detectan también desde la carpeta principal
+const RRHH_MAIN_FOLDER = '15jroGxlV5ReTZA5Ep5a6WjkG-Jw2GnC5';
+const YEAR_FOLDERS_SEED = { '2026': '14DTzKYeL7OmYWXGOMC7Zyxnv0wRPmrUo' };
+
+// Nombres de pestañas dentro de cada archivo mensual
+const LIQ_TAB_NAMES = {
+  '1q':      'LIQUIDACION 1Q',
+  '2q':      'LIQUIDACION 2Q',
+  'sueldos': 'Sueldos'
+};
+
+const MESES_ES = {
+  'ENERO':1,'FEBRERO':2,'MARZO':3,'ABRIL':4,'MAYO':5,'JUNIO':6,
+  'JULIO':7,'AGOSTO':8,'SEPTIEMBRE':9,'OCTUBRE':10,'NOVIEMBRE':11,'DICIEMBRE':12
+};
+const MESES_SHORT = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MESES_LONG  = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+                     'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let accessToken      = null;
+let tokenClient      = null;
+let tokenRefreshTimer= null;
+let currentEmail     = '';
+let yearFolders      = { ...YEAR_FOLDERS_SEED }; // year → folderId
+let yearFiles        = {};    // year → [{id, rawName, order, name, monthNum}]
+let selectedYear     = '2026';
+let selectedFile     = null;  // {id, rawName, monthNum, name}
+let selectedLiqTab   = '1q';
+let liqCache         = {};    // `${fileId}::${tabName}` → rows
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function initGSI() {
+  if (typeof google === 'undefined' || !google.accounts) { setTimeout(initGSI, 200); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: handleTokenResponse
+  });
+}
+window.addEventListener('DOMContentLoaded', initGSI);
+
+function signIn() {
+  if (!tokenClient) { alert('Google Identity Services cargando, intentá de nuevo.'); return; }
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+async function handleTokenResponse(resp) {
+  if (resp.error) { console.error('[Auth]', resp); return; }
+  accessToken = resp.access_token;
+  if (tokenRefreshTimer) clearTimeout(tokenRefreshTimer);
+  tokenRefreshTimer = setTimeout(() => {
+    if (accessToken) tokenClient.requestAccessToken({ prompt: '' });
+  }, (resp.expires_in - 120) * 1000);
+  await afterSignIn();
+}
+
+async function afterSignIn() {
+  // Get user email
+  try {
+    const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+      { headers: { Authorization: `Bearer ${accessToken}` } }).then(r => r.json());
+    currentEmail = info.email || '';
+  } catch(e) { currentEmail = ''; }
+
+  // Check permission
+  const allowed = await checkPermission();
+  if (!allowed) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    const ad = document.getElementById('accessDenied');
+    ad.style.display = 'flex';
+    document.getElementById('deniedEmail').textContent = currentEmail || 'desconocido';
+    return;
+  }
+
+  // Show app
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('header').style.display = 'flex';
+  document.getElementById('main').style.display = 'block';
+  document.getElementById('userEmail').textContent = currentEmail;
+  document.getElementById('userInitial').textContent = (currentEmail[0] || '?').toUpperCase();
+
+  // Load data
+  await loadAllYearFiles();
+  renderYearSelector();
+  renderMonthGrid();
+  await loadPersonal();
+}
+
+function signOut() {
+  if (accessToken) { google.accounts.oauth2.revoke(accessToken, () => {}); }
+  accessToken = null;
+  liqCache = {};
+  document.getElementById('header').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+async function checkPermission() {
+  const isAdmin = ADMIN_EMAILS.includes(currentEmail.toLowerCase().trim());
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${ACCESS_SHEET_ID}/values/Permisos!A:Z`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const data = await resp.json();
+    if (data.error) { console.warn('[Permisos]', data.error); return isAdmin; }
+    const rows = data.values || [];
+    if (rows.length < 2) return isAdmin;
+    const headers  = rows[0].map(h => String(h).toLowerCase().trim());
+    const emailCol = headers.findIndex(h => h === 'email');
+    const modCol   = headers.findIndex(h => h === MODULE_KEY.toLowerCase());
+    if (emailCol < 0 || modCol < 0) return isAdmin;
+    for (let i = 1; i < rows.length; i++) {
+      if ((rows[i][emailCol]||'').toLowerCase().trim() === currentEmail.toLowerCase().trim()) {
+        const v = String(rows[i][modCol]||'').toLowerCase().trim();
+        return ['1','si','sí','true','x','yes','✓'].includes(v);
+      }
+    }
+    return false;
+  } catch(e) { return isAdmin; }
+}
+
+// ─── DRIVE API ───────────────────────────────────────────────────────────────
+async function driveList(folderId, extraQ = '') {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false${extraQ}`);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=name&pageSize=200`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  const data = await resp.json();
+  if (data.error) { console.warn('[Drive]', data.error); return []; }
+  return data.files || [];
+}
+
+function parseMonthFromName(filename) {
+  // "1 ENERO.xlsx" → {order:1, name:'ENERO', monthNum:1}
+  // Normalize accents for matching
+  const m = filename.match(/^(\d+)\s+([A-ZÁÉÍÓÚÑ]+)(?:\..+)?$/i);
+  if (!m) return null;
+  const raw = m[2].toUpperCase();
+  const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const monthNum = MESES_ES[normalized] || MESES_ES[raw] || null;
+  if (!monthNum) return null;
+  return { order: parseInt(m[1]), name: raw, monthNum };
+}
+
+async function loadAllYearFiles() {
+  // Try to discover year folders from the main RRHH folder
+  try {
+    const folders = await driveList(RRHH_MAIN_FOLDER,
+      ` and mimeType='application/vnd.google-apps.folder'`);
+    folders.forEach(f => {
+      const yr = f.name.match(/\b(202\d|203\d)\b/)?.[0];
+      if (yr) yearFolders[yr] = f.id;
+    });
+  } catch(e) { /* use seed */ }
+
+  // Load files for each year folder
+  for (const [year, folderId] of Object.entries(yearFolders)) {
+    try {
+      const files = await driveList(folderId);
+      yearFiles[year] = files
+        .map(f => ({ id: f.id, rawName: f.name, ...(parseMonthFromName(f.name) || {}) }))
+        .filter(f => f.monthNum)
+        .sort((a, b) => a.order - b.order);
+    } catch(e) { yearFiles[year] = []; }
+  }
+
+  // Select the most recent year that has files
+  const yearsWithFiles = Object.keys(yearFiles).filter(y => yearFiles[y]?.length > 0).sort().reverse();
+  if (yearsWithFiles.length) selectedYear = yearsWithFiles[0];
+}
+
+// ─── SHEETS API (FORMATTED_VALUE for .xlsx) ───────────────────────────────────
+async function readXlsxTab(fileId, tabName) {
+  const cacheKey = `${fileId}::${tabName}`;
+  if (liqCache[cacheKey]) return liqCache[cacheKey];
+  const range = encodeURIComponent(`${tabName}!A1:AZ500`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/${range}?valueRenderOption=FORMATTED_VALUE`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  const data = await resp.json();
+  if (data.error) throw new Error(`${data.error.code}: ${data.error.message}`);
+  liqCache[cacheKey] = data.values || [];
+  return liqCache[cacheKey];
+}
+
+// ─── PERSONAL ────────────────────────────────────────────────────────────────
+async function loadPersonal() {
+  const tbl = document.getElementById('personalTable');
+  const sub = document.getElementById('personalSub');
+  const stats = document.getElementById('personalStats');
+
+  // Find most recent file across all years
+  let latestFile = null;
+  let latestYear = '';
+  const yearsDesc = Object.keys(yearFiles).sort().reverse();
+  for (const yr of yearsDesc) {
+    const files = yearFiles[yr] || [];
+    if (files.length) { latestFile = files[files.length - 1]; latestYear = yr; break; }
+  }
+
+  if (!latestFile) {
+    tbl.innerHTML = '<tbody><tr><td class="empty-state">No se encontraron archivos de nómina cargados.</td></tr></tbody>';
+    sub.textContent = 'Sin archivos disponibles';
+    return;
+  }
+
+  sub.textContent = `Referencia: ${latestFile.name} ${latestYear} — actualizá subiendo el mes más reciente a la carpeta`;
+
+  try {
+    const rows = await readXlsxTab(latestFile.id, 'Lista Personal');
+
+    if (!rows || rows.length < 2) {
+      tbl.innerHTML = '<tbody><tr><td class="empty-state">Sin datos en la pestaña "Lista Personal".</td></tr></tbody>';
+      return;
+    }
+
+    // Find header row (first non-empty row)
+    let hIdx = 0;
+    while (hIdx < rows.length && !rows[hIdx].some(c => String(c||'').trim())) hIdx++;
+    const headers  = rows[hIdx] || [];
+    const dataRows = rows.slice(hIdx + 1).filter(r => r.some(c => String(c||'').trim()));
+    const numCols  = headers.length;
+
+    stats.innerHTML = `<div class="stat-pill"><strong>${dataRows.length}</strong> empleados activos</div>`;
+
+    tbl.innerHTML = `
+      <thead><tr>${headers.map(h => `<th>${escH(String(h||''))}</th>`).join('')}</tr></thead>
+      <tbody>${dataRows.map(r =>
+        `<tr>${Array.from({length: numCols}, (_, i) => `<td>${escH(String(r[i]||''))}</td>`).join('')}</tr>`
+      ).join('')}</tbody>`;
+  } catch(e) {
+    tbl.innerHTML = `<tbody><tr><td class="empty-state" style="color:var(--danger)">
+      Error al cargar nómina: ${escH(e.message)}<br>
+      <a href="https://drive.google.com/file/d/${latestFile.id}" target="_blank"
+         style="color:var(--acc2);font-size:12px;margin-top:8px;display:inline-block;">
+        Abrir archivo en Drive ↗
+      </a>
+    </td></tr></tbody>`;
+  }
+}
+
+// ─── YEAR / MONTH UI ─────────────────────────────────────────────────────────
+function renderYearSelector() {
+  const el = document.getElementById('yearSelector');
+  const years = Object.keys(yearFolders).sort().reverse();
+  el.innerHTML = years.map(y =>
+    `<button class="year-btn${y === selectedYear ? ' active' : ''}" onclick="selectYear('${y}')">${y}</button>`
+  ).join('');
+}
+
+function selectYear(yr) {
+  selectedYear = yr;
+  selectedFile = null;
+  document.getElementById('monthDetail').style.display = 'none';
+  renderYearSelector();
+  renderMonthGrid();
+}
+
+function renderMonthGrid() {
+  const grid = document.getElementById('monthGrid');
+  const files = yearFiles[selectedYear] || [];
+
+  if (!files.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--t3);font-size:13px;padding:12px 0;">
+      No hay archivos cargados para ${selectedYear}.</div>`;
+    return;
+  }
+
+  const fileByMonth = {};
+  files.forEach(f => { fileByMonth[f.monthNum] = f; });
+
+  grid.innerHTML = Array.from({length: 12}, (_, i) => i + 1).map(m => {
+    const f = fileByMonth[m];
+    const isActive = selectedFile && selectedFile.id === f?.id;
+    if (f) {
+      return `<div class="month-btn${isActive ? ' active' : ''}" onclick="selectMonth(${m})">
+        <div class="month-name">${MESES_SHORT[m]}</div>
+        <div class="month-year">'${String(selectedYear).slice(2)}</div>
+      </div>`;
+    }
+    return `<div class="month-btn disabled">
+      <div class="month-name" style="color:var(--t3)">${MESES_SHORT[m]}</div>
+      <div class="month-year">—</div>
+    </div>`;
+  }).join('');
+}
+
+async function selectMonth(monthNum) {
+  const files = yearFiles[selectedYear] || [];
+  const f = files.find(x => x.monthNum === monthNum);
+  if (!f) return;
+
+  selectedFile = f;
+  selectedLiqTab = '1q';
+  renderMonthGrid();
+
+  const detail = document.getElementById('monthDetail');
+  detail.style.display = 'block';
+  document.getElementById('monthDetailTitle').textContent =
+    `${MESES_LONG[monthNum]} ${selectedYear}`;
+  document.getElementById('driveLink').href =
+    `https://drive.google.com/file/d/${f.id}/view`;
+
+  // Reset tab buttons
+  ['1q','2q','sueldos'].forEach(t =>
+    document.getElementById(`liqtab-${t}`).classList.toggle('active', t === '1q')
+  );
+
+  setTimeout(() => detail.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  await loadLiqTab('1q');
+}
+
+// ─── LIQUIDACIONES ────────────────────────────────────────────────────────────
+async function switchLiqTab(tab) {
+  selectedLiqTab = tab;
+  ['1q','2q','sueldos'].forEach(t =>
+    document.getElementById(`liqtab-${t}`).classList.toggle('active', t === tab)
+  );
+  await loadLiqTab(tab);
+}
+
+async function loadLiqTab(tab) {
+  if (!selectedFile) return;
+  const cont = document.getElementById('liqContent');
+  cont.innerHTML = '<table><tbody><tr><td class="loading-state"><span class="spinner"></span>Cargando...</td></tr></tbody></table>';
+
+  const tabName = LIQ_TAB_NAMES[tab];
+  try {
+    const rows = await readXlsxTab(selectedFile.id, tabName);
+    cont.innerHTML = buildTable(rows, tabName);
+  } catch(e) {
+    cont.innerHTML = `<div style="padding:24px;color:var(--danger);font-size:13px;">
+      No se pudo cargar la pestaña <strong>"${escH(tabName)}"</strong>.<br>
+      <span style="color:var(--t3);font-size:12px;">${escH(e.message)}</span><br>
+      <a href="https://drive.google.com/file/d/${selectedFile.id}/view" target="_blank"
+         style="color:var(--acc2);font-size:12px;margin-top:10px;display:inline-block;">
+        Abrir directamente en Google Drive ↗
+      </a>
+    </div>`;
+  }
+}
+
+function buildTable(rows, tabName) {
+  if (!rows || rows.length < 2)
+    return `<table><tbody><tr><td class="empty-state">Sin datos en "${escH(tabName)}".</td></tr></tbody></table>`;
+
+  // Skip leading empty rows to find the header
+  let hIdx = 0;
+  while (hIdx < rows.length && !rows[hIdx].some(c => String(c||'').trim())) hIdx++;
+
+  const headers  = rows[hIdx] || [];
+  const dataRows = rows.slice(hIdx + 1).filter(r => r.some(c => String(c||'').trim()));
+  const numCols  = headers.length || 1;
+
+  return `<table>
+    <thead><tr>${headers.map(h => `<th>${escH(String(h||''))}</th>`).join('')}</tr></thead>
+    <tbody>${dataRows.map(r =>
+      `<tr>${Array.from({length: numCols}, (_, i) => `<td>${escH(String(r[i]||''))}</td>`).join('')}</tr>`
+    ).join('')}</tbody>
+  </table>`;
+}
+
+// ─── TAB SWITCHING ───────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['personal','liquidaciones'].forEach(t => {
+    document.getElementById(`section-${t}`).style.display = t === tab ? '' : 'none';
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function escH(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
