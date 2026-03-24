@@ -290,12 +290,10 @@ const ACCESS_SHEET_ID = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY      = 'RRHH';
 const ADMIN_EMAILS    = ['franco.bauer98@gmail.com'];
 
-// ─── VACACIONES — agregar aquí cada año nuevo ─────────────────────────────────
-// Para agregar 2026/27: copiar la línea de abajo, cambiar período, ID y pestaña
-const VAC_SHEETS = {
-  '2025/26': { id: '1TI9AM58IbMiYSXeh_88BvHyMLGZJhLcYcF-d4loand4', tab: 'Hoja 1' },
-  // '2026/27': { id: 'NUEVO_ID_AQUI', tab: 'Hoja 1' },
-};
+// ─── VACACIONES ───────────────────────────────────────────────────────────────
+// Un solo sheet, cada pestaña = un período (ej: "2025/26", "2026/27")
+// Agregar un año nuevo = crear una pestaña nueva en el sheet. Nada más.
+const VAC_SHEET_ID = '1TI9AM58IbMiYSXeh_88BvHyMLGZJhLcYcF-d4loand4';
 
 // Drive folders
 const RRHH_MAIN_FOLDER  = '15jroGxlV5ReTZA5Ep5a6WjkG-Jw2GnC5';
@@ -318,8 +316,9 @@ let selectedYear     = '2026';
 let selectedFile     = null;
 let liqCache         = {};
 const wbCache        = {};
-let selectedVacPeriod = Object.keys(VAC_SHEETS).sort().reverse()[0]; // último período por defecto
+let selectedVacPeriod = null; // se detecta automáticamente de las pestañas del sheet
 let vacCache         = null;
+let vacTabs          = []; // pestañas detectadas en el sheet
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 function initGSI() {
@@ -418,19 +417,32 @@ function selectPlant(plant) {
 
 function goLanding() { showView('landing'); }
 
-function initVacPeriodSelect() {
+async function fetchVacTabs() {
+  // Detecta automáticamente todas las pestañas del sheet
+  try {
+    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${VAC_SHEET_ID}?fields=sheets.properties.title`,
+      { headers: { Authorization: `Bearer ${accessToken}` } });
+    const data = await resp.json();
+    // Filtra pestañas con formato de período: "2025/26", "2026/27", etc.
+    vacTabs = (data.sheets || [])
+      .map(s => s.properties.title)
+      .filter(t => /^\d{4}\/\d{2}$/.test(t))
+      .sort().reverse(); // más reciente primero
+    if (vacTabs.length && !selectedVacPeriod) selectedVacPeriod = vacTabs[0];
+  } catch(e) { console.warn('No se pudieron listar pestañas vacaciones:', e); }
+}
+
+function renderVacPeriodSelect() {
   const sel = document.getElementById('vacPeriodSelect');
   if (!sel) return;
-  const periods = Object.keys(VAC_SHEETS).sort().reverse();
-  sel.innerHTML = periods.map(p =>
+  sel.innerHTML = vacTabs.map(p =>
     `<option value="${p}" ${p === selectedVacPeriod ? 'selected' : ''}>${p}</option>`
   ).join('');
 }
 
 function changeVacPeriod(period) {
-  if (!VAC_SHEETS[period]) return;
   selectedVacPeriod = period;
-  vacCache = null; // forzar recarga
+  vacCache = null;
   loadVacaciones();
 }
 
@@ -440,7 +452,7 @@ function switchPitecTab(tab) {
   document.getElementById('pitec-vacaciones').style.display    = tab === 'vacaciones'    ? '' : 'none';
   document.getElementById('ptab-liquidaciones').classList.toggle('active', tab === 'liquidaciones');
   document.getElementById('ptab-vacaciones').classList.toggle('active', tab === 'vacaciones');
-  if (tab === 'vacaciones') { initVacPeriodSelect(); loadVacaciones(); }
+  if (tab === 'vacaciones') { fetchVacTabs().then(() => { renderVacPeriodSelect(); loadVacaciones(); }); }
 }
 
 // ─── DRIVE ───────────────────────────────────────────────────────────────────
@@ -550,8 +562,7 @@ async function selectMonth(monthNum) {
 async function loadVacaciones(force = false) {
   if (vacCache && !force) { renderVacaciones(vacCache); return; }
 
-  const sheet = VAC_SHEETS[selectedVacPeriod];
-  if (!sheet) { console.error('Período vacacional no configurado:', selectedVacPeriod); return; }
+  if (!selectedVacPeriod) { console.warn('Sin período vacacional seleccionado'); return; }
 
   const tbody = document.getElementById('vacBody');
   const kpis  = document.getElementById('vacKpis');
@@ -559,7 +570,7 @@ async function loadVacaciones(force = false) {
   kpis.innerHTML  = '';
 
   try {
-    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/${encodeURIComponent("'" + sheet.tab + "'!A1:K200")}?valueRenderOption=FORMATTED_VALUE`;
+    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${VAC_SHEET_ID}/values/${encodeURIComponent("'" + selectedVacPeriod + "'!A1:K200")}?valueRenderOption=FORMATTED_VALUE`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     const data = await resp.json();
     if (data.error) throw new Error(`API ${data.error.code}: ${data.error.message}`);
