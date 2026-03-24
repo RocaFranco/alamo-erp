@@ -422,9 +422,26 @@ async function getWorkbook(fileId) {
     throw new Error(`Drive download ${resp.status}: ${txt.slice(0,200)}`);
   }
   const buf = await resp.arrayBuffer();
-  const wb  = XLSX.read(buf, { type: 'array', cellText: true, cellDates: true });
+  const wb  = XLSX.read(buf, { type: 'array', cellText: true, cellDates: true, cellStyles: true });
   wbCache[fileId] = wb;
   return wb;
+}
+
+// Recorta el rango del sheet hasta la última fila/columna con datos reales
+function trimSheetRef(ws) {
+  if (!ws['!ref']) return;
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  let lastRow = range.s.r, lastCol = range.s.c;
+  for (let r = range.s.r; r <= range.e.r; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (cell && cell.v !== undefined && cell.v !== null && String(cell.v).trim() !== '') {
+        if (r > lastRow) lastRow = r;
+        if (c > lastCol) lastCol = c;
+      }
+    }
+  }
+  ws['!ref'] = XLSX.utils.encode_range({ s: range.s, e: { r: lastRow, c: lastCol } });
 }
 
 async function readXlsxTab(fileId, tabName) {
@@ -444,7 +461,8 @@ async function getSheetHtml(fileId, tabName) {
   if (liqCache[cacheKey]) return liqCache[cacheKey];
   const wb = await getWorkbook(fileId);
   const sheetName = findSheetName(wb, tabName);
-  const ws   = wb.Sheets[sheetName];
+  const ws = wb.Sheets[sheetName];
+  trimSheetRef(ws); // elimina filas/columnas vacías al final
   const html = XLSX.utils.sheet_to_html(ws, { editable: false });
   liqCache[cacheKey] = html;
   return html;
