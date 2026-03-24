@@ -17,11 +17,10 @@
   --text:#f0f2f5; --t2:#8b909e; --t3:#555b6a;
   --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --disp:'Syne',sans-serif;
 }
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;overflow-x:hidden;}
 
-/* ── LOGIN OVERLAY ── */
+/* ── LOGIN ── */
 #loginOverlay{position:fixed;inset:0;background:rgba(14,15,17,0.97);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(8px);}
 .login-card{background:var(--surf);border:1px solid var(--b);border-radius:20px;padding:52px 60px;text-align:center;max-width:420px;width:90%;box-shadow:0 40px 120px rgba(0,0,0,0.6);}
 .login-logo{font-family:var(--disp);font-size:36px;font-weight:800;color:var(--acc);letter-spacing:-1px;margin-bottom:4px;}
@@ -43,38 +42,52 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 
 /* ── HEADER ── */
 #header{position:sticky;top:0;height:50px;background:var(--surf);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100;}
-.header-left{display:flex;align-items:center;gap:10px;min-width:200px;}
+.header-left{display:flex;align-items:center;gap:10px;min-width:180px;}
 .header-title{font-family:var(--disp);font-size:16px;font-weight:800;color:var(--text);letter-spacing:1px;}
-.badge-module{background:rgba(71,200,255,0.12);color:var(--acc2);border:1px solid rgba(71,200,255,0.25);border-radius:4px;padding:1px 7px;font-size:9px;font-family:var(--mono);font-weight:500;letter-spacing:1px;text-transform:uppercase;}
-.header-tabs{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;}
+.header-center{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;}
+.header-right{display:flex;align-items:center;gap:8px;min-width:180px;justify-content:flex-end;}
 .tab-btn{background:none;border:none;color:var(--t2);font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .tab-btn:hover{color:var(--text);background:var(--surf2);}
 .tab-btn.active{color:var(--acc);background:rgba(232,255,71,0.08);}
-.header-right{display:flex;align-items:center;gap:8px;min-width:200px;justify-content:flex-end;}
 .user-chip{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--b);border-radius:20px;padding:3px 12px 3px 6px;font-size:12px;color:var(--t2);}
 .user-dot{width:22px;height:22px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000;flex-shrink:0;}
-.btn-sm{background:var(--surf2);border:1px solid var(--b);color:var(--t2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-sm{background:var(--surf2);border:1px solid var(--b);color:var(--t2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all 0.15s;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .btn-sm:hover{color:var(--text);border-color:var(--b2);}
+.badge-plant{border-radius:4px;padding:1px 7px;font-size:9px;font-family:var(--mono);font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+.badge-pitec{background:rgba(71,200,255,0.12);color:var(--acc2);border:1px solid rgba(71,200,255,0.25);}
+.badge-quilmes{background:rgba(255,179,71,0.12);color:var(--warn);border:1px solid rgba(255,179,71,0.25);}
 
 /* ── MAIN ── */
 #main{display:none;padding:28px 32px;max-width:1400px;margin:0 auto;}
 
-/* ── SECTION TITLES ── */
-.section-header{margin-bottom:20px;}
-.section-title{font-family:var(--disp);font-size:18px;font-weight:800;margin-bottom:4px;}
-.section-sub{font-size:12px;color:var(--t3);}
+/* ── LANDING: plant cards ── */
+.landing-wrap{display:flex;flex-direction:column;align-items:center;padding:40px 20px;}
+.landing-title{font-family:var(--disp);font-size:26px;font-weight:800;margin-bottom:8px;}
+.landing-sub{color:var(--t2);font-size:13px;margin-bottom:48px;}
+.plant-cards{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;}
+.plant-card{background:var(--surf);border:1px solid var(--b);border-radius:20px;padding:40px 48px;text-align:center;cursor:pointer;transition:all 0.2s;min-width:260px;position:relative;overflow:hidden;}
+.plant-card:not(.wip):hover{border-color:var(--acc2);transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,0.4);}
+.plant-card.wip{opacity:0.5;cursor:not-allowed;}
+.plant-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(71,200,255,0.04) 0%,transparent 60%);pointer-events:none;}
+.plant-card.wip::before{background:linear-gradient(135deg,rgba(255,179,71,0.04) 0%,transparent 60%);}
+.plant-icon{font-size:48px;margin-bottom:16px;}
+.plant-name{font-family:var(--disp);font-size:22px;font-weight:800;margin-bottom:6px;}
+.plant-subs{color:var(--t2);font-size:12px;margin-bottom:12px;}
+.plant-wip{display:inline-block;background:rgba(255,179,71,0.12);color:var(--warn);border:1px solid rgba(255,179,71,0.3);border-radius:20px;padding:3px 12px;font-size:11px;font-family:var(--mono);font-weight:600;}
+.plant-go{display:inline-block;background:rgba(71,200,255,0.1);color:var(--acc2);border:1px solid rgba(71,200,255,0.25);border-radius:20px;padding:4px 16px;font-size:12px;font-family:var(--mono);font-weight:600;}
 
-/* ── CARD ── */
-.card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:20px;margin-bottom:20px;}
+/* ── SECTION NAV ── */
+.section-nav{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--b);}
+.back-btn{background:none;border:1px solid var(--b);color:var(--t2);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px;}
+.back-btn:hover{color:var(--text);border-color:var(--b2);}
+.section-tabs{display:flex;gap:4px;}
 
-/* ── YEAR SELECTOR ── */
+/* ── YEAR/MONTH ── */
 .year-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
 .year-label{font-size:11px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
 .year-btn{background:var(--surf);border:1px solid var(--b);color:var(--t2);border-radius:8px;padding:5px 18px;font-size:13px;font-family:var(--mono);cursor:pointer;transition:all 0.15s;}
 .year-btn:hover{border-color:var(--b2);color:var(--text);}
 .year-btn.active{background:rgba(232,255,71,0.08);border-color:var(--acc);color:var(--acc);font-weight:700;}
-
-/* ── MONTH GRID ── */
 .month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:28px;}
 @media(max-width:700px){.month-grid{grid-template-columns:repeat(4,1fr);}}
 .month-btn{background:var(--surf);border:1px solid var(--b);border-radius:10px;padding:14px 8px;text-align:center;cursor:pointer;transition:all 0.2s;user-select:none;}
@@ -85,50 +98,52 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
 .month-btn.active .month-name{color:var(--acc2);}
 .month-year{font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:2px;}
 
-/* ── LIQUIDACION TABS ── */
-.liq-tabbar{display:flex;gap:0;border-bottom:1px solid var(--b);margin-bottom:0;padding:0 20px;}
-.liq-tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--t2);font-size:12px;font-weight:600;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;padding:12px 18px;cursor:pointer;transition:all 0.15s;margin-bottom:-1px;white-space:nowrap;}
-.liq-tab:hover{color:var(--text);}
-.liq-tab.active{color:var(--acc2);border-bottom-color:var(--acc2);}
+/* ── CARD ── */
+.card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:20px;margin-bottom:20px;}
 
-/* ── TABLE ── */
+/* ── VACACIONES ── */
+.vac-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+@media(max-width:900px){.vac-kpis{grid-template-columns:repeat(2,1fr);}}
+.vac-kpi{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:16px 20px;}
+.vac-kpi-val{font-family:var(--disp);font-size:28px;font-weight:800;margin-bottom:2px;}
+.vac-kpi-label{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;}
+.vac-table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--b);}
+table.vac-table{width:100%;border-collapse:collapse;font-size:13px;}
+table.vac-table th{background:var(--surf2);color:var(--t2);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;padding:10px 14px;text-align:left;position:sticky;top:0;white-space:nowrap;border-bottom:1px solid var(--b);}
+table.vac-table td{padding:10px 14px;border-bottom:1px solid rgba(42,45,53,0.5);vertical-align:middle;}
+table.vac-table tr:last-child td{border-bottom:none;}
+table.vac-table tbody tr:hover td{background:rgba(255,255,255,0.02);}
+.status-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:var(--mono);font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.status-ok{background:rgba(71,255,178,0.1);color:var(--ok);border:1px solid rgba(71,255,178,0.2);}
+.status-warn{background:rgba(255,179,71,0.1);color:var(--warn);border:1px solid rgba(255,179,71,0.2);}
+.status-done{background:rgba(255,71,71,0.1);color:var(--danger);border:1px solid rgba(255,71,71,0.2);}
+.days-bar-wrap{display:flex;align-items:center;gap:8px;}
+.days-bar{height:6px;border-radius:3px;background:var(--surf3);flex:1;min-width:60px;overflow:hidden;}
+.days-bar-fill{height:100%;border-radius:3px;transition:width 0.4s;}
+.dates-list{font-size:11px;color:var(--t2);font-family:var(--mono);}
+
+/* ── TABLES (plain) ── */
 .table-wrap{overflow:auto;max-height:65vh;}
-table{width:100%;border-collapse:collapse;font-size:13px;}
-thead{position:sticky;top:0;z-index:2;}
-th{background:var(--surf2);color:var(--t2);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--b);font-weight:500;}
-td{padding:9px 12px;border-bottom:1px solid rgba(42,45,53,0.6);vertical-align:middle;}
-tr:last-child td{border-bottom:none;}
-tbody tr:hover td{background:rgba(255,255,255,0.02);}
+table.plain{width:100%;border-collapse:collapse;font-size:13px;}
+table.plain th{background:var(--surf2);color:var(--t2);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;padding:10px 12px;text-align:left;position:sticky;top:0;white-space:nowrap;border-bottom:1px solid var(--b);}
+table.plain td{padding:9px 12px;border-bottom:1px solid rgba(42,45,53,0.5);vertical-align:middle;}
+table.plain tbody tr:hover td{background:rgba(255,255,255,0.02);}
 .empty-state{text-align:center;color:var(--t3);padding:48px;font-size:13px;}
 .loading-state{text-align:center;color:var(--t2);padding:40px;font-size:13px;}
-
-/* ── PERSONAL HEADER STATS ── */
-.stat-pill{display:inline-flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--b);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--t2);}
-.stat-pill strong{color:var(--text);font-family:var(--mono);}
 
 /* ── SPINNER ── */
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--b2);border-top-color:var(--acc2);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── XLSX FRAME — renderiza con el formato original del Excel ── */
-.xlsx-frame{background:#fff;color:#111;overflow:auto;max-height:65vh;padding:6px 10px;}
-.xlsx-frame table{border-collapse:collapse;font-size:12px;font-family:Calibri,Arial,sans-serif;}
-.xlsx-frame td,.xlsx-frame th{padding:3px 7px;min-width:50px;white-space:nowrap;}
-.xlsx-frame tr:hover td{filter:brightness(0.96);}
-
-/* ── NOTICE ── */
-.notice{background:rgba(71,200,255,0.06);border:1px solid rgba(71,200,255,0.15);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--t2);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.notice span{color:var(--acc2);font-size:14px;}
 </style>
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
+<!-- LOGIN -->
 <div id="loginOverlay">
   <div class="login-card">
     <div class="login-logo">RRHH<span>.</span></div>
     <div class="login-sub">Alamo ERP</div>
-    <div class="login-desc">Acceso a liquidaciones de sueldos y nómina de personal.<br>Requiere autorización del administrador.</div>
+    <div class="login-desc">Acceso restringido a personal autorizado.<br>Liquidaciones, vacaciones y nómina.</div>
     <button class="btn-google" onclick="signIn()">
       <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Ingresar con Google
@@ -141,7 +156,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
   <div class="denied-card">
     <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ff6b47" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
     <div class="denied-title">Sin acceso</div>
-    <div class="denied-msg">No tenés autorización para ver el módulo de RRHH.<br>Contactá al administrador del sistema.</div>
+    <div class="denied-msg">No tenés autorización para ver RRHH.<br>Contactá al administrador.</div>
     <div class="denied-email" id="deniedEmail">—</div>
     <a href="index.html" class="denied-back">← Volver al inicio</a>
   </div>
@@ -151,16 +166,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
 <div id="header" style="display:none;">
   <div class="header-left">
     <div class="header-title">RRHH</div>
-    <span class="badge-module">PITEC</span>
+    <span id="headerBadge" class="badge-plant badge-pitec" style="display:none;"></span>
   </div>
-  <div class="header-tabs">
-    <button class="tab-btn active" onclick="switchTab('personal')" id="tab-personal">Personal</button>
-    <button class="tab-btn" onclick="switchTab('liquidaciones')" id="tab-liquidaciones">Liquidaciones</button>
-  </div>
+  <div class="header-center" id="headerTabs"></div>
   <div class="header-right">
     <div class="user-chip">
       <div class="user-dot" id="userInitial">?</div>
-      <span id="userEmail" style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+      <span id="userEmail" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
     </div>
     <button class="btn-sm" onclick="signOut()">Salir</button>
     <a href="index.html" class="btn-sm">← ERP Home</a>
@@ -170,108 +182,139 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
 <!-- MAIN -->
 <div id="main">
 
-  <!-- ── PERSONAL ── -->
-  <div id="section-personal">
-    <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-      <div>
-        <div class="section-title">Lista de Personal</div>
-        <div class="section-sub" id="personalSub">Cargando nómina...</div>
+  <!-- ── LANDING ── -->
+  <div id="view-landing">
+    <div class="landing-wrap">
+      <div class="landing-title">Recursos Humanos</div>
+      <div class="landing-sub">Seleccioná la planta para acceder</div>
+      <div class="plant-cards">
+
+        <!-- PITEC -->
+        <div class="plant-card" onclick="selectPlant('pitec')">
+          <div class="plant-icon">🏭</div>
+          <div class="plant-name">Alamo Pitec</div>
+          <div class="plant-subs">Liquidaciones · Vacaciones · Nómina</div>
+          <div class="plant-go">Ingresar →</div>
+        </div>
+
+        <!-- QUILMES (próximamente) -->
+        <div class="plant-card wip">
+          <div class="plant-icon">🏗</div>
+          <div class="plant-name">Alamo Quilmes</div>
+          <div class="plant-subs">En desarrollo</div>
+          <div class="plant-wip">Próximamente</div>
+        </div>
+
       </div>
-      <div id="personalStats" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
     </div>
-    <div class="notice"><span>ℹ</span> Nómina tomada siempre del archivo de quincenas más reciente cargado. Solo lectura.</div>
-    <div class="card" style="padding:0;overflow:hidden;">
-      <div class="table-wrap">
-        <table id="personalTable">
-          <tbody><tr><td class="loading-state"><span class="spinner"></span>Cargando lista de personal...</td></tr></tbody>
+  </div>
+
+  <!-- ── PITEC ── -->
+  <div id="view-pitec" style="display:none;">
+
+    <!-- Nav -->
+    <div class="section-nav">
+      <button class="back-btn" onclick="goLanding()">← Plantas</button>
+      <div style="font-family:var(--disp);font-size:16px;font-weight:800;">Alamo Pitec</div>
+      <div class="section-tabs">
+        <button class="tab-btn active" id="ptab-liquidaciones" onclick="switchPitecTab('liquidaciones')">Liquidaciones</button>
+        <button class="tab-btn" id="ptab-vacaciones" onclick="switchPitecTab('vacaciones')">Vacaciones</button>
+      </div>
+    </div>
+
+    <!-- LIQUIDACIONES -->
+    <div id="pitec-liquidaciones">
+      <div class="year-bar">
+        <span class="year-label">Año</span>
+        <div id="yearSelector"></div>
+      </div>
+      <div id="monthGrid" class="month-grid"></div>
+      <div id="monthDetail" style="display:none;">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-family:var(--disp);font-size:16px;font-weight:800;" id="monthDetailTitle"></div>
+            <a id="driveLink" href="#" target="_blank" style="font-size:11px;color:var(--acc2);font-family:var(--mono);text-decoration:none;opacity:0.7;">Abrir en Drive ↗</a>
+          </div>
+          <div style="padding:0 20px 10px;font-size:11px;color:var(--t3);">Usá las pestañas dentro del archivo para navegar entre 1Q · 2Q · Sueldos</div>
+          <div id="liqContent" style="width:100%;min-height:620px;">
+            <div class="loading-state"><span class="spinner"></span>Seleccioná un mes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VACACIONES -->
+    <div id="pitec-vacaciones" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-family:var(--disp);font-size:18px;font-weight:800;">Vacaciones 2025/2026</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:2px;">Nómina tomada del último mes cargado en Liquidaciones</div>
+        </div>
+        <button class="btn-sm" onclick="loadVacaciones(true)">↺ Actualizar</button>
+      </div>
+      <div id="vacKpis" class="vac-kpis"></div>
+      <div class="vac-table-wrap">
+        <table class="vac-table">
+          <thead>
+            <tr>
+              <th>Legajo</th>
+              <th>Nombre</th>
+              <th>Período vacacional</th>
+              <th class="num">Días corresp.</th>
+              <th class="num">Tomados</th>
+              <th style="min-width:160px;">Restantes</th>
+              <th>Fechas</th>
+            </tr>
+          </thead>
+          <tbody id="vacBody">
+            <tr><td colspan="7" class="loading-state"><span class="spinner"></span>Cargando...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
-  </div>
 
-  <!-- ── LIQUIDACIONES ── -->
-  <div id="section-liquidaciones" style="display:none;">
-    <div class="section-header">
-      <div class="section-title">Liquidaciones</div>
-      <div class="section-sub">Seleccioná año y mes para ver las liquidaciones de quincenas y sueldos</div>
-    </div>
+  </div><!-- /view-pitec -->
 
-    <div class="year-bar">
-      <span class="year-label">Año</span>
-      <div id="yearSelector"></div>
-    </div>
-
-    <div id="monthGrid" class="month-grid"></div>
-
-    <!-- Month detail panel -->
-    <div id="monthDetail" style="display:none;">
-      <div class="card" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:var(--disp);font-size:16px;font-weight:800;" id="monthDetailTitle"></div>
-          <a id="driveLink" href="#" target="_blank"
-             style="font-size:11px;color:var(--acc2);font-family:var(--mono);text-decoration:none;opacity:0.7;">
-            Abrir en Drive ↗
-          </a>
-        </div>
-        <div style="padding:0 20px 10px;font-size:11px;color:var(--t3);">
-          Usá las pestañas dentro del archivo para navegar entre 1Q · 2Q · Sueldos
-        </div>
-        <div id="liqContent" style="width:100%;min-height:620px;">
-          <div class="loading-state"><span class="spinner"></span>Cargando...</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
+</div><!-- /main -->
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const CLIENT_ID       = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
-const SCOPES          = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
+const SCOPES          = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email';
 const ACCESS_SHEET_ID = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY      = 'RRHH';
 const ADMIN_EMAILS    = ['franco.bauer98@gmail.com'];
 
-// Drive folder IDs — se auto-detectan también desde la carpeta principal
-const RRHH_MAIN_FOLDER = '15jroGxlV5ReTZA5Ep5a6WjkG-Jw2GnC5';
+// Vacaciones sheet (Pitec 2025/2026)
+const VAC_SHEET_ID   = '1TI9AM58IbMiYSXeh_88BvHyMLGZJhLcYcF-d4loand4';
+const VAC_TAB_NAME   = 'Vacaciones_2025_26';
+
+// Drive folders
+const RRHH_MAIN_FOLDER  = '15jroGxlV5ReTZA5Ep5a6WjkG-Jw2GnC5';
 const YEAR_FOLDERS_SEED = { '2026': '14DTzKYeL7OmYWXGOMC7Zyxnv0wRPmrUo' };
 
-// Nombres de pestañas dentro de cada archivo mensual
-const LIQ_TAB_NAMES = {
-  '1q':      'LIQUIDACION 1Q',
-  '2q':      'LIQUIDACION 2Q',
-  'sueldos': 'Sueldos'
-};
-
-const MESES_ES = {
-  'ENERO':1,'FEBRERO':2,'MARZO':3,'ABRIL':4,'MAYO':5,'JUNIO':6,
-  'JULIO':7,'AGOSTO':8,'SEPTIEMBRE':9,'OCTUBRE':10,'NOVIEMBRE':11,'DICIEMBRE':12
-};
 const MESES_SHORT = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const MESES_LONG  = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
-                     'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MESES_LONG  = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MESES_ES    = { 'ENERO':1,'FEBRERO':2,'MARZO':3,'ABRIL':4,'MAYO':5,'JUNIO':6,'JULIO':7,'AGOSTO':8,'SEPTIEMBRE':9,'OCTUBRE':10,'NOVIEMBRE':11,'DICIEMBRE':12 };
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let accessToken      = null;
 let tokenClient      = null;
 let tokenRefreshTimer= null;
 let currentEmail     = '';
-let yearFolders      = { ...YEAR_FOLDERS_SEED }; // year → folderId
-let yearFiles        = {};    // year → [{id, rawName, order, name, monthNum}]
+let currentView      = 'landing'; // 'landing' | 'pitec'
+let pitecTab         = 'liquidaciones';
+let yearFolders      = { ...YEAR_FOLDERS_SEED };
+let yearFiles        = {};
 let selectedYear     = '2026';
-let selectedFile     = null;  // {id, rawName, monthNum, name}
-let selectedLiqTab   = '1q';
-let liqCache         = {};    // `${fileId}::${tabName}` → rows
+let selectedFile     = null;
+let liqCache         = {};
+const wbCache        = {};
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 function initGSI() {
   if (typeof google === 'undefined' || !google.accounts) { setTimeout(initGSI, 200); return; }
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: handleTokenResponse
-  });
+  tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: handleTokenResponse });
 }
 window.addEventListener('DOMContentLoaded', initGSI);
 
@@ -284,46 +327,38 @@ async function handleTokenResponse(resp) {
   if (resp.error) { console.error('[Auth]', resp); return; }
   accessToken = resp.access_token;
   if (tokenRefreshTimer) clearTimeout(tokenRefreshTimer);
-  tokenRefreshTimer = setTimeout(() => {
-    if (accessToken) tokenClient.requestAccessToken({ prompt: '' });
-  }, (resp.expires_in - 120) * 1000);
+  tokenRefreshTimer = setTimeout(() => { if (accessToken) tokenClient.requestAccessToken({ prompt: '' }); }, (resp.expires_in - 120) * 1000);
   await afterSignIn();
 }
 
 async function afterSignIn() {
-  // Get user email
   try {
-    const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
-      { headers: { Authorization: `Bearer ${accessToken}` } }).then(r => r.json());
+    const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${accessToken}` } }).then(r => r.json());
     currentEmail = info.email || '';
   } catch(e) { currentEmail = ''; }
 
-  // Check permission
   const allowed = await checkPermission();
   if (!allowed) {
     document.getElementById('loginOverlay').style.display = 'none';
-    const ad = document.getElementById('accessDenied');
-    ad.style.display = 'flex';
+    document.getElementById('accessDenied').style.display = 'flex';
     document.getElementById('deniedEmail').textContent = currentEmail || 'desconocido';
     return;
   }
 
-  // Show app
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('header').style.display = 'flex';
   document.getElementById('main').style.display = 'block';
   document.getElementById('userEmail').textContent = currentEmail;
   document.getElementById('userInitial').textContent = (currentEmail[0] || '?').toUpperCase();
 
-  // Load data
+  showView('landing');
   await loadAllYearFiles();
   renderYearSelector();
   renderMonthGrid();
-  await loadPersonal();
 }
 
 function signOut() {
-  if (accessToken) { google.accounts.oauth2.revoke(accessToken, () => {}); }
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
   accessToken = null;
   liqCache = {};
   Object.keys(wbCache).forEach(k => delete wbCache[k]);
@@ -338,7 +373,7 @@ async function checkPermission() {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${ACCESS_SHEET_ID}/values/Permisos!A:Z`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     const data = await resp.json();
-    if (data.error) { console.warn('[Permisos]', data.error); return isAdmin; }
+    if (data.error) return isAdmin;
     const rows = data.values || [];
     if (rows.length < 2) return isAdmin;
     const headers  = rows[0].map(h => String(h).toLowerCase().trim());
@@ -355,7 +390,34 @@ async function checkPermission() {
   } catch(e) { return isAdmin; }
 }
 
-// ─── DRIVE API ───────────────────────────────────────────────────────────────
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function showView(view) {
+  currentView = view;
+  document.getElementById('view-landing').style.display = view === 'landing' ? '' : 'none';
+  document.getElementById('view-pitec').style.display   = view === 'pitec'   ? '' : 'none';
+
+  const badge = document.getElementById('headerBadge');
+  const tabs  = document.getElementById('headerTabs');
+  if (view === 'landing') { badge.style.display = 'none'; tabs.innerHTML = ''; }
+  if (view === 'pitec')   { badge.textContent = 'PITEC'; badge.className = 'badge-plant badge-pitec'; badge.style.display = ''; tabs.innerHTML = ''; }
+}
+
+function selectPlant(plant) {
+  if (plant === 'pitec') { showView('pitec'); switchPitecTab('liquidaciones'); }
+}
+
+function goLanding() { showView('landing'); }
+
+function switchPitecTab(tab) {
+  pitecTab = tab;
+  document.getElementById('pitec-liquidaciones').style.display = tab === 'liquidaciones' ? '' : 'none';
+  document.getElementById('pitec-vacaciones').style.display    = tab === 'vacaciones'    ? '' : 'none';
+  document.getElementById('ptab-liquidaciones').classList.toggle('active', tab === 'liquidaciones');
+  document.getElementById('ptab-vacaciones').classList.toggle('active', tab === 'vacaciones');
+  if (tab === 'vacaciones') loadVacaciones();
+}
+
+// ─── DRIVE ───────────────────────────────────────────────────────────────────
 async function driveList(folderId, extraQ = '') {
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false${extraQ}`);
   const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=name&pageSize=200`;
@@ -366,266 +428,53 @@ async function driveList(folderId, extraQ = '') {
 }
 
 function parseMonthFromName(filename) {
-  // "1 ENERO.xlsx" → {order:1, name:'ENERO', monthNum:1}
-  // Normalize accents for matching
   const m = filename.match(/^(\d+)\s+([A-ZÁÉÍÓÚÑ]+)(?:\..+)?$/i);
   if (!m) return null;
   const raw = m[2].toUpperCase();
-  const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const monthNum = MESES_ES[normalized] || MESES_ES[raw] || null;
+  const norm = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const monthNum = MESES_ES[norm] || MESES_ES[raw] || null;
   if (!monthNum) return null;
   return { order: parseInt(m[1]), name: raw, monthNum };
 }
 
 async function loadAllYearFiles() {
-  // Try to discover year folders from the main RRHH folder
   try {
-    const folders = await driveList(RRHH_MAIN_FOLDER,
-      ` and mimeType='application/vnd.google-apps.folder'`);
-    folders.forEach(f => {
-      const yr = f.name.match(/\b(202[6-9]|203\d)\b/)?.[0]; // solo 2026 en adelante
-      if (yr) yearFolders[yr] = f.id;
-    });
-  } catch(e) { /* use seed */ }
-
-  // Load files for each year folder
+    const folders = await driveList(RRHH_MAIN_FOLDER, ` and mimeType='application/vnd.google-apps.folder'`);
+    folders.forEach(f => { const yr = f.name.match(/\b(202[6-9]|203\d)\b/)?.[0]; if (yr) yearFolders[yr] = f.id; });
+  } catch(e) {}
   for (const [year, folderId] of Object.entries(yearFolders)) {
     try {
       const files = await driveList(folderId);
-      yearFiles[year] = files
-        .map(f => ({ id: f.id, rawName: f.name, ...(parseMonthFromName(f.name) || {}) }))
-        .filter(f => f.monthNum)
-        .sort((a, b) => a.order - b.order);
+      yearFiles[year] = files.map(f => ({ id: f.id, rawName: f.name, ...(parseMonthFromName(f.name) || {}) }))
+        .filter(f => f.monthNum).sort((a, b) => a.order - b.order);
     } catch(e) { yearFiles[year] = []; }
   }
-
-  // Select the most recent year that has files
   const yearsWithFiles = Object.keys(yearFiles).filter(y => yearFiles[y]?.length > 0).sort().reverse();
   if (yearsWithFiles.length) selectedYear = yearsWithFiles[0];
 }
 
-// ─── XLSX READ via Drive download + SheetJS ───────────────────────────────────
-// Workbook cache: fileId → XLSX.WorkBook (avoids re-downloading the same file)
-const wbCache = {};
-
+// ─── XLSX (SheetJS) ───────────────────────────────────────────────────────────
 async function getWorkbook(fileId) {
   if (wbCache[fileId]) return wbCache[fileId];
-  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
-  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!resp.ok) {
-    const txt = await resp.text();
-    throw new Error(`Drive download ${resp.status}: ${txt.slice(0,200)}`);
-  }
+  const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) throw new Error(`Drive ${resp.status}`);
   const buf = await resp.arrayBuffer();
   const wb  = XLSX.read(buf, { type: 'array', cellText: true, cellDates: true, cellStyles: true });
   wbCache[fileId] = wb;
   return wb;
 }
 
-// Recorta el rango del sheet hasta la última fila/columna con datos reales
-function trimSheetRef(ws) {
-  if (!ws['!ref']) return;
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  let lastRow = range.s.r, lastCol = range.s.c;
-  for (let r = range.s.r; r <= range.e.r; r++) {
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r, c })];
-      if (cell && cell.v !== undefined && cell.v !== null && String(cell.v).trim() !== '') {
-        if (r > lastRow) lastRow = r;
-        if (c > lastCol) lastCol = c;
-      }
-    }
-  }
-  ws['!ref'] = XLSX.utils.encode_range({ s: range.s, e: { r: lastRow, c: lastCol } });
-}
-
-async function readXlsxTab(fileId, tabName) {
-  const cacheKey = `${fileId}::${tabName}`;
-  if (liqCache[cacheKey]) return liqCache[cacheKey];
-  const wb = await getWorkbook(fileId);
-  const sheetName = findSheetName(wb, tabName);
-  const ws   = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
-  liqCache[cacheKey] = rows;
-  return rows;
-}
-
-// ── Helpers de estilo ──────────────────────────────────────────────────────────
-function xlsxHex(c) {
-  // Convierte color SheetJS ({rgb:'FFAABBCC'} o {rgb:'AABBCC'}) a '#rrggbb'
-  if (!c?.rgb) return null;
-  const rgb = c.rgb;
-  return '#' + (rgb.length === 8 ? rgb.slice(2) : rgb);   // strip alpha if present
-}
-
-function isWhiteOrEmpty(hex) {
-  if (!hex) return true;
-  const h = hex.replace('#','').toLowerCase();
-  return h === 'ffffff' || h === 'ffffffff' || h === '000000' || h === '00000000';
-}
-
-function cellCss(s) {
-  if (!s) return '';
-  let css = '';
-
-  // Fondo
-  const bg = xlsxHex(s.fill?.fgColor);
-  if (bg && !isWhiteOrEmpty(bg)) css += `background:${bg};`;
-
-  // Fuente
-  const f = s.font || {};
-  if (f.bold)    css += 'font-weight:bold;';
-  if (f.italic)  css += 'font-style:italic;';
-  if (f.underline) css += 'text-decoration:underline;';
-  const fc = xlsxHex(f.color);
-  if (fc && !isWhiteOrEmpty(fc)) css += `color:${fc};`;
-  if (f.sz) css += `font-size:${Math.round(f.sz * 1.15)}px;`;
-
-  // Alineación
-  const a = s.alignment || {};
-  if (a.horizontal) css += `text-align:${a.horizontal};`;
-  if (a.vertical)   css += `vertical-align:${a.vertical};`;
-  if (a.wrapText)   css += 'white-space:normal;';
-
-  // Bordes
-  const B = s.border || {};
-  const bw = { thin:'1px', medium:'2px', thick:'3px', hair:'1px', dashed:'1px', dotted:'1px' };
-  const bs = { thin:'solid', medium:'solid', thick:'solid', hair:'solid', dashed:'dashed', dotted:'dotted' };
-  ['top','bottom','left','right'].forEach(side => {
-    const b = B[side];
-    if (b?.style) {
-      const bc = xlsxHex(b.color) || '#bbb';
-      css += `border-${side}:${bw[b.style]||'1px'} ${bs[b.style]||'solid'} ${bc};`;
-    }
-  });
-
-  return css;
-}
-
-// ── Renderer manual: lee .s de cada celda y genera HTML con estilos inline ─────
-function sheetToStyledHtml(ws) {
-  if (!ws['!ref']) return '<table></table>';
-  const range  = XLSX.utils.decode_range(ws['!ref']);
-  const merges = ws['!merges'] || [];
-  const cols   = ws['!cols']   || [];
-
-  // Mapa de merges
-  const mergeMap  = {};
-  const skipCells = new Set();
-  merges.forEach(m => {
-    mergeMap[`${m.s.r},${m.s.c}`] = { rs: m.e.r - m.s.r + 1, cs: m.e.c - m.s.c + 1 };
-    for (let r = m.s.r; r <= m.e.r; r++)
-      for (let c = m.s.c; c <= m.e.c; c++)
-        if (r !== m.s.r || c !== m.s.c) skipCells.add(`${r},${c}`);
-  });
-
-  // Anchos de columna (en px: 1 "char" ≈ 8px)
-  const colWidths = Array.from({ length: range.e.c - range.s.c + 1 }, (_, i) => {
-    const col = cols[range.s.c + i];
-    return col?.wpx ? `width:${col.wpx}px;` : col?.wch ? `width:${Math.round(col.wch * 7.5)}px;` : '';
-  });
-
-  let html = `<table style="border-collapse:collapse;font-size:12px;font-family:Calibri,Arial,sans-serif;">`;
-
-  // colgroup para anchos
-  if (colWidths.some(w => w)) {
-    html += '<colgroup>' + colWidths.map(w => `<col style="${w}">`).join('') + '</colgroup>';
-  }
-
-  for (let r = range.s.r; r <= range.e.r; r++) {
-    html += '<tr>';
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      const key  = `${r},${c}`;
-      if (skipCells.has(key)) continue;
-
-      const cell  = ws[XLSX.utils.encode_cell({ r, c })];
-      const merge = mergeMap[key];
-      const style = 'padding:3px 8px;' + cellCss(cell?.s);
-      const value = cell ? (cell.w || String(cell.v ?? '')) : '';
-
-      const mergeAttrs = merge
-        ? `${merge.rs > 1 ? ` rowspan="${merge.rs}"` : ''}${merge.cs > 1 ? ` colspan="${merge.cs}"` : ''}`
-        : '';
-
-      html += `<td${mergeAttrs} style="${style}">${escH(value)}</td>`;
-    }
-    html += '</tr>';
-  }
-
-  return html + '</table>';
-}
-
-// Devuelve HTML con formato completo del Excel (colores, celdas combinadas, bordes)
-async function getSheetHtml(fileId, tabName) {
-  const cacheKey = `html::${fileId}::${tabName}`;
-  if (liqCache[cacheKey]) return liqCache[cacheKey];
-  const wb = await getWorkbook(fileId);
-  const sheetName = findSheetName(wb, tabName);
-  const ws = wb.Sheets[sheetName];
-  trimSheetRef(ws);
-  const html = sheetToStyledHtml(ws);   // renderer manual con estilos inline
-  liqCache[cacheKey] = html;
-  return html;
-}
-
 function findSheetName(wb, tabName) {
-  const name = wb.SheetNames.find(n => n === tabName)
-    || wb.SheetNames.find(n => n.toLowerCase().trim() === tabName.toLowerCase().trim());
-  if (!name) throw new Error(
-    `Pestaña "${tabName}" no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`
-  );
+  const name = wb.SheetNames.find(n => n === tabName) || wb.SheetNames.find(n => n.toLowerCase().trim() === tabName.toLowerCase().trim());
+  if (!name) throw new Error(`Pestaña "${tabName}" no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`);
   return name;
 }
 
-// ─── PERSONAL ────────────────────────────────────────────────────────────────
-async function loadPersonal() {
-  const tbl = document.getElementById('personalTable');
-  const sub = document.getElementById('personalSub');
-  const stats = document.getElementById('personalStats');
-
-  // Find most recent file across all years
-  let latestFile = null;
-  let latestYear = '';
-  const yearsDesc = Object.keys(yearFiles).sort().reverse();
-  for (const yr of yearsDesc) {
-    const files = yearFiles[yr] || [];
-    if (files.length) { latestFile = files[files.length - 1]; latestYear = yr; break; }
-  }
-
-  if (!latestFile) {
-    tbl.innerHTML = '<tbody><tr><td class="empty-state">No se encontraron archivos de nómina cargados.</td></tr></tbody>';
-    sub.textContent = 'Sin archivos disponibles';
-    return;
-  }
-
-  sub.textContent = `Referencia: ${latestFile.name} ${latestYear} — actualizá subiendo el mes más reciente a la carpeta`;
-
-  try {
-    const html = await getSheetHtml(latestFile.id, 'Lista Personal');
-    // Contar empleados para el stat (usamos rows sin formato)
-    const rows = await readXlsxTab(latestFile.id, 'Lista Personal');
-    const dataRows = rows.slice(1).filter(r => r.some(c => String(c||'').trim()));
-    stats.innerHTML = `<div class="stat-pill"><strong>${dataRows.length}</strong> empleados activos</div>`;
-    // Reemplazar contenido del card con el HTML formateado del Excel
-    tbl.closest('.card').innerHTML = `<div class="xlsx-frame">${html}</div>`;
-  } catch(e) {
-    tbl.innerHTML = `<tbody><tr><td class="empty-state" style="color:var(--danger)">
-      Error al cargar nómina: ${escH(e.message)}<br>
-      <a href="https://drive.google.com/file/d/${latestFile.id}" target="_blank"
-         style="color:var(--acc2);font-size:12px;margin-top:8px;display:inline-block;">
-        Abrir archivo en Drive ↗
-      </a>
-    </td></tr></tbody>`;
-  }
-}
-
-// ─── YEAR / MONTH UI ─────────────────────────────────────────────────────────
+// ─── YEAR/MONTH UI ────────────────────────────────────────────────────────────
 function renderYearSelector() {
   const el = document.getElementById('yearSelector');
   const years = Object.keys(yearFolders).sort().reverse();
-  el.innerHTML = years.map(y =>
-    `<button class="year-btn${y === selectedYear ? ' active' : ''}" onclick="selectYear('${y}')">${y}</button>`
-  ).join('');
+  el.innerHTML = years.map(y => `<button class="year-btn${y === selectedYear ? ' active' : ''}" onclick="selectYear('${y}')">${y}</button>`).join('');
 }
 
 function selectYear(yr) {
@@ -639,29 +488,18 @@ function selectYear(yr) {
 function renderMonthGrid() {
   const grid = document.getElementById('monthGrid');
   const files = yearFiles[selectedYear] || [];
-
   if (!files.length) {
-    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--t3);font-size:13px;padding:12px 0;">
-      No hay archivos cargados para ${selectedYear}.</div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--t3);font-size:13px;padding:12px 0;">No hay archivos cargados para ${selectedYear}.</div>`;
     return;
   }
-
   const fileByMonth = {};
   files.forEach(f => { fileByMonth[f.monthNum] = f; });
-
-  grid.innerHTML = Array.from({length: 12}, (_, i) => i + 1).map(m => {
+  grid.innerHTML = Array.from({length:12},(_,i)=>i+1).map(m => {
     const f = fileByMonth[m];
     const isActive = selectedFile && selectedFile.id === f?.id;
-    if (f) {
-      return `<div class="month-btn${isActive ? ' active' : ''}" onclick="selectMonth(${m})">
-        <div class="month-name">${MESES_SHORT[m]}</div>
-        <div class="month-year">'${String(selectedYear).slice(2)}</div>
-      </div>`;
-    }
-    return `<div class="month-btn disabled">
-      <div class="month-name" style="color:var(--t3)">${MESES_SHORT[m]}</div>
-      <div class="month-year">—</div>
-    </div>`;
+    return f
+      ? `<div class="month-btn${isActive?' active':''}" onclick="selectMonth(${m})"><div class="month-name">${MESES_SHORT[m]}</div><div class="month-year">'${String(selectedYear).slice(2)}</div></div>`
+      : `<div class="month-btn disabled"><div class="month-name" style="color:var(--t3)">${MESES_SHORT[m]}</div><div class="month-year">—</div></div>`;
   }).join('');
 }
 
@@ -669,61 +507,133 @@ async function selectMonth(monthNum) {
   const files = yearFiles[selectedYear] || [];
   const f = files.find(x => x.monthNum === monthNum);
   if (!f) return;
-
   selectedFile = f;
   renderMonthGrid();
-
   const detail = document.getElementById('monthDetail');
   detail.style.display = 'block';
-  document.getElementById('monthDetailTitle').textContent =
-    `${MESES_LONG[monthNum]} ${selectedYear}`;
-  document.getElementById('driveLink').href =
-    `https://drive.google.com/file/d/${f.id}/view`;
-
-  // Embeber Drive preview — renderiza el xlsx con 100% del formato original
-  const cont = document.getElementById('liqContent');
-  cont.innerHTML = `<div class="loading-state"><span class="spinner"></span>Cargando archivo...</div>`;
-  const previewUrl = `https://drive.google.com/file/d/${f.id}/preview`;
-  cont.innerHTML = `<iframe src="${previewUrl}"
-    style="width:100%;height:640px;border:none;display:block;"
-    allow="autoplay" allowfullscreen></iframe>`;
-
-  setTimeout(() => detail.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  document.getElementById('monthDetailTitle').textContent = `${MESES_LONG[monthNum]} ${selectedYear}`;
+  document.getElementById('driveLink').href = `https://drive.google.com/file/d/${f.id}/view`;
+  document.getElementById('liqContent').innerHTML =
+    `<iframe src="https://drive.google.com/file/d/${f.id}/preview" style="width:100%;height:640px;border:none;display:block;" allowfullscreen></iframe>`;
+  setTimeout(() => detail.scrollIntoView({ behavior:'smooth', block:'start' }), 60);
 }
 
-function buildTable(rows, tabName) {
-  if (!rows || rows.length < 2)
-    return `<table><tbody><tr><td class="empty-state">Sin datos en "${escH(tabName)}".</td></tr></tbody></table>`;
+// ─── VACACIONES ───────────────────────────────────────────────────────────────
+let vacCache = null;
 
-  // Skip leading empty rows to find the header
-  let hIdx = 0;
-  while (hIdx < rows.length && !rows[hIdx].some(c => String(c||'').trim())) hIdx++;
+async function loadVacaciones(force = false) {
+  if (vacCache && !force) { renderVacaciones(vacCache); return; }
 
-  const headers  = rows[hIdx] || [];
-  const dataRows = rows.slice(hIdx + 1).filter(r => r.some(c => String(c||'').trim()));
-  const numCols  = headers.length || 1;
+  const tbody = document.getElementById('vacBody');
+  const kpis  = document.getElementById('vacKpis');
+  tbody.innerHTML = `<tr><td colspan="7" class="loading-state"><span class="spinner"></span>Cargando vacaciones...</td></tr>`;
+  kpis.innerHTML  = '';
 
-  return `<table>
-    <thead><tr>${headers.map(h => `<th>${escH(String(h||''))}</th>`).join('')}</tr></thead>
-    <tbody>${dataRows.map(r =>
-      `<tr>${Array.from({length: numCols}, (_, i) => `<td>${escH(String(r[i]||''))}</td>`).join('')}</tr>`
-    ).join('')}</tbody>
-  </table>`;
+  try {
+    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${VAC_SHEET_ID}/values/${encodeURIComponent(VAC_TAB_NAME + '!A1:K200')}?valueRenderOption=FORMATTED_VALUE`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const data = await resp.json();
+    if (data.error) throw new Error(`API ${data.error.code}: ${data.error.message}`);
+    const rows = data.values || [];
+    // Find header row (contains "Legajo")
+    let hIdx = rows.findIndex(r => r.some(c => String(c||'').toLowerCase().includes('legajo')));
+    if (hIdx < 0) hIdx = 2; // fallback row 3 (index 2)
+    const headers  = rows[hIdx] || [];
+    const dataRows = rows.slice(hIdx + 1).filter(r => r.some(c => String(c||'').trim()));
+
+    // Map columns by header name (case-insensitive)
+    function colIdx(keyword) {
+      return headers.findIndex(h => String(h||'').toLowerCase().includes(keyword.toLowerCase()));
+    }
+    const iLeg  = colIdx('legajo');
+    const iNom  = colIdx('nombre');
+    const iCor  = colIdx('tomarse') >= 0 ? colIdx('tomarse') : colIdx('correspond');
+    const iTom  = colIdx('tomados');
+    const iRes  = colIdx('restantes');
+    // Fechas: columns after Dias Restantes
+    const fechaCols = headers.map((h,i) => ({ h: String(h||''), i })).filter(({h}) => h.toLowerCase().startsWith('fecha'));
+
+    const employees = dataRows.map(r => ({
+      legajo:   String(r[iLeg]  || '').trim(),
+      nombre:   String(r[iNom]  || '').trim(),
+      diasCorr: parseInt(r[iCor] || 0)  || 0,
+      diasTom:  parseInt(r[iTom] || 0)  || 0,
+      diasRes:  r[iRes] !== undefined ? parseInt(r[iRes] || 0) || 0 : null,
+      fechas:   fechaCols.map(({i}) => String(r[i]||'').trim()).filter(Boolean),
+    })).filter(e => e.legajo || e.nombre);
+
+    // Calc diasRes if not in sheet
+    employees.forEach(e => {
+      if (e.diasRes === null) e.diasRes = e.diasCorr - e.diasTom;
+    });
+
+    vacCache = employees;
+    renderVacaciones(employees);
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--danger);">
+      Error al cargar: ${escH(e.message)}<br>
+      <a href="https://docs.google.com/spreadsheets/d/${VAC_SHEET_ID}" target="_blank" style="color:var(--acc2);font-size:12px;">Abrir sheet ↗</a>
+    </td></tr>`;
+  }
 }
 
-// ─── TAB SWITCHING ───────────────────────────────────────────────────────────
-function switchTab(tab) {
-  ['personal','liquidaciones'].forEach(t => {
-    document.getElementById(`section-${t}`).style.display = t === tab ? '' : 'none';
-    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
-  });
+function renderVacaciones(employees) {
+  const tbody = document.getElementById('vacBody');
+  const kpis  = document.getElementById('vacKpis');
+
+  // KPIs
+  const total     = employees.length;
+  const pendiente = employees.filter(e => e.diasTom === 0 && e.diasCorr > 0).length;
+  const parcial   = employees.filter(e => e.diasTom > 0 && e.diasRes > 0).length;
+  const completo  = employees.filter(e => e.diasRes <= 0 && e.diasCorr > 0).length;
+
+  kpis.innerHTML = [
+    { label:'Total empleados', val: total,     color:'var(--acc2)' },
+    { label:'Sin tomar',        val: pendiente, color:'var(--ok)' },
+    { label:'Parcialmente',     val: parcial,   color:'var(--warn)' },
+    { label:'Completo',         val: completo,  color:'var(--danger)' },
+  ].map(k => `<div class="vac-kpi">
+    <div class="vac-kpi-val" style="color:${k.color}">${k.val}</div>
+    <div class="vac-kpi-label">${k.label}</div>
+  </div>`).join('');
+
+  // Table rows
+  tbody.innerHTML = employees.map(e => {
+    const pct   = e.diasCorr > 0 ? Math.max(0, Math.min(100, Math.round((e.diasTom / e.diasCorr) * 100))) : 0;
+    const color = e.diasRes <= 0 ? '#ff4747' : e.diasTom > 0 ? '#ffb347' : '#47ffb2';
+
+    let badge, statusClass;
+    if (e.diasRes <= 0 && e.diasCorr > 0) {
+      badge = 'Completo'; statusClass = 'status-done';
+    } else if (e.diasTom > 0) {
+      badge = `${e.diasRes} días rest.`; statusClass = 'status-warn';
+    } else {
+      badge = `${e.diasCorr} días pend.`; statusClass = 'status-ok';
+    }
+
+    // Período vacacional: año de referencia del tab
+    const periodo = VAC_TAB_NAME.replace('Vacaciones_','').replace('_','/') || '2025/26';
+
+    return `<tr>
+      <td class="mono" style="color:var(--t2);font-size:12px;">${escH(e.legajo)}</td>
+      <td style="font-weight:500;">${escH(e.nombre)}</td>
+      <td style="font-size:12px;color:var(--t2);">${escH(periodo)}</td>
+      <td style="text-align:right;font-family:var(--mono);">${e.diasCorr}</td>
+      <td style="text-align:right;font-family:var(--mono);">${e.diasTom}</td>
+      <td>
+        <div class="days-bar-wrap">
+          <div class="days-bar"><div class="days-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+          <span class="status-badge ${statusClass}">${escH(badge)}</span>
+        </div>
+      </td>
+      <td class="dates-list">${e.fechas.map(f => escH(f)).join('<br>')}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty-state">Sin datos de vacaciones.</td></tr>`;
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function escH(s) {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>
