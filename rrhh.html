@@ -287,7 +287,8 @@ const ADMIN_EMAILS    = ['franco.bauer98@gmail.com'];
 
 // Vacaciones sheet (Pitec 2025/2026)
 const VAC_SHEET_ID   = '1TI9AM58IbMiYSXeh_88BvHyMLGZJhLcYcF-d4loand4';
-const VAC_TAB_NAME   = 'Vacaciones_2025_26';
+const VAC_TAB_NAME   = 'Hoja 1';
+const VAC_PERIODO    = '2025/26';
 
 // Drive folders
 const RRHH_MAIN_FOLDER  = '15jroGxlV5ReTZA5Ep5a6WjkG-Jw2GnC5';
@@ -535,23 +536,41 @@ async function loadVacaciones(force = false) {
     const data = await resp.json();
     if (data.error) throw new Error(`API ${data.error.code}: ${data.error.message}`);
     const rows = data.values || [];
-    // Find header row (contains "Legajo")
+    // Find header row (contains "Legajo" or "legajo")
     let hIdx = rows.findIndex(r => r.some(c => String(c||'').toLowerCase().includes('legajo')));
-    if (hIdx < 0) hIdx = 2; // fallback row 3 (index 2)
-    const headers  = rows[hIdx] || [];
-    const dataRows = rows.slice(hIdx + 1).filter(r => r.some(c => String(c||'').trim()));
+    let iLeg, iNom, iCor, iTom, iRes, fechaCols;
 
-    // Map columns by header name (case-insensitive)
-    function colIdx(keyword) {
-      return headers.findIndex(h => String(h||'').toLowerCase().includes(keyword.toLowerCase()));
+    if (hIdx >= 0) {
+      // Use named headers
+      const headers = rows[hIdx] || [];
+      function colIdx(keyword) {
+        return headers.findIndex(h => String(h||'').toLowerCase().includes(keyword.toLowerCase()));
+      }
+      iLeg     = colIdx('legajo');
+      iNom     = colIdx('nombre');
+      iCor     = colIdx('tomarse') >= 0 ? colIdx('tomarse') : colIdx('correspond');
+      iTom     = colIdx('tomados');
+      iRes     = colIdx('restantes');
+      fechaCols = headers.map((h,i) => ({ h: String(h||''), i })).filter(({h,i}) =>
+        h.toLowerCase().startsWith('fecha') || (i >= 6 && h.trim())
+      );
+    } else {
+      // Fallback: fixed columns per real sheet layout
+      // Col: A(0)=# | B(1)=Legajo | C(2)=Nombre | D(3)=Días Corresp | E(4)=Tomados | F(5)=Restantes | G(6)+= Fechas
+      hIdx      = -1;
+      iLeg      = 1;
+      iNom      = 2;
+      iCor      = 3;
+      iTom      = 4;
+      iRes      = 5;
+      fechaCols = [6,7,8,9].map(i => ({ i }));
     }
-    const iLeg  = colIdx('legajo');
-    const iNom  = colIdx('nombre');
-    const iCor  = colIdx('tomarse') >= 0 ? colIdx('tomarse') : colIdx('correspond');
-    const iTom  = colIdx('tomados');
-    const iRes  = colIdx('restantes');
-    // Fechas: columns after Dias Restantes
-    const fechaCols = headers.map((h,i) => ({ h: String(h||''), i })).filter(({h}) => h.toLowerCase().startsWith('fecha'));
+
+    const dataRows = rows.slice(hIdx + 1).filter(r => {
+      const leg = String(r[iLeg]||'').trim();
+      const nom = String(r[iNom]||'').trim();
+      return (leg && /\d/.test(leg)) || nom; // row must have numeric legajo or a name
+    });
 
     const employees = dataRows.map(r => ({
       legajo:   String(r[iLeg]  || '').trim(),
@@ -611,8 +630,7 @@ function renderVacaciones(employees) {
       badge = `${e.diasCorr} días pend.`; statusClass = 'status-ok';
     }
 
-    // Período vacacional: año de referencia del tab
-    const periodo = VAC_TAB_NAME.replace('Vacaciones_','').replace('_','/') || '2025/26';
+    const periodo = VAC_PERIODO;
 
     return `<tr>
       <td class="mono" style="color:var(--t2);font-size:12px;">${escH(e.legajo)}</td>
