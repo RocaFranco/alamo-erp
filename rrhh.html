@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RRHH — Alamo ERP</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -226,7 +227,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.02);}
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const CLIENT_ID       = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
-const SCOPES          = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/userinfo.email';
+const SCOPES          = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
 const ACCESS_SHEET_ID = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
 const MODULE_KEY      = 'RRHH';
 const ADMIN_EMAILS    = ['franco.bauer98@gmail.com'];
@@ -324,6 +325,7 @@ function signOut() {
   if (accessToken) { google.accounts.oauth2.revoke(accessToken, () => {}); }
   accessToken = null;
   liqCache = {};
+  Object.keys(wbCache).forEach(k => delete wbCache[k]);
   document.getElementById('header').style.display = 'none';
   document.getElementById('main').style.display = 'none';
   document.getElementById('loginOverlay').style.display = 'flex';
@@ -401,17 +403,44 @@ async function loadAllYearFiles() {
   if (yearsWithFiles.length) selectedYear = yearsWithFiles[0];
 }
 
-// ─── SHEETS API (FORMATTED_VALUE for .xlsx) ───────────────────────────────────
+// ─── XLSX READ via Drive download + SheetJS ───────────────────────────────────
+// Workbook cache: fileId → XLSX.WorkBook (avoids re-downloading the same file)
+const wbCache = {};
+
+async function getWorkbook(fileId) {
+  if (wbCache[fileId]) return wbCache[fileId];
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`Drive download ${resp.status}: ${txt.slice(0,200)}`);
+  }
+  const buf = await resp.arrayBuffer();
+  const wb  = XLSX.read(buf, { type: 'array', cellText: true, cellDates: true });
+  wbCache[fileId] = wb;
+  return wb;
+}
+
 async function readXlsxTab(fileId, tabName) {
   const cacheKey = `${fileId}::${tabName}`;
   if (liqCache[cacheKey]) return liqCache[cacheKey];
-  const range = encodeURIComponent(`${tabName}!A1:AZ500`);
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/${range}?valueRenderOption=FORMATTED_VALUE`;
-  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  const data = await resp.json();
-  if (data.error) throw new Error(`${data.error.code}: ${data.error.message}`);
-  liqCache[cacheKey] = data.values || [];
-  return liqCache[cacheKey];
+
+  const wb = await getWorkbook(fileId);
+
+  // Try exact name first, then case-insensitive match
+  let sheetName = wb.SheetNames.find(n => n === tabName)
+    || wb.SheetNames.find(n => n.toLowerCase().trim() === tabName.toLowerCase().trim());
+
+  if (!sheetName) {
+    throw new Error(
+      `Pestaña "${tabName}" no encontrada. Disponibles: ${wb.SheetNames.join(', ')}`
+    );
+  }
+
+  const ws   = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+  liqCache[cacheKey] = rows;
+  return rows;
 }
 
 // ─── PERSONAL ────────────────────────────────────────────────────────────────
