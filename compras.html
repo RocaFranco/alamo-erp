@@ -740,10 +740,17 @@ function truncate(s, n=35) {
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
+function _handleScopeError(status, txt) {
+  if (status === 403 && txt.includes('ACCESS_TOKEN_SCOPE_INSUFFICIENT')) {
+    if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
+    throw new Error('Permisos insuficientes — re-autenticando. Iniciá sesión nuevamente.');
+  }
+}
+
 async function readSheet(range) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`);
+  if (!resp.ok) { const txt = await resp.text(); _handleScopeError(resp.status, txt); throw new Error(`API error ${resp.status}: ${txt}`); }
   const data = await resp.json();
   return data.values || [];
 }
@@ -752,7 +759,7 @@ async function readSheetFromId(sheetId, range) {
   // Use FORMATTED_VALUE for external sheets (Excel imports fail with UNFORMATTED_VALUE)
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueRenderOption=FORMATTED_VALUE`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!resp.ok) throw new Error(`API error ${resp.status}: ${await resp.text()}`);
+  if (!resp.ok) { const txt = await resp.text(); _handleScopeError(resp.status, txt); throw new Error(`API error ${resp.status}: ${txt}`); }
   const data = await resp.json();
   return data.values || [];
 }
@@ -898,7 +905,7 @@ async function loadAll(forceRefresh = false) {
 async function readSheetWithSignal(range, signal) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` }, signal });
-  if (!resp.ok) throw new Error(`API ${resp.status} en ${range}: ${await resp.text()}`);
+  if (!resp.ok) { const txt = await resp.text(); _handleScopeError(resp.status, txt); throw new Error(`API ${resp.status} en ${range}: ${txt}`); }
   const data = await resp.json();
   return data.values || [];
 }
