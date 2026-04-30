@@ -30,14 +30,75 @@
       --disp:  'Syne', sans-serif;
     }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; background: var(--bg); }
 
     body {
-      background: var(--bg);
+      background: transparent;
       color: var(--text);
       font-family: var(--sans);
       min-height: 100vh;
       overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ══════════════════════════════
+       BACKGROUND COLLAGE
+    ══════════════════════════════ */
+    .bg-collage {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      overflow: hidden;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      padding: 0;
+    }
+    .bg-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      animation: bgScroll 90s linear infinite;
+      will-change: transform;
+    }
+    .bg-col:nth-child(2) { animation-duration: 115s; animation-direction: reverse; }
+    .bg-col:nth-child(3) { animation-duration:  95s; }
+    .bg-col:nth-child(4) { animation-duration: 105s; animation-direction: reverse; }
+    .bg-col:nth-child(5) { animation-duration:  80s; }
+    .bg-col img {
+      width: 100%;
+      display: block;
+      border-radius: 6px;
+      filter: blur(1px) saturate(0.55) brightness(0.65);
+      opacity: 0.32;
+      user-select: none;
+    }
+    @keyframes bgScroll {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-50%); }
+    }
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg,
+          rgba(14,15,17,0.65) 0%,
+          rgba(14,15,17,0.40) 30%,
+          rgba(14,15,17,0.40) 70%,
+          rgba(14,15,17,0.70) 100%);
+    }
+    @media (max-width: 960px) {
+      .bg-collage { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .bg-collage { grid-template-columns: repeat(2, 1fr); }
+      .bg-col img { opacity: 0.22; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bg-col { animation: none; }
     }
 
     /* ── SCROLLBAR ── */
@@ -634,6 +695,12 @@
 <body>
 
   <!-- ══════════════════════════════
+       BACKGROUND COLLAGE
+  ══════════════════════════════ -->
+  <div class="bg-collage" id="bg-collage" aria-hidden="true"></div>
+  <div class="bg-overlay" aria-hidden="true"></div>
+
+  <!-- ══════════════════════════════
        HEADER
   ══════════════════════════════ -->
   <header>
@@ -925,6 +992,37 @@
         hint.childNodes[1].textContent = ' VER MODULOS';
       }
     }
+
+    /* ── Background collage ── */
+    (function buildCollage() {
+      const N_FOTOS = 21;
+      const N_COLS  = 5;
+      const folder  = 'Fotos%20Fondo%20ERP';
+      const fotos = Array.from({length: N_FOTOS}, (_, i) =>
+        `${folder}/foto-${String(i+1).padStart(2,'0')}.jpg`
+      );
+      // Shuffle for random distribution per page load
+      for (let i = fotos.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [fotos[i], fotos[j]] = [fotos[j], fotos[i]];
+      }
+      const root = document.getElementById('bg-collage');
+      for (let c = 0; c < N_COLS; c++) {
+        const col = document.createElement('div');
+        col.className = 'bg-col';
+        const colImgs = fotos.filter((_, i) => i % N_COLS === c);
+        // Duplicate set so translateY(-50%) loops seamlessly
+        [...colImgs, ...colImgs].forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = '';
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          col.appendChild(img);
+        });
+        root.appendChild(col);
+      }
+    })();
 
     /* ── Staggered card entrance animation ── */
     const cards = document.querySelectorAll('.card');
