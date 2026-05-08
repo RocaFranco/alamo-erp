@@ -1,0 +1,1185 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fábrica Alamo · ERP</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>🏭</text></svg>">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root{
+  --bg:#0e0f11; --surf:#16181c; --surf2:#1e2127; --surf3:#23272f;
+  --b:#2a2d35; --b2:#353942;
+  --acc:#e8ff47; --acc2:#47c8ff; --acc3:#ff6b47;
+  --ok:#47ffb2; --warn:#ffb347; --danger:#ff5c6c;
+  --text:#f0f2f5; --t2:#8b909e; --t3:#555b6a;
+  --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif; --disp:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:var(--acc2);text-decoration:none}
+
+/* ================================ LOGIN OVERLAY ================================ */
+#loginOverlay{position:fixed;inset:0;background:linear-gradient(135deg,#0e0f11 0%,#16181c 100%);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.login-card{background:var(--surf2);border:1px solid var(--b);border-radius:16px;padding:40px;max-width:420px;width:100%;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,0.5)}
+.login-logo{font-family:var(--disp);font-size:36px;font-weight:800;color:var(--acc);margin-bottom:8px;letter-spacing:-1px}
+.login-sub{color:var(--t2);font-size:13px;margin-bottom:32px}
+.login-btn{background:var(--acc);color:var(--bg);font-weight:600;padding:14px 28px;border-radius:10px;font-size:15px;width:100%;transition:all 0.2s}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(232,255,71,0.25)}
+.login-status{margin-top:16px;color:var(--t2);font-size:12px;font-family:var(--mono);min-height:20px}
+.login-error{color:var(--danger)}
+
+/* ================================ APP SHELL ================================ */
+#app{display:none;flex-direction:column;min-height:100vh}
+#app.visible{display:flex}
+
+header{position:sticky;top:0;z-index:50;background:rgba(14,15,17,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--b);padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.h-left{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.pulse-dot{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px var(--ok);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.h-title{font-family:var(--disp);font-weight:800;font-size:18px;letter-spacing:-0.5px}
+.h-badge{font-family:var(--mono);font-size:10px;background:var(--acc);color:var(--bg);padding:3px 8px;border-radius:4px;font-weight:500}
+.h-clock{font-family:var(--mono);color:var(--t2);font-size:12px;margin-left:auto}
+.h-user{display:flex;align-items:center;gap:8px;color:var(--t2);font-size:12px}
+.btn-icon{padding:8px 10px;border-radius:8px;background:var(--surf);border:1px solid var(--b);color:var(--text);transition:all 0.15s}
+.btn-icon:hover{background:var(--surf3);border-color:var(--b2)}
+.btn-logout{padding:6px 12px;border-radius:6px;background:transparent;border:1px solid var(--b);color:var(--t2);font-size:12px}
+.btn-logout:hover{color:var(--danger);border-color:var(--danger)}
+
+/* Tabs */
+nav.tabs{display:flex;gap:4px;padding:8px 20px;background:var(--surf);border-bottom:1px solid var(--b);overflow-x:auto;scrollbar-width:thin}
+.tab{padding:10px 16px;border-radius:8px;background:transparent;color:var(--t2);font-weight:500;font-size:13px;white-space:nowrap;transition:all 0.15s}
+.tab:hover{background:var(--surf2);color:var(--text)}
+.tab.active{background:var(--acc);color:var(--bg);font-weight:600}
+
+main{flex:1;padding:20px;max-width:1400px;margin:0 auto;width:100%}
+.panel{display:none;animation:fadeIn 0.25s}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+h2.section{font-family:var(--disp);font-weight:800;font-size:22px;margin-bottom:16px;letter-spacing:-0.5px}
+h3.subsection{font-size:14px;font-weight:600;color:var(--t2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* ================================ KPI GRID ================================ */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.kpi-card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:18px;transition:transform 0.15s, border-color 0.15s}
+.kpi-card:hover{transform:translateY(-2px);border-color:var(--b2)}
+.kpi-label{color:var(--t2);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.kpi-value{font-family:var(--disp);font-size:30px;font-weight:800;color:var(--text);line-height:1}
+.kpi-value.danger{color:var(--danger)}
+.kpi-value.warn{color:var(--warn)}
+.kpi-value.ok{color:var(--ok)}
+.kpi-sub{color:var(--t3);font-size:11px;margin-top:6px;font-family:var(--mono)}
+
+/* ================================ TABLAS ================================ */
+.table-wrap{background:var(--surf);border:1px solid var(--b);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.table-head{padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.table-head h3{font-size:15px;font-weight:600}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--surf2);text-align:left;padding:10px 12px;font-weight:600;color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap;border-bottom:1px solid var(--b)}
+td{padding:10px 12px;border-bottom:1px solid var(--b);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surf2)}
+.chip{display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px}
+.chip.ok{background:rgba(71,255,178,0.15);color:var(--ok)}
+.chip.warn{background:rgba(255,179,71,0.15);color:var(--warn)}
+.chip.danger{background:rgba(255,92,108,0.15);color:var(--danger)}
+.chip.acc{background:rgba(232,255,71,0.15);color:var(--acc)}
+.chip.muted{background:var(--b);color:var(--t2)}
+.progress-bar{display:inline-block;width:80px;height:6px;background:var(--b);border-radius:3px;overflow:hidden;vertical-align:middle;margin-right:8px}
+.progress-fill{height:100%;background:var(--acc);transition:width 0.3s}
+
+/* ================================ FORMS ================================ */
+.form-card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:24px;max-width:720px;margin:0 auto}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media (max-width:560px){.form-row{grid-template-columns:1fr}}
+.form-field{display:flex;flex-direction:column;gap:6px}
+.form-field label{color:var(--t2);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.4px}
+.form-field input,.form-field select,.form-field textarea{background:var(--surf2);border:1px solid var(--b);border-radius:8px;padding:11px 12px;color:var(--text);font-size:14px;transition:border-color 0.15s}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{outline:none;border-color:var(--acc)}
+.form-field textarea{resize:vertical;min-height:60px}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--b)}
+.btn{padding:11px 20px;border-radius:8px;font-weight:600;font-size:13px;transition:all 0.15s;border:1px solid transparent}
+.btn-primary{background:var(--acc);color:var(--bg)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(232,255,71,0.2)}
+.btn-secondary{background:transparent;border-color:var(--b);color:var(--text)}
+.btn-secondary:hover{background:var(--surf2)}
+.btn-danger{background:var(--danger);color:var(--text)}
+
+/* ================================ TOAST ================================ */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surf2);border:1px solid var(--b);border-left:3px solid var(--acc);border-radius:8px;padding:14px 18px;font-size:13px;z-index:200;animation:slideIn 0.2s;box-shadow:0 12px 30px rgba(0,0,0,0.4);max-width:380px}
+.toast.danger{border-left-color:var(--danger)}
+.toast.ok{border-left-color:var(--ok)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--t2)}
+.empty-state-icon{font-size:48px;margin-bottom:12px;opacity:0.4}
+.loading{text-align:center;padding:40px;color:var(--t2);font-family:var(--mono);font-size:12px}
+
+/* ================================ RBAC ================================ */
+.role-badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+.role-badge.admin{background:var(--acc);color:var(--bg)}
+.role-badge.jefe_planta{background:var(--acc2);color:var(--bg)}
+.role-badge.jefe_sector{background:var(--ok);color:var(--bg)}
+.role-badge.operario{background:var(--surf3);color:var(--text);border:1px solid var(--b2)}
+.role-badge.lectura{background:var(--t3);color:var(--text)}
+body.role-lectura .form-card input,
+body.role-lectura .form-card select,
+body.role-lectura .form-card textarea{pointer-events:none;opacity:0.55;background:var(--surf3)}
+body.role-lectura .form-actions,
+body.role-lectura .tab[data-panel="evento"],
+body.role-lectura [data-rbac-edit]{display:none !important}
+body.role-operario .tab[data-panel="evento"],
+body.role-jefe_sector .tab[data-panel="evento"]{display:inline-flex}
+body[data-can-create-op="0"] [data-rbac-create-op]{display:none !important}
+.read-only-banner{background:rgba(71,200,255,0.1);border:1px solid var(--acc2);color:var(--acc2);padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;text-align:center}
+.locked-row{opacity:0.55}
+.chip.locked{background:var(--b);color:var(--t2)}
+
+/* Responsive */
+@media (max-width:640px){
+  header{padding:10px 12px;gap:8px}
+  .h-title{font-size:15px}
+  .h-clock{font-size:11px}
+  main{padding:14px}
+  .kpi-grid{gap:10px}
+  .kpi-value{font-size:24px}
+  .form-card{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ================================ LOGIN OVERLAY ================================ -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">🏭 FÁBRICA ALAMO</div>
+    <div class="login-sub">ERP · Producción, eficiencia, trazabilidad</div>
+    <button class="login-btn" id="btnLogin" onclick="handleLogin()">Iniciar sesión con Google</button>
+    <div class="login-status" id="loginStatus">Cargando autenticación…</div>
+  </div>
+</div>
+
+<!-- ================================ APP ================================ -->
+<div id="app">
+
+<header>
+  <div class="h-left">
+    <div class="pulse-dot"></div>
+    <span class="h-title">FÁBRICA ALAMO</span>
+    <span class="h-badge">EN VIVO</span>
+    <span class="role-badge" id="roleBadge" style="display:none"></span>
+  </div>
+  <div class="h-clock" id="clock">--:--:--</div>
+  <button class="btn-icon" onclick="loadAll()" title="Refrescar">↻</button>
+  <div class="h-user" id="userLabel"></div>
+  <button class="btn-logout" onclick="handleLogout()">Salir</button>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-panel="inicio" onclick="switchTab('inicio')">Inicio</button>
+  <button class="tab" data-panel="ops" onclick="switchTab('ops')">OPs activas</button>
+  <button class="tab" data-panel="evento" onclick="switchTab('evento')">Cargar evento</button>
+  <button class="tab" data-panel="bobinas" onclick="switchTab('bobinas')">Bobinas</button>
+  <button class="tab" data-panel="stock" onclick="switchTab('stock')">Stock</button>
+</nav>
+
+<main>
+
+  <!-- ====== Panel Inicio ====== -->
+  <section class="panel active" id="panel-inicio">
+    <h2 class="section">Resumen del día</h2>
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi-card"><div class="kpi-label">OPs en proceso</div><div class="kpi-value" id="kpi-ops">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">OPs vencidas</div><div class="kpi-value danger" id="kpi-vencidas">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Bobinas en proceso</div><div class="kpi-value" id="kpi-bobinas">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">QA pendientes</div><div class="kpi-value warn" id="kpi-qa">—</div></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-head">
+        <h3>OPs próximas a vencer</h3>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>OP</th><th>Cliente</th><th>Tipo</th><th>Cantidad</th>
+              <th>Vence</th><th>Días</th><th>% Avance</th>
+            </tr>
+          </thead>
+          <tbody id="opsProximas"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== Panel OPs ====== -->
+  <section class="panel" id="panel-ops">
+    <h2 class="section">OPs activas</h2>
+    <div class="table-wrap">
+      <div class="table-head">
+        <h3>Todas las OPs en proceso</h3>
+        <div>
+          <button class="btn btn-primary" data-rbac-create-op onclick="alert('Crear OP — próximamente desde acá. Por ahora cargá directo en el Sheet.')">+ Nueva OP</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>OP</th><th>Cliente</th><th>Tipo</th><th>Cantidad</th>
+              <th>Cadena</th><th>Vence</th><th>% Avance</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="opsTabla"><tr><td colspan="8" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== Panel Cargar evento ====== -->
+  <section class="panel" id="panel-evento">
+    <h2 class="section">Cargar evento de producción</h2>
+    <div class="form-card">
+      <div class="form-row">
+        <div class="form-field">
+          <label>Sector</label>
+          <select id="ev-sector" onchange="onSectorChange()">
+            <option value="">— Elegir sector —</option>
+            <option value="Sec_Recepcion">Recepción</option>
+            <option value="Sec_Clise">Clisé</option>
+            <option value="Sec_Impresoras">Impresoras</option>
+            <option value="Sec_Laminadora">Laminadora</option>
+            <option value="Sec_Tubera_Papel">Tubera Papel</option>
+            <option value="Sec_Tubera_Rafia">Tubera Rafia</option>
+            <option value="Sec_Costura_Rafia">Costura Rafia</option>
+            <option value="Sec_Costura_Papel">Costura Papel</option>
+            <option value="Sec_Embutido">Embutido</option>
+            <option value="Sec_Expedicion">Expedición</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>OP</label>
+          <select id="ev-op"><option value="">— Elegir OP —</option></select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Operario principal (legajo)</label>
+          <input type="number" id="ev-operario" placeholder="Ej: 405">
+        </div>
+        <div class="form-field">
+          <label>Ayudante (legajo, opcional)</label>
+          <input type="number" id="ev-ayudante">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Turno</label>
+          <select id="ev-turno">
+            <option value="manana">Mañana</option>
+            <option value="tarde">Tarde</option>
+            <option value="noche">Noche</option>
+            <option value="1">Turno 1 (Lam)</option>
+            <option value="2">Turno 2 (Lam)</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Paradas (min)</label>
+          <input type="number" id="ev-paradas" value="0">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>Hora inicio</label>
+          <input type="time" id="ev-inicio">
+        </div>
+        <div class="form-field">
+          <label>Hora fin</label>
+          <input type="time" id="ev-fin">
+        </div>
+      </div>
+
+      <!-- Campos específicos del sector — se rellenan según selección -->
+      <div id="ev-especificos"></div>
+
+      <div class="form-field">
+        <label>Observaciones</label>
+        <textarea id="ev-obs" placeholder="Notas, incidencias, lo que sea relevante…"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="limpiarEvento()">Limpiar</button>
+        <button class="btn btn-primary" onclick="guardarEvento()">Guardar evento</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== Panel Bobinas ====== -->
+  <section class="panel" id="panel-bobinas">
+    <h2 class="section">Bobinas</h2>
+    <div class="table-wrap">
+      <div class="table-head">
+        <h3>Bobinas en planta</h3>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>SKU</th><th>Peso (kg)</th><th>Mts</th><th>Sector actual</th><th>Estado</th><th>Origen</th></tr>
+          </thead>
+          <tbody id="bobinasTabla"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== Panel Stock ====== -->
+  <section class="panel" id="panel-stock">
+    <h2 class="section">Stock</h2>
+    <div class="table-wrap">
+      <div class="table-head">
+        <h3>Stock actual por SKU (calculado)</h3>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>SKU</th><th>Descripción</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Mínimo</th><th>Estado</th></tr>
+          </thead>
+          <tbody id="stockTabla"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CLIENT_ID = '844318342271-pqa0mj2oav678htbqatrcqjuh06r5a3i.apps.googleusercontent.com';
+// Lectura + escritura porque el módulo carga eventos
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
+const SHEET_ID = '19ggyCjx6L9TC-sqcUfIy2ML_5JZjGO9oRsKLdh6Tx-Y';
+const PERMISOS_SHEET_ID = '1xL6VITjR7tKtuCNwQdNnzDoRTeOU_pHTwSXxsGHsSBU';
+const MODULE_KEY = 'FabricaAlamo';
+const ADMIN_EMAILS = ['franco.bauer98@gmail.com'];
+
+const PESTANAS = {
+  ops: 'OPs',
+  bobinas: 'Bobinas',
+  materiales: 'Materiales',
+  stock: 'Stock',
+  qa: 'QA_Aprobaciones',
+  paradas: 'Paradas',
+  personal: 'Personal'
+};
+
+// ============================================================
+// ESTADO
+// ============================================================
+let tokenClient = null;
+let accessToken = null;
+let userEmail = '';
+let cache = { ops: [], bobinas: [], materiales: [], stock: [], qa: [], personal: [] };
+
+// ============================================================
+// RBAC — roles y matriz de permisos
+// ============================================================
+const ROLES = {
+  ADMIN: 'admin',
+  JEFE_PLANTA: 'jefe_planta',
+  JEFE_SECTOR: 'jefe_sector',
+  OPERARIO: 'operario',
+  LECTURA: 'lectura'
+};
+const ROLES_VALIDOS = Object.values(ROLES);
+let userCtx = { rol: '', sectores: [], email: '' };
+
+const RBAC = {
+  // ¿Tiene rol válido para entrar?
+  hasAccess() { return ROLES_VALIDOS.indexOf(userCtx.rol) >= 0; },
+  // ¿Puede editar / cargar eventos?
+  canEdit() { return userCtx.rol && userCtx.rol !== ROLES.LECTURA; },
+  // ¿Puede crear OPs?
+  canCreateOP() { return userCtx.rol === ROLES.ADMIN || userCtx.rol === ROLES.JEFE_PLANTA; },
+  // ¿Ve TODOS los sectores (o filtrado a los suyos)?
+  hasFullSectorAccess() {
+    return userCtx.rol === ROLES.ADMIN
+        || userCtx.rol === ROLES.JEFE_PLANTA
+        || userCtx.rol === ROLES.LECTURA;
+  },
+  // ¿El sector dado (clave Sec_X o nombre limpio) está dentro de mis sectores?
+  isSectorAllowed(sectorKey) {
+    if (this.hasFullSectorAccess()) return true;
+    const clean = String(sectorKey || '').replace(/^Sec_/, '');
+    return userCtx.sectores.some(s => String(s).replace(/^Sec_/, '').toLowerCase() === clean.toLowerCase());
+  },
+  // ¿La OP toca alguno de mis sectores asignados? (mira la cadena_sectores)
+  opTouchesMySectors(op) {
+    if (this.hasFullSectorAccess()) return true;
+    const cad = String(op.cadena_sectores || '').toLowerCase();
+    if (!cad) return true;  // si no se sabe, no esconder por las dudas
+    return userCtx.sectores.some(s => cad.includes(String(s).replace(/^Sec_/, '').toLowerCase()));
+  },
+  // OP cerrada hace +30 días → bloqueada para todos
+  isOPLocked(op) {
+    if (!op) return false;
+    if (op.estado !== 'cerrada' && op.estado !== 'cancelada') return false;
+    const fcierre = excelDateToJs(op.fecha_cierre || op.fecha_creacion);
+    if (!fcierre) return false;
+    const dias = (Date.now() - fcierre.getTime()) / (1000 * 60 * 60 * 24);
+    return dias > 30;
+  }
+};
+
+// ============================================================
+// INIT
+// ============================================================
+function setStatus(msg, isError) {
+  const el = document.getElementById('loginStatus');
+  el.textContent = msg;
+  el.className = 'login-status' + (isError ? ' login-error' : '');
+}
+
+window.addEventListener('load', () => {
+  startClock();
+  initGSI();
+});
+
+function initGSI() {
+  if (typeof google === 'undefined' || !google.accounts) {
+    setStatus('Cargando Google Identity…');
+    setTimeout(initGSI, 250);
+    return;
+  }
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: onTokenReceived
+    });
+    setStatus('Listo. Tocá "Iniciar sesión con Google".');
+  } catch (e) {
+    setStatus('Error iniciando autenticación: ' + e.message, true);
+  }
+}
+
+function handleLogin() {
+  if (!tokenClient) { setStatus('Aún cargando Google, esperá un momento…', true); return; }
+  setStatus('Abriendo selector de cuenta…');
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+async function onTokenReceived(resp) {
+  if (resp.error) {
+    setStatus('Error de autenticación: ' + resp.error, true);
+    return;
+  }
+  accessToken = resp.access_token;
+  setStatus('Verificando email…');
+  try {
+    const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!uResp.ok) throw new Error('No se pudo obtener email');
+    const u = await uResp.json();
+    userEmail = u.email;
+    setStatus('Verificando permisos…');
+    userCtx = await cargarContextoUsuario(userEmail);
+    if (!RBAC.hasAccess()) {
+      setStatus('Tu cuenta no tiene permiso para Fábrica. Avisá a Franco.', true);
+      return;
+    }
+    document.getElementById('userLabel').textContent = userEmail;
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    applyRBAC();
+    // Refresco silencioso cada 55 min
+    setInterval(() => tokenClient.requestAccessToken({ prompt: '' }), 55 * 60 * 1000);
+    loadAll();
+  } catch (e) {
+    setStatus('Error: ' + e.message, true);
+  }
+}
+
+// Lee Permisos (otro Sheet) + Personal (Sheet de Fábrica) y arma userCtx.
+// Devuelve { rol: '...', sectores: [...], email }.
+// Si email no está en Permisos o el rol no es válido, rol queda vacío => bloquea acceso.
+async function cargarContextoUsuario(email) {
+  const ctx = { rol: '', sectores: [], email: (email||'').toLowerCase().trim() };
+
+  // 1. Permisos
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${PERMISOS_SHEET_ID}/values/Permisos!A1:Z200`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (resp.ok) {
+      const data = await resp.json();
+      const rows = data.values || [];
+      if (rows.length >= 2) {
+        const headers = rows[0];
+        const emailIdx = headers.findIndex(h => /email/i.test(h));
+        const modIdx = headers.findIndex(h => String(h).trim().toLowerCase() === MODULE_KEY.toLowerCase());
+        if (emailIdx >= 0 && modIdx >= 0) {
+          for (const r of rows.slice(1)) {
+            const rowEmail = String(r[emailIdx]||'').trim().toLowerCase();
+            if (rowEmail !== ctx.email) continue;
+            const raw = String(r[modIdx]||'').trim().toLowerCase();
+            if (ROLES_VALIDOS.indexOf(raw) >= 0) {
+              ctx.rol = raw;
+            } else if (/^(si|sí|true|1|x)$/i.test(raw)) {
+              // Valor legacy "1" → asumimos admin para no romper la transición.
+              // Recomendación: cambiá a texto explícito ("admin", "jefe_planta", etc.).
+              ctx.rol = ROLES.ADMIN;
+            }
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) { console.warn('No se pudo leer Permisos:', e); }
+
+  // 2. Sectores asignados (en Personal del Sheet de Fábrica) — solo aplica para jefe_sector / operario
+  if (ctx.rol === ROLES.JEFE_SECTOR || ctx.rol === ROLES.OPERARIO) {
+    try {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('Personal!A1:Z2000')}`;
+      const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (resp.ok) {
+        const data = await resp.json();
+        const rows = data.values || [];
+        if (rows.length >= 2) {
+          const headers = rows[0];
+          const emailIdx = headers.findIndex(h => /email/i.test(h));
+          const sectIdx  = headers.findIndex(h => /sectores_asignados/i.test(h));
+          if (emailIdx >= 0 && sectIdx >= 0) {
+            for (const r of rows.slice(1)) {
+              const rowEmail = String(r[emailIdx]||'').trim().toLowerCase();
+              if (rowEmail !== ctx.email) continue;
+              ctx.sectores = String(r[sectIdx]||'')
+                .split(/[,;]/).map(s => s.trim()).filter(Boolean);
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) { console.warn('No se pudo leer Personal:', e); }
+  }
+  return ctx;
+}
+
+// Aplica visibilidad/permisos según rol al UI ya cargado
+function applyRBAC() {
+  const body = document.body;
+  // Limpio clases previas y aplico la actual
+  ROLES_VALIDOS.forEach(r => body.classList.remove('role-' + r));
+  body.classList.add('role-' + userCtx.rol);
+  body.dataset.canCreateOp = RBAC.canCreateOP() ? '1' : '0';
+
+  // Badge con el rol
+  const badge = document.getElementById('roleBadge');
+  badge.textContent = userCtx.rol.replace('_', ' ');
+  badge.className = 'role-badge ' + userCtx.rol;
+  badge.style.display = '';
+  if (!RBAC.hasFullSectorAccess() && userCtx.sectores.length) {
+    badge.title = 'Sectores: ' + userCtx.sectores.join(', ');
+  } else {
+    badge.title = '';
+  }
+
+  // Filtrar el dropdown de sector en "Cargar evento" si jefe_sector/operario
+  if (!RBAC.hasFullSectorAccess()) {
+    const sel = document.getElementById('ev-sector');
+    if (sel) {
+      const allowed = userCtx.sectores.map(s => 'Sec_' + s.replace(/^Sec_/, ''));
+      [...sel.options].forEach(opt => {
+        if (opt.value && !allowed.some(a => a.toLowerCase() === opt.value.toLowerCase())) {
+          opt.remove();
+        }
+      });
+      // Si solo le queda una opción, la pre-selecciono
+      if (sel.options.length === 2) {
+        sel.value = sel.options[1].value;
+        if (typeof onSectorChange === 'function') onSectorChange();
+      }
+    }
+  }
+
+  // Banner para modo lectura
+  if (userCtx.rol === ROLES.LECTURA) {
+    const main = document.querySelector('main');
+    if (main && !document.getElementById('readOnlyBanner')) {
+      const banner = document.createElement('div');
+      banner.id = 'readOnlyBanner';
+      banner.className = 'read-only-banner';
+      banner.textContent = '👁️ Modo solo lectura — podés ver toda la información pero no modificarla.';
+      main.insertBefore(banner, main.firstChild);
+    }
+  }
+}
+
+function handleLogout() {
+  if (accessToken) {
+    google.accounts.oauth2.revoke(accessToken, () => {});
+  }
+  accessToken = null;
+  userEmail = '';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('loginOverlay').style.display = 'flex';
+  setStatus('Sesión cerrada. Volvé a iniciar para continuar.');
+}
+
+// ============================================================
+// CLOCK
+// ============================================================
+function startClock() {
+  const el = document.getElementById('clock');
+  const tick = () => {
+    const d = new Date();
+    el.textContent = d.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ============================================================
+// SHEETS API
+// ============================================================
+async function readSheet(range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!resp.ok) throw new Error(`Read ${range}: ${resp.status} ${await resp.text()}`);
+  const data = await resp.json();
+  return data.values || [];
+}
+
+async function appendRow(sheetName, values) {
+  const range = `${sheetName}!A:A`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values: [values] })
+  });
+  if (!resp.ok) throw new Error(`Append ${sheetName}: ${resp.status} ${await resp.text()}`);
+  return await resp.json();
+}
+
+// Audit log desde el cliente (las escrituras via API REST no disparan onEdit del Apps Script).
+// Append silencioso a la pestaña Auditoria.
+async function logAuditoria(pestaña, filaId, accion, detalle) {
+  try {
+    const fila = [
+      new Date().toISOString(),
+      userCtx.email || userEmail,
+      userCtx.rol || '',
+      pestaña,
+      filaId || '',
+      '',                 // columna (no aplica para inserts del módulo)
+      '',                 // valor anterior
+      detalle || '',      // valor nuevo / detalle
+      accion              // insert/update/delete
+    ];
+    await appendRow('Auditoria', fila);
+  } catch (e) {
+    console.warn('No se pudo escribir auditoría:', e);
+  }
+}
+
+// ============================================================
+// LOAD ALL
+// ============================================================
+async function loadAll() {
+  if (!accessToken) return;
+  toast('Cargando datos…');
+  try {
+    const [ops, bobinas, materiales, stock, qa] = await Promise.all([
+      readSheet(`${PESTANAS.ops}!A1:AD2000`),
+      readSheet(`${PESTANAS.bobinas}!A1:N2000`),
+      readSheet(`${PESTANAS.materiales}!A1:J500`),
+      readSheet(`${PESTANAS.stock}!A1:J5000`),
+      readSheet(`${PESTANAS.qa}!A1:I2000`)
+    ]);
+    cache.ops        = parseRows(ops);
+    cache.bobinas    = parseRows(bobinas);
+    cache.materiales = parseRows(materiales);
+    cache.stock      = parseRows(stock);
+    cache.qa         = parseRows(qa);
+    renderInicio();
+    renderOPs();
+    renderBobinas();
+    renderStock();
+    poblarOpsSelect();
+    toast('Datos actualizados ✓', 'ok');
+  } catch (e) {
+    console.error(e);
+    toast('Error cargando: ' + e.message, 'danger');
+  }
+}
+
+function parseRows(values) {
+  if (!values || values.length < 1) return [];
+  const headers = values[0];
+  return values.slice(1).filter(r => r && r.length).map(r => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = r[i] !== undefined ? r[i] : ''; });
+    return obj;
+  });
+}
+
+// ============================================================
+// RENDER PANELES
+// ============================================================
+// Filtra OPs según rol: admin/jefe_planta/lectura ven todas, jefe_sector/operario solo las que pasan por sus sectores
+function filtrarOpsParaUsuario(ops) {
+  if (RBAC.hasFullSectorAccess()) return ops;
+  return ops.filter(o => RBAC.opTouchesMySectors(o));
+}
+
+function renderInicio() {
+  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso'));
+  document.getElementById('kpi-ops').textContent = opsActivas.length;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const vencidas = opsActivas.filter(o => {
+    const f = excelDateToJs(o.fecha_solicitada);
+    return f && f < hoy;
+  }).length;
+  document.getElementById('kpi-vencidas').textContent = vencidas;
+  const bobEnProc = cache.bobinas.filter(b => b.estado === 'en_proceso').length;
+  document.getElementById('kpi-bobinas').textContent = bobEnProc;
+  const qaPend = cache.qa.filter(q => q.decision === 'pendiente').length;
+  document.getElementById('kpi-qa').textContent = qaPend;
+
+  const proximas = opsActivas
+    .map(o => ({ ...o, _fecha: excelDateToJs(o.fecha_solicitada) }))
+    .filter(o => o._fecha)
+    .sort((a, b) => a._fecha - b._fecha)
+    .slice(0, 8);
+  const tb = document.getElementById('opsProximas');
+  if (proximas.length === 0) {
+    tb.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div>No hay OPs activas</td></tr>';
+    return;
+  }
+  tb.innerHTML = proximas.map(o => {
+    const dias = Math.floor((o._fecha - hoy) / (1000*60*60*24));
+    const diasChip = dias < 0 ? `<span class="chip danger">${dias}</span>`
+                  : dias <= 3 ? `<span class="chip warn">${dias}</span>`
+                  : `<span class="chip ok">${dias}</span>`;
+    const av = Number(o.porcentaje_avance) || 0;
+    return `<tr>
+      <td><strong>${esc(o.id_op)}</strong></td>
+      <td>${esc(o.cliente)}</td>
+      <td>${esc(o.tipo_bolsa)}</td>
+      <td>${fmtNum(o.cantidad_bolsas)}</td>
+      <td>${fmtFecha(o._fecha)}</td>
+      <td>${diasChip}</td>
+      <td><span class="progress-bar"><span class="progress-fill" style="width:${av}%"></span></span>${av}%</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderOPs() {
+  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso' || o.estado === 'pausada'));
+  const tb = document.getElementById('opsTabla');
+  if (opsActivas.length === 0) {
+    tb.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">📭</div>No hay OPs activas</td></tr>';
+    return;
+  }
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  tb.innerHTML = opsActivas.map(o => {
+    const f = excelDateToJs(o.fecha_solicitada);
+    const av = Number(o.porcentaje_avance) || 0;
+    const estChip = o.estado === 'pausada' ? 'warn' : 'ok';
+    return `<tr>
+      <td><strong>${esc(o.id_op)}</strong></td>
+      <td>${esc(o.cliente)}</td>
+      <td>${esc(o.tipo_bolsa)}</td>
+      <td>${fmtNum(o.cantidad_bolsas)}</td>
+      <td><small style="color:var(--t2)">${esc(o.cadena_sectores)}</small></td>
+      <td>${fmtFecha(f)}</td>
+      <td><span class="progress-bar"><span class="progress-fill" style="width:${av}%"></span></span>${av}%</td>
+      <td><span class="chip ${estChip}">${esc(o.estado)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderBobinas() {
+  const tb = document.getElementById('bobinasTabla');
+  if (cache.bobinas.length === 0) {
+    tb.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">🧵</div>No hay bobinas cargadas</td></tr>';
+    return;
+  }
+  tb.innerHTML = cache.bobinas.slice(0, 100).map(b => {
+    const estClass = b.estado === 'desperdicio' ? 'danger'
+                   : b.estado === 'lista_pasar' ? 'ok'
+                   : b.estado === 'consumida' ? 'muted'
+                   : 'acc';
+    return `<tr>
+      <td><strong>${esc(b.id_bobina)}</strong></td>
+      <td>${esc(b.sku_material)}</td>
+      <td>${fmtNum(b.peso_kg)}</td>
+      <td>${fmtNum(b.metros)}</td>
+      <td>${esc(b.sector_actual)}</td>
+      <td><span class="chip ${estClass}">${esc(b.estado)}</span></td>
+      <td><small>${esc(b.origen)}</small></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStock() {
+  // Stock actual por SKU
+  const porSku = {};
+  cache.stock.forEach(m => {
+    const sku = m.sku;
+    if (!sku) return;
+    if (!porSku[sku]) porSku[sku] = 0;
+    const cant = Number(m.cantidad) || 0;
+    if (m.tipo === 'entrada') porSku[sku] += cant;
+    else if (m.tipo === 'salida') porSku[sku] -= cant;
+    else if (m.tipo === 'ajuste') porSku[sku] += cant;
+  });
+  const tb = document.getElementById('stockTabla');
+  const filas = cache.materiales.map(m => {
+    const stock = porSku[m.codigo] || 0;
+    const min = Number(m.stock_minimo) || 0;
+    let chip = '<span class="chip ok">OK</span>';
+    if (min > 0 && stock < min) chip = '<span class="chip danger">BAJO MÍN</span>';
+    else if (stock <= 0) chip = '<span class="chip muted">SIN STOCK</span>';
+    return { codigo: m.codigo, descripcion: m.descripcion, categoria: m.categoria,
+             stock, unidad: m.unidad, min, chip };
+  }).sort((a,b) => {
+    // bajos primero
+    const aLow = a.min > 0 && a.stock < a.min;
+    const bLow = b.min > 0 && b.stock < b.min;
+    if (aLow !== bLow) return aLow ? -1 : 1;
+    return a.codigo.localeCompare(b.codigo);
+  });
+  if (filas.length === 0) {
+    tb.innerHTML = '<tr><td colspan="7" class="empty-state">No hay materiales</td></tr>';
+    return;
+  }
+  tb.innerHTML = filas.map(f => `<tr>
+    <td><strong>${esc(f.codigo)}</strong></td>
+    <td><small>${esc(f.descripcion)}</small></td>
+    <td>${esc(f.categoria)}</td>
+    <td>${fmtNum(f.stock)}</td>
+    <td>${esc(f.unidad)}</td>
+    <td>${fmtNum(f.min)}</td>
+    <td>${f.chip}</td>
+  </tr>`).join('');
+}
+
+// ============================================================
+// CARGAR EVENTO
+// ============================================================
+function poblarOpsSelect() {
+  const sel = document.getElementById('ev-op');
+  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso'));
+  sel.innerHTML = '<option value="">— Elegir OP —</option>' +
+    opsActivas.map(o => `<option value="${esc(o.id_op)}">${esc(o.id_op)} · ${esc(o.cliente)} · ${esc(o.tipo_bolsa)}</option>`).join('');
+}
+
+// Schema de campos específicos por sector (después del núcleo común de 13 columnas).
+// El orden DEBE coincidir con el orden de las columnas del Sec_X en el Sheet.
+// type 'calc' = lo calcula Apps Script, no se carga desde el form (queda vacío en la fila).
+const SECTOR_FIELDS = {
+  'Sec_Recepcion': [
+    {key:'proveedor', label:'Proveedor', type:'text'},
+    {key:'remito_numero', label:'Remito N°', type:'text'},
+    {key:'sku_recibido', label:'SKU recibido', type:'sku'},
+    {key:'bobinas_recibidas', label:'Bobinas recibidas', type:'number'},
+    {key:'kg_total', label:'Kg total', type:'number'},
+    {key:'estado_inspeccion', label:'Estado inspección', type:'select',
+     options:[['pendiente','Pendiente'],['inspeccionada','Inspeccionada'],['rechazada','Rechazada']]}
+  ],
+  'Sec_Clise': [
+    {key:'maquina_destino', label:'Máquina destino', type:'select',
+     options:[['IMP-1','IMP-1'],['IMP-2','IMP-2'],['IMP-3','IMP-3'],['IMP-4','IMP-4']]},
+    {key:'colores', label:'Colores', type:'number', min:1, max:6},
+    {key:'clises_preparados', label:'Clisés preparados', type:'number'},
+    {key:'tiempo_prep_min', label:'Tiempo prep (min)', type:'number'}
+  ],
+  'Sec_Impresoras': [
+    {key:'id_bobina_entrada', label:'Bobina entrada', type:'text', placeholder:'BLR-... o código proveedor'},
+    {key:'id_maquina', label:'Máquina', type:'select',
+     options:[['IMP-1','IMP-1'],['IMP-2','IMP-2'],['IMP-3','IMP-3'],['IMP-4','IMP-4']]},
+    {key:'sustrato', label:'Sustrato', type:'select',
+     options:[['papel','Papel'],['polipapel','Polipapel'],['rafia_conv','Rafia Conv'],['rafia_lam','Rafia Lam'],['biopp','BioPP']]},
+    {key:'cantidad_colores', label:'Cantidad colores', type:'number', min:1, max:6},
+    {key:'mts_iniciales', label:'Mts iniciales', type:'number', step:0.01},
+    {key:'mts_finales', label:'Mts finales', type:'number', step:0.01},
+    {key:'mts_reales', type:'calc'},
+    {key:'tiempo_real_min', type:'calc'},
+    {key:'kpi_mts_por_color', type:'calc'},
+    {key:'kpi_mts_por_minuto', type:'calc'},
+    {key:'kg_consumidos', type:'calc'},
+    {key:'kg_desperdicio', label:'Kg desperdicio', type:'number', step:0.01, default:0},
+    {key:'kg_remanente', label:'Kg remanente (sobra)', type:'number', step:0.01, default:0},
+    {key:'id_bobina_remanente', type:'calc'},
+    {key:'problemas_descripcion', label:'Problemas / motivo paradas', type:'text'},
+    {key:'fin_pedido', label:'¿Fin de pedido?', type:'select',
+     options:[['NO','NO'],['SI','SI']]}
+  ],
+  'Sec_Laminadora': [
+    {key:'bobina_rafia_entrada', label:'Bobina rafia entrada', type:'text'},
+    {key:'bobina_papel_entrada', label:'Bobina papel entrada (si aplica)', type:'text'},
+    {key:'formato_cm', label:'Formato (cm)', type:'number'},
+    {key:'mts_bobina', label:'Mts bobina', type:'number', step:0.01},
+    {key:'kg_bobina', label:'Kg bobina', type:'number', step:0.01},
+    {key:'gramaje', label:'Gramaje (g/m²)', type:'number'},
+    {key:'trama', label:'Trama', type:'text'},
+    {key:'color_laminado', label:'Color laminado', type:'text'},
+    {key:'lados', label:'Lados', type:'select',
+     options:[['1','1 lado'],['2','2 lados']]},
+    {key:'kg_agregados', label:'Kg agregados', type:'number', step:0.01},
+    {key:'vel_extruder', label:'Vel. extruder A/B', type:'text'},
+    {key:'vel_laminado', label:'Vel. laminado A/B', type:'text'},
+    {key:'vel_winding', label:'Vel. winding', type:'text'},
+    {key:'mts_pantalla', label:'Mts pantalla', type:'number', step:0.01},
+    {key:'mts_reales_laminados', label:'Mts reales laminados', type:'number', step:0.01},
+    {key:'kg_laminados', label:'Kg laminados', type:'number', step:0.01},
+    {key:'gr_promedio', label:'Gr promedio', type:'number', step:0.01},
+    {key:'gr_agregado', label:'Gr agregado', type:'number', step:0.01},
+    {key:'estado_laminado', label:'Estado', type:'select',
+     options:[['ok','OK'],['parcial','Parcial'],['rechazado','Rechazado']]},
+    {key:'codigo_pp', label:'Código PP', type:'text'},
+    {key:'kg_pp', label:'Kg PP', type:'number', step:0.01},
+    {key:'codigo_pe', label:'Código PE', type:'text'},
+    {key:'kg_pe', label:'Kg PE', type:'number', step:0.01},
+    {key:'codigo_master', label:'Código Master', type:'text'},
+    {key:'kg_master', label:'Kg Master', type:'number', step:0.01},
+    {key:'kg_purgados', label:'Kg purgados', type:'number', step:0.01, default:0},
+    {key:'kg_empalmes', label:'Kg empalmes', type:'number', step:0.01, default:0},
+    {key:'bobina_salida', label:'Bobina salida (nuevo código)', type:'text'}
+  ],
+  'Sec_Tubera_Papel': [
+    {key:'id_bobina_entrada', label:'Bobina entrada', type:'text'},
+    {key:'id_maquina', label:'Máquina', type:'select',
+     options:[['TUB-PAPEL-1','TUB-PAPEL-1'],['TUB-PAPEL-2','TUB-PAPEL-2'],['TUB-PAPEL-3','TUB-PAPEL-3']]},
+    {key:'bobina_pe_intermedia', label:'Bobina PE intermedia (opcional)', type:'text'},
+    {key:'formato_tubo_cm', label:'Formato tubo (cm)', type:'number'},
+    {key:'largo_corte_cm', label:'Largo corte (cm)', type:'number'},
+    {key:'mts_consumidos', label:'Mts consumidos', type:'number', step:0.01},
+    {key:'kg_consumidos', label:'Kg consumidos', type:'number', step:0.01},
+    {key:'tubos_producidos', label:'Tubos producidos', type:'number'},
+    {key:'kg_desperdicio', label:'Kg desperdicio', type:'number', step:0.01, default:0},
+    {key:'kg_remanente', label:'Kg remanente', type:'number', step:0.01, default:0},
+    {key:'id_bobina_remanente', type:'calc'}
+  ],
+  'Sec_Tubera_Rafia': [
+    {key:'id_bobina_entrada', label:'Bobina entrada', type:'text', placeholder:'BioPP / Rafipel'},
+    {key:'formato_tubo_cm', label:'Formato tubo (cm)', type:'number'},
+    {key:'mts_consumidos', label:'Mts consumidos', type:'number', step:0.01},
+    {key:'kg_consumidos', label:'Kg consumidos', type:'number', step:0.01},
+    {key:'tubos_producidos', label:'Tubos producidos', type:'number'},
+    {key:'kg_desperdicio', label:'Kg desperdicio', type:'number', step:0.01, default:0},
+    {key:'kg_remanente', label:'Kg remanente', type:'number', step:0.01, default:0},
+    {key:'id_bobina_remanente', type:'calc'}
+  ],
+  'Sec_Costura_Rafia': [
+    {key:'id_bobina_tubo', label:'Bobina tubo', type:'text'},
+    {key:'id_maquina', label:'Máquina', type:'select',
+     options:[['COS-RAFIA-1','COS-RAFIA-1'],['COS-RAFIA-2','COS-RAFIA-2'],['COS-RAFIA-3','COS-RAFIA-3'],
+              ['COS-RAFIA-4','COS-RAFIA-4'],['COS-RAFIA-5','COS-RAFIA-5'],['COS-RAFIA-6','COS-RAFIA-6'],
+              ['COS-RAFIA-7','COS-RAFIA-7'],['COS-RAFIA-8','COS-RAFIA-8'],
+              ['COS-RAFIA-RECUP','Recuperado']]},
+    {key:'bolsas_producidas', label:'Bolsas producidas', type:'number'},
+    {key:'bolsas_recuperadas', label:'Bolsas recuperadas', type:'number', default:0},
+    {key:'bolsas_descarte', label:'Bolsas descarte', type:'number', default:0},
+    {key:'kg_desperdicio', label:'Kg desperdicio', type:'number', step:0.01, default:0}
+  ],
+  'Sec_Costura_Papel': [
+    {key:'tubos_consumidos', label:'Tubos consumidos', type:'number'},
+    {key:'id_maquina', label:'Máquina', type:'select',
+     options:[['COS-PAPEL-AUTO-1','Auto 1'],['COS-PAPEL-AUTO-2','Auto 2'],
+              ['COS-PAPEL-MAN-1','Manual 1'],['COS-PAPEL-MAN-2','Manual 2']]},
+    {key:'bolsas_producidas', label:'Bolsas producidas', type:'number'},
+    {key:'bolsas_descarte', label:'Bolsas descarte', type:'number', default:0},
+    {key:'kg_desperdicio', label:'Kg desperdicio', type:'number', step:0.01, default:0}
+  ],
+  'Sec_Embutido': [
+    {key:'bolsas_a_embutir', label:'Bolsas a embutir', type:'number'},
+    {key:'bolsas_embutidas', label:'Bolsas embutidas', type:'number'},
+    {key:'operarios_participantes', label:'Operarios (legajos separados por coma)', type:'text', placeholder:'310, 374, 392'},
+    {key:'bolsas_descarte', label:'Bolsas descarte', type:'number', default:0}
+  ],
+  'Sec_Expedicion': [
+    {key:'cliente', label:'Cliente', type:'text'},
+    {key:'bolsas_entregadas', label:'Bolsas entregadas', type:'number'},
+    {key:'nota_envio', label:'N° Nota envío', type:'text'},
+    {key:'transporte', label:'Transporte', type:'text'},
+    {key:'fecha_entrega', label:'Fecha entrega', type:'date'}
+  ]
+};
+
+function poblarOpsSelect() {
+  const sel = document.getElementById('ev-op');
+  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso'));
+  sel.innerHTML = '<option value="">— Elegir OP —</option>' +
+    opsActivas.map(o => `<option value="${esc(o.id_op)}">${esc(o.id_op)} · ${esc(o.cliente)} · ${esc(o.tipo_bolsa)}</option>`).join('');
+}
+
+function onSectorChange() {
+  const sec = document.getElementById('ev-sector').value;
+  const cont = document.getElementById('ev-especificos');
+  cont.innerHTML = '';
+  if (!sec) return;
+  const fields = SECTOR_FIELDS[sec] || [];
+  // Aviso si la cadena de la OP elegida no incluye este sector
+  const op = cache.ops.find(o => o.id_op === document.getElementById('ev-op').value);
+  if (op && op.cadena_sectores) {
+    const chainName = sec.replace('Sec_','');
+    if (!String(op.cadena_sectores).includes(chainName)) {
+      const warn = document.createElement('div');
+      warn.style.cssText = 'background:rgba(255,179,71,0.1);border:1px solid var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--warn)';
+      warn.textContent = `⚠️ La OP ${op.id_op} (${op.tipo_bolsa}) no tiene este sector en su cadena. Igual podés cargar pero revisá si está correcto.`;
+      cont.appendChild(warn);
+    }
+  }
+  // Render dinámico (en pares para form-row)
+  const visibles = fields.filter(f => f.type !== 'calc');
+  for (let i = 0; i < visibles.length; i += 2) {
+    const row = document.createElement('div');
+    row.className = 'form-row';
+    row.appendChild(buildField(visibles[i]));
+    if (visibles[i+1]) row.appendChild(buildField(visibles[i+1]));
+    cont.appendChild(row);
+  }
+}
+
+function buildField(f) {
+  const wrap = document.createElement('div');
+  wrap.className = 'form-field';
+  const lbl = document.createElement('label');
+  lbl.textContent = f.label;
+  wrap.appendChild(lbl);
+
+  let input;
+  if (f.type === 'select') {
+    input = document.createElement('select');
+    input.innerHTML = (f.options||[]).map(o => `<option value="${esc(o[0])}">${esc(o[1])}</option>`).join('');
+  } else if (f.type === 'sku') {
+    input = document.createElement('select');
+    input.innerHTML = '<option value="">— Elegir SKU —</option>' +
+      cache.materiales.filter(m => m.activo === 'SI' || m.activo === 1 || m.activo === true)
+        .map(m => `<option value="${esc(m.codigo)}">${esc(m.codigo)} · ${esc(m.descripcion).slice(0,40)}</option>`)
+        .join('');
+  } else {
+    input = document.createElement('input');
+    input.type = f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text');
+    if (f.placeholder) input.placeholder = f.placeholder;
+    if (f.step) input.step = f.step;
+    if (f.min !== undefined) input.min = f.min;
+    if (f.max !== undefined) input.max = f.max;
+    if (f.default !== undefined) input.value = f.default;
+  }
+  input.id = `ev-${f.key}`;
+  input.dataset.fieldKey = f.key;
+  wrap.appendChild(input);
+  return wrap;
+}
+
+async function guardarEvento() {
+  if (!RBAC.canEdit()) { toast('Tu rol es de solo lectura — no podés cargar eventos', 'danger'); return; }
+  const sec = document.getElementById('ev-sector').value;
+  const op = document.getElementById('ev-op').value;
+  const operario = document.getElementById('ev-operario').value;
+  if (!sec || !op || !operario) { toast('Completá sector, OP y operario', 'danger'); return; }
+  if (!RBAC.isSectorAllowed(sec)) { toast('No tenés permiso para cargar en ese sector', 'danger'); return; }
+
+  // Núcleo común (13 cols)
+  const fila = [
+    '',  // id_evento (Apps Script)
+    '',  // fecha (Apps Script)
+    op,
+    Number(operario),
+    Number(document.getElementById('ev-ayudante').value) || '',
+    document.getElementById('ev-turno').value,
+    document.getElementById('ev-inicio').value,
+    document.getElementById('ev-fin').value,
+    Number(document.getElementById('ev-paradas').value) || 0,
+    'pendiente', '', '',
+    document.getElementById('ev-obs').value
+  ];
+  // Específicos según schema
+  const fields = SECTOR_FIELDS[sec] || [];
+  fields.forEach(f => {
+    if (f.type === 'calc') { fila.push(''); return; }
+    const el = document.getElementById(`ev-${f.key}`);
+    if (!el) { fila.push(''); return; }
+    let v = el.value;
+    if (f.type === 'number') v = v === '' ? '' : Number(v);
+    fila.push(v);
+  });
+
+  try {
+    toast('Guardando evento…');
+    await appendRow(sec, fila);
+    logAuditoria(sec, op, 'insert', `Evento ${sec} para OP ${op}, operario ${operario}`);
+    toast('Evento guardado ✓ (los cálculos los hace Apps Script)', 'ok');
+    limpiarEvento();
+    setTimeout(loadAll, 1800);
+  } catch (e) {
+    toast('Error: ' + e.message, 'danger');
+  }
+}
+
+function limpiarEvento() {
+  ['ev-operario','ev-ayudante','ev-paradas','ev-inicio','ev-fin','ev-obs']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('ev-paradas').value = '0';
+  document.getElementById('ev-especificos').innerHTML = '';
+  document.getElementById('ev-sector').value = '';
+  document.getElementById('ev-op').value = '';
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function esc(s) { return String(s == null ? '' : s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function fmtNum(n) { const v = Number(n); if (!isFinite(v) || v === 0) return '—'; return v.toLocaleString('es-AR', { maximumFractionDigits: 2 }); }
+function fmtFecha(d) { if (!d) return '—'; if (!(d instanceof Date)) d = excelDateToJs(d); if (!d) return '—'; return d.toLocaleDateString('es-AR'); }
+function excelDateToJs(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  if (typeof v === 'number') {
+    // Excel serial date
+    const ms = (v - 25569) * 86400 * 1000;
+    return new Date(ms);
+  }
+  if (typeof v === 'string') {
+    const d = new Date(v);
+    if (!isNaN(d)) return d;
+  }
+  return null;
+}
+
+function toast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; t.style.transition = 'all 0.25s'; }, 2400);
+  setTimeout(() => t.remove(), 2700);
+}
+</script>
+</body>
+</html>
