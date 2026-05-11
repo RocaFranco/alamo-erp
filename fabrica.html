@@ -137,7 +137,7 @@ body.role-lectura .tab[data-panel="evento"],
 body.role-lectura [data-rbac-edit]{display:none !important}
 body.role-operario .tab[data-panel="evento"],
 body.role-jefe_sector .tab[data-panel="evento"]{display:inline-flex}
-body[data-can-create-op="0"] [data-rbac-create-op]{display:none !important}
+body[data-can-create-of="0"] [data-rbac-create-of]{display:none !important}
 .read-only-banner{background:rgba(71,200,255,0.1);border:1px solid var(--acc2);color:var(--acc2);padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;text-align:center}
 .locked-row{opacity:0.55}
 .chip.locked{background:var(--b);color:var(--t2)}
@@ -184,7 +184,7 @@ body[data-can-create-op="0"] [data-rbac-create-op]{display:none !important}
 
 <nav class="tabs">
   <button class="tab active" data-panel="inicio" onclick="switchTab('inicio')">Inicio</button>
-  <button class="tab" data-panel="ops" onclick="switchTab('ops')">OPs activas</button>
+  <button class="tab" data-panel="ofs" onclick="switchTab('ofs')">OFs activas</button>
   <button class="tab" data-panel="evento" onclick="switchTab('evento')">Cargar evento</button>
   <button class="tab" data-panel="bobinas" onclick="switchTab('bobinas')">Bobinas</button>
   <button class="tab" data-panel="stock" onclick="switchTab('stock')">Stock</button>
@@ -196,49 +196,49 @@ body[data-can-create-op="0"] [data-rbac-create-op]{display:none !important}
   <section class="panel active" id="panel-inicio">
     <h2 class="section">Resumen del día</h2>
     <div class="kpi-grid" id="kpiGrid">
-      <div class="kpi-card"><div class="kpi-label">OPs en proceso</div><div class="kpi-value" id="kpi-ops">—</div></div>
-      <div class="kpi-card"><div class="kpi-label">OPs vencidas</div><div class="kpi-value danger" id="kpi-vencidas">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">OFs en proceso</div><div class="kpi-value" id="kpi-ofs">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">OFs vencidas</div><div class="kpi-value danger" id="kpi-vencidas">—</div></div>
       <div class="kpi-card"><div class="kpi-label">Bobinas en proceso</div><div class="kpi-value" id="kpi-bobinas">—</div></div>
       <div class="kpi-card"><div class="kpi-label">QA pendientes</div><div class="kpi-value warn" id="kpi-qa">—</div></div>
     </div>
 
     <div class="table-wrap">
       <div class="table-head">
-        <h3>OPs próximas a vencer</h3>
+        <h3>OFs próximas a vencer</h3>
       </div>
       <div class="table-scroll">
         <table>
           <thead>
             <tr>
-              <th>OP</th><th>Cliente</th><th>Tipo</th><th>Cantidad</th>
+              <th>OF</th><th>Cliente</th><th>Tipo</th><th>Cantidad</th>
               <th>Vence</th><th>Días</th><th>% Avance</th>
             </tr>
           </thead>
-          <tbody id="opsProximas"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+          <tbody id="ofsProximas"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
   </section>
 
-  <!-- ====== Panel OPs ====== -->
-  <section class="panel" id="panel-ops">
-    <h2 class="section">OPs activas</h2>
+  <!-- ====== Panel OFs ====== -->
+  <section class="panel" id="panel-ofs">
+    <h2 class="section">OFs activas</h2>
     <div class="table-wrap">
       <div class="table-head">
-        <h3>Todas las OPs en proceso</h3>
+        <h3>Todas las OFs en proceso</h3>
         <div>
-          <button class="btn btn-primary" data-rbac-create-op onclick="alert('Crear OP — próximamente desde acá. Por ahora cargá directo en el Sheet.')">+ Nueva OP</button>
+          <button class="btn btn-primary" data-rbac-create-of onclick="alert('Crear OF — próximamente desde acá. Por ahora cargá directo en el Sheet.')">+ Nueva OF</button>
         </div>
       </div>
       <div class="table-scroll">
         <table>
           <thead>
             <tr>
-              <th>OP</th><th>Cliente</th><th>Tipo</th><th>Cantidad</th>
+              <th>OF</th><th>Cliente</th><th>Tipo</th><th>Cantidad</th>
               <th>Cadena</th><th>Vence</th><th>% Avance</th><th>Estado</th>
             </tr>
           </thead>
-          <tbody id="opsTabla"><tr><td colspan="8" class="loading">Cargando…</td></tr></tbody>
+          <tbody id="ofsTabla"><tr><td colspan="8" class="loading">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -266,15 +266,15 @@ body[data-can-create-op="0"] [data-rbac-create-op]{display:none !important}
           </select>
         </div>
         <div class="form-field">
-          <label>OP</label>
-          <select id="ev-op"><option value="">— Elegir OP —</option></select>
+          <label>OF</label>
+          <select id="ev-of"><option value="">— Elegir OF —</option></select>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-field">
           <label>Operario principal (legajo)</label>
-          <input type="number" id="ev-operario" placeholder="Ej: 405">
+          <input type="number" id="ev-oferario" placeholder="Ej: 405">
         </div>
         <div class="form-field">
           <label>Ayudante (legajo, opcional)</label>
@@ -377,7 +377,7 @@ const MODULE_KEY = 'FabricaAlamo';
 const ADMIN_EMAILS = ['franco.bauer98@gmail.com'];
 
 const PESTANAS = {
-  ops: 'OPs',
+  ofs: 'OFs',
   bobinas: 'Bobinas',
   materiales: 'Materiales',
   stock: 'Stock',
@@ -392,7 +392,7 @@ const PESTANAS = {
 let tokenClient = null;
 let accessToken = null;
 let userEmail = '';
-let cache = { ops: [], bobinas: [], materiales: [], stock: [], qa: [], personal: [] };
+let cache = { ofs: [], bobinas: [], materiales: [], stock: [], qa: [], personal: [] };
 
 // ============================================================
 // RBAC — roles y matriz de permisos
@@ -412,8 +412,8 @@ const RBAC = {
   hasAccess() { return ROLES_VALIDOS.indexOf(userCtx.rol) >= 0; },
   // ¿Puede editar / cargar eventos?
   canEdit() { return userCtx.rol && userCtx.rol !== ROLES.LECTURA; },
-  // ¿Puede crear OPs?
-  canCreateOP() { return userCtx.rol === ROLES.ADMIN || userCtx.rol === ROLES.JEFE_PLANTA; },
+  // ¿Puede crear OFs?
+  canCreateOF() { return userCtx.rol === ROLES.ADMIN || userCtx.rol === ROLES.JEFE_PLANTA; },
   // ¿Ve TODOS los sectores (o filtrado a los suyos)?
   hasFullSectorAccess() {
     return userCtx.rol === ROLES.ADMIN
@@ -426,15 +426,15 @@ const RBAC = {
     const clean = String(sectorKey || '').replace(/^Sec_/, '');
     return userCtx.sectores.some(s => String(s).replace(/^Sec_/, '').toLowerCase() === clean.toLowerCase());
   },
-  // ¿La OP toca alguno de mis sectores asignados? (mira la cadena_sectores)
-  opTouchesMySectors(op) {
+  // ¿La OF toca alguno de mis sectores asignados? (mira la cadena_sectores)
+  ofTouchesMySectors(op) {
     if (this.hasFullSectorAccess()) return true;
     const cad = String(op.cadena_sectores || '').toLowerCase();
     if (!cad) return true;  // si no se sabe, no esconder por las dudas
     return userCtx.sectores.some(s => cad.includes(String(s).replace(/^Sec_/, '').toLowerCase()));
   },
-  // OP cerrada hace +30 días → bloqueada para todos
-  isOPLocked(op) {
+  // OF cerrada hace +30 días → bloqueada para todos
+  isOFLocked(op) {
     if (!op) return false;
     if (op.estado !== 'cerrada' && op.estado !== 'cancelada') return false;
     const fcierre = excelDateToJs(op.fecha_cierre || op.fecha_creacion);
@@ -584,7 +584,7 @@ function applyRBAC() {
   // Limpio clases previas y aplico la actual
   ROLES_VALIDOS.forEach(r => body.classList.remove('role-' + r));
   body.classList.add('role-' + userCtx.rol);
-  body.dataset.canCreateOp = RBAC.canCreateOP() ? '1' : '0';
+  body.dataset.canCreateOf = RBAC.canCreateOF() ? '1' : '0';
 
   // Badge con el rol
   const badge = document.getElementById('roleBadge');
@@ -703,23 +703,23 @@ async function loadAll() {
   if (!accessToken) return;
   toast('Cargando datos…');
   try {
-    const [ops, bobinas, materiales, stock, qa] = await Promise.all([
-      readSheet(`${PESTANAS.ops}!A1:AD2000`),
+    const [ofs, bobinas, materiales, stock, qa] = await Promise.all([
+      readSheet(`${PESTANAS.ofs}!A1:AD2000`),
       readSheet(`${PESTANAS.bobinas}!A1:N2000`),
       readSheet(`${PESTANAS.materiales}!A1:J500`),
       readSheet(`${PESTANAS.stock}!A1:J5000`),
       readSheet(`${PESTANAS.qa}!A1:I2000`)
     ]);
-    cache.ops        = parseRows(ops);
+    cache.ofs        = parseRows(ofs);
     cache.bobinas    = parseRows(bobinas);
     cache.materiales = parseRows(materiales);
     cache.stock      = parseRows(stock);
     cache.qa         = parseRows(qa);
     renderInicio();
-    renderOPs();
+    renderOFs();
     renderBobinas();
     renderStock();
-    poblarOpsSelect();
+    poblarOfsSelect();
     toast('Datos actualizados ✓', 'ok');
   } catch (e) {
     console.error(e);
@@ -740,17 +740,17 @@ function parseRows(values) {
 // ============================================================
 // RENDER PANELES
 // ============================================================
-// Filtra OPs según rol: admin/jefe_planta/lectura ven todas, jefe_sector/operario solo las que pasan por sus sectores
-function filtrarOpsParaUsuario(ops) {
+// Filtra OFs según rol: admin/jefe_planta/lectura ven todas, jefe_sector/operario solo las que pasan por sus sectores
+function filtrarOfsParaUsuario(ops) {
   if (RBAC.hasFullSectorAccess()) return ops;
-  return ops.filter(o => RBAC.opTouchesMySectors(o));
+  return ops.filter(o => RBAC.ofTouchesMySectors(o));
 }
 
 function renderInicio() {
-  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso'));
-  document.getElementById('kpi-ops').textContent = opsActivas.length;
+  const ofsActivas = filtrarOfsParaUsuario(cache.ofs.filter(o => o.estado === 'en_proceso'));
+  document.getElementById('kpi-ofs').textContent = ofsActivas.length;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const vencidas = opsActivas.filter(o => {
+  const vencidas = ofsActivas.filter(o => {
     const f = excelDateToJs(o.fecha_solicitada);
     return f && f < hoy;
   }).length;
@@ -760,14 +760,14 @@ function renderInicio() {
   const qaPend = cache.qa.filter(q => q.decision === 'pendiente').length;
   document.getElementById('kpi-qa').textContent = qaPend;
 
-  const proximas = opsActivas
+  const proximas = ofsActivas
     .map(o => ({ ...o, _fecha: excelDateToJs(o.fecha_solicitada) }))
     .filter(o => o._fecha)
     .sort((a, b) => a._fecha - b._fecha)
     .slice(0, 8);
-  const tb = document.getElementById('opsProximas');
+  const tb = document.getElementById('ofsProximas');
   if (proximas.length === 0) {
-    tb.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div>No hay OPs activas</td></tr>';
+    tb.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📭</div>No hay OFs activas</td></tr>';
     return;
   }
   tb.innerHTML = proximas.map(o => {
@@ -777,7 +777,7 @@ function renderInicio() {
                   : `<span class="chip ok">${dias}</span>`;
     const av = Number(o.porcentaje_avance) || 0;
     return `<tr>
-      <td><strong>${esc(o.id_op)}</strong></td>
+      <td><strong>${esc(o.id_of)}</strong></td>
       <td>${esc(o.cliente)}</td>
       <td>${esc(o.tipo_bolsa)}</td>
       <td>${fmtNum(o.cantidad_bolsas)}</td>
@@ -788,20 +788,20 @@ function renderInicio() {
   }).join('');
 }
 
-function renderOPs() {
-  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso' || o.estado === 'pausada'));
-  const tb = document.getElementById('opsTabla');
-  if (opsActivas.length === 0) {
-    tb.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">📭</div>No hay OPs activas</td></tr>';
+function renderOFs() {
+  const ofsActivas = filtrarOfsParaUsuario(cache.ofs.filter(o => o.estado === 'en_proceso' || o.estado === 'pausada'));
+  const tb = document.getElementById('ofsTabla');
+  if (ofsActivas.length === 0) {
+    tb.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">📭</div>No hay OFs activas</td></tr>';
     return;
   }
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  tb.innerHTML = opsActivas.map(o => {
+  tb.innerHTML = ofsActivas.map(o => {
     const f = excelDateToJs(o.fecha_solicitada);
     const av = Number(o.porcentaje_avance) || 0;
     const estChip = o.estado === 'pausada' ? 'warn' : 'ok';
     return `<tr>
-      <td><strong>${esc(o.id_op)}</strong></td>
+      <td><strong>${esc(o.id_of)}</strong></td>
       <td>${esc(o.cliente)}</td>
       <td>${esc(o.tipo_bolsa)}</td>
       <td>${fmtNum(o.cantidad_bolsas)}</td>
@@ -882,11 +882,11 @@ function renderStock() {
 // ============================================================
 // CARGAR EVENTO
 // ============================================================
-function poblarOpsSelect() {
-  const sel = document.getElementById('ev-op');
-  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso'));
-  sel.innerHTML = '<option value="">— Elegir OP —</option>' +
-    opsActivas.map(o => `<option value="${esc(o.id_op)}">${esc(o.id_op)} · ${esc(o.cliente)} · ${esc(o.tipo_bolsa)}</option>`).join('');
+function poblarOfsSelect() {
+  const sel = document.getElementById('ev-of');
+  const ofsActivas = filtrarOfsParaUsuario(cache.ofs.filter(o => o.estado === 'en_proceso'));
+  sel.innerHTML = '<option value="">— Elegir OF —</option>' +
+    ofsActivas.map(o => `<option value="${esc(o.id_of)}">${esc(o.id_of)} · ${esc(o.cliente)} · ${esc(o.tipo_bolsa)}</option>`).join('');
 }
 
 // Schema de campos específicos por sector (después del núcleo común de 13 columnas).
@@ -1022,11 +1022,11 @@ const SECTOR_FIELDS = {
   ]
 };
 
-function poblarOpsSelect() {
-  const sel = document.getElementById('ev-op');
-  const opsActivas = filtrarOpsParaUsuario(cache.ops.filter(o => o.estado === 'en_proceso'));
-  sel.innerHTML = '<option value="">— Elegir OP —</option>' +
-    opsActivas.map(o => `<option value="${esc(o.id_op)}">${esc(o.id_op)} · ${esc(o.cliente)} · ${esc(o.tipo_bolsa)}</option>`).join('');
+function poblarOfsSelect() {
+  const sel = document.getElementById('ev-of');
+  const ofsActivas = filtrarOfsParaUsuario(cache.ofs.filter(o => o.estado === 'en_proceso'));
+  sel.innerHTML = '<option value="">— Elegir OF —</option>' +
+    ofsActivas.map(o => `<option value="${esc(o.id_of)}">${esc(o.id_of)} · ${esc(o.cliente)} · ${esc(o.tipo_bolsa)}</option>`).join('');
 }
 
 function onSectorChange() {
@@ -1035,14 +1035,14 @@ function onSectorChange() {
   cont.innerHTML = '';
   if (!sec) return;
   const fields = SECTOR_FIELDS[sec] || [];
-  // Aviso si la cadena de la OP elegida no incluye este sector
-  const op = cache.ops.find(o => o.id_op === document.getElementById('ev-op').value);
+  // Aviso si la cadena de la OF elegida no incluye este sector
+  const op = cache.ofs.find(o => o.id_of === document.getElementById('ev-of').value);
   if (op && op.cadena_sectores) {
     const chainName = sec.replace('Sec_','');
     if (!String(op.cadena_sectores).includes(chainName)) {
       const warn = document.createElement('div');
       warn.style.cssText = 'background:rgba(255,179,71,0.1);border:1px solid var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--warn)';
-      warn.textContent = `⚠️ La OP ${op.id_op} (${op.tipo_bolsa}) no tiene este sector en su cadena. Igual podés cargar pero revisá si está correcto.`;
+      warn.textContent = `⚠️ La OF ${op.id_of} (${op.tipo_bolsa}) no tiene este sector en su cadena. Igual podés cargar pero revisá si está correcto.`;
       cont.appendChild(warn);
     }
   }
@@ -1092,9 +1092,9 @@ function buildField(f) {
 async function guardarEvento() {
   if (!RBAC.canEdit()) { toast('Tu rol es de solo lectura — no podés cargar eventos', 'danger'); return; }
   const sec = document.getElementById('ev-sector').value;
-  const op = document.getElementById('ev-op').value;
-  const operario = document.getElementById('ev-operario').value;
-  if (!sec || !op || !operario) { toast('Completá sector, OP y operario', 'danger'); return; }
+  const op = document.getElementById('ev-of').value;
+  const operario = document.getElementById('ev-oferario').value;
+  if (!sec || !op || !operario) { toast('Completá sector, OF y operario', 'danger'); return; }
   if (!RBAC.isSectorAllowed(sec)) { toast('No tenés permiso para cargar en ese sector', 'danger'); return; }
 
   // Núcleo común (13 cols)
@@ -1125,7 +1125,7 @@ async function guardarEvento() {
   try {
     toast('Guardando evento…');
     await appendRow(sec, fila);
-    logAuditoria(sec, op, 'insert', `Evento ${sec} para OP ${op}, operario ${operario}`);
+    logAuditoria(sec, op, 'insert', `Evento ${sec} para OF ${op}, operario ${operario}`);
     toast('Evento guardado ✓ (los cálculos los hace Apps Script)', 'ok');
     limpiarEvento();
     setTimeout(loadAll, 1800);
@@ -1135,12 +1135,12 @@ async function guardarEvento() {
 }
 
 function limpiarEvento() {
-  ['ev-operario','ev-ayudante','ev-paradas','ev-inicio','ev-fin','ev-obs']
+  ['ev-oferario','ev-ayudante','ev-paradas','ev-inicio','ev-fin','ev-obs']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('ev-paradas').value = '0';
   document.getElementById('ev-especificos').innerHTML = '';
   document.getElementById('ev-sector').value = '';
-  document.getElementById('ev-op').value = '';
+  document.getElementById('ev-of').value = '';
 }
 
 // ============================================================
