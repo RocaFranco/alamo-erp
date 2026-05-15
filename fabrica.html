@@ -5847,11 +5847,8 @@ function renderColaImpresion() {
         String(c['Nº OF']||'').trim() === String(num).trim() &&
         String(c['Sector']||'').trim() === 'Impresión'
       );
-      const fechaCierre = cierre ? cierre['Fecha Cierre'] : '—';
+      const fechaTxt = fmtFechaCorta(excelDateToJs(cierre && cierre['Fecha Cierre']));
       const motivo = cierre ? String(cierre['Motivo (si no cumple)']||'').trim() : '';
-      const fechaTxt = (typeof fechaCierre === 'string' && fechaCierre.includes('-'))
-        ? fechaCierre.split('-').reverse().slice(0,2).join('/')
-        : (fechaCierre || '—');
       const tagMotivo = motivo ? `<span style="font-size:10px;color:var(--warn,#f5a623);display:block;margin-top:2px">⚠️ ${motivo}</span>` : '';
       accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>${tagMotivo}`;
     } else {
@@ -6149,10 +6146,7 @@ function renderColaClise() {
         String(c['Nº OF']||'').trim() === num &&
         String(c['Sector']||'').trim() === 'Clisé'
       );
-      const fechaCierre = cierre ? cierre['Fecha Cierre'] : '—';
-      const fechaTxt = (typeof fechaCierre === 'string' && fechaCierre.includes('-'))
-        ? fechaCierre.split('-').reverse().slice(0,2).join('/')
-        : (fechaCierre || '—');
+      const fechaTxt = fmtFechaCorta(excelDateToJs(cierre && cierre['Fecha Cierre']));
       accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>`;
     } else {
       const puedeCerrar = trabajos > 0;
