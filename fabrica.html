@@ -5873,8 +5873,8 @@ function renderColaImpresion() {
       <td>${o['Cliente']||'—'}</td>
       <td>${o['Nombre Bolsa']||'—'}</td>
       <td>${o['Tipo Bolsa']||'—'}</td>
-      <td class="num" style="padding-right:18px">${fmtNum(cant)}</td>
-      <td style="padding-left:18px">${pantonesHTML}</td>
+      <td class="num" style="padding-right:36px">${fmtNum(cant)}</td>
+      <td style="padding-left:36px">${pantonesHTML}</td>
       <td class="num">${fmtNum(hechas)}</td>
       <td class="num">${pct}%</td>
       <td class="num">${accionHTML}</td>
@@ -5989,8 +5989,10 @@ document.addEventListener('keydown', (e) => {
 // ============================================================
 
 // Helper compartido: arma una grilla 3×2 con los pantones de la OF (Color1..6 / Pantone1..6).
-// Layout: pantone1 | pantone3 | pantone5
-//         pantone2 | pantone4 | pantone6
+// Layout (ejemplo con 6 pantones):
+//   pantone1   pantone3   pantone5
+//   pantone2   pantone4   pantone6
+// Clave: grid-template-rows:repeat(2,auto) + grid-auto-flow:column → llena por columnas.
 function renderPantonesGrid(of) {
   const arr = [];
   for (let i = 1; i <= 6; i++) {
@@ -6000,7 +6002,7 @@ function renderPantonesGrid(of) {
   }
   if (!arr.length) return '—';
   const items = arr.map(p => `<span style="white-space:nowrap">${p}</span>`).join('');
-  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);grid-auto-flow:column;gap:2px 14px;font-size:12px;line-height:1.4">${items}</div>`;
+  return `<div style="display:inline-grid;grid-template-columns:repeat(3,max-content);grid-template-rows:repeat(2,auto);grid-auto-flow:column;column-gap:22px;row-gap:3px;font-size:12px;line-height:1.4">${items}</div>`;
 }
 
 // Caches (reusables — comparten con Impresión cuando aplica)
@@ -6164,8 +6166,8 @@ function renderColaClise() {
       <td><strong>${num}</strong></td>
       <td>${o['Cliente']||'—'}</td>
       <td>${o['Nombre Bolsa']||'—'}</td>
-      <td class="num" style="padding-right:18px">${cantColores || '—'}</td>
-      <td style="padding-left:18px">${pantonesHTML}</td>
+      <td class="num" style="padding-right:36px">${cantColores || '—'}</td>
+      <td style="padding-left:36px">${pantonesHTML}</td>
       <td class="num">${trabajos}</td>
       <td class="num">${accionHTML}</td>
     </tr>`;
