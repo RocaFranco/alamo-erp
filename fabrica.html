@@ -1681,7 +1681,96 @@
       <div class="wip"><div class="wip-icon">🌀</div><h2>Laminadora</h2><p>Laminado / Coating / BioPP. Bobinas Padre → Nueva Bobina. Kg Agregados, PP, PE, Master, Purgados.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
     </section>
     <section class="panel" id="panel-sec-tubera-papel">
-      <div class="wip"><div class="wip-icon">📜</div><h2>Tubera Papel</h2><p>3 tipos de evento: Parte de Turno (rutina) · Fin de OF · Cierre Bobina (eventual).</p><div class="tag">EN CONSTRUCCIÓN</div></div>
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">📜 Tubera Papel</h2>
+          <p class="page-sub">Parte de turno multi-OF · bobinas heredadas turno a turno · sin aprobación · cierre por OF</p>
+        </div>
+        <button type="button" class="btn-primary" id="tp-btn-nuevo-parte" style="margin-left:auto">+ Cargar parte de turno</button>
+      </div>
+
+      <div class="subtabs">
+        <button type="button" class="subtab-btn active" data-tp-tab="cola">📋 OFs en cola</button>
+        <button type="button" class="subtab-btn" data-tp-tab="partes">📝 Partes cargados</button>
+        <button type="button" class="subtab-btn" data-tp-tab="bobinas">🧵 Bobinas en máquina</button>
+      </div>
+
+      <!-- OFs EN COLA -->
+      <div class="subpanel active" id="tp-panel-cola">
+        <div class="kpi-grid kpi-grid-3">
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">OFs en cola</div>
+            <div class="kpi-value" id="tp-kpi-cola">—</div>
+            <div class="kpi-sub">esperan tubera</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">OFs en proceso</div>
+            <div class="kpi-value" id="tp-kpi-proc">—</div>
+            <div class="kpi-sub">con al menos 1 parte</div>
+          </div>
+          <div class="kpi-card kpi-warn">
+            <div class="kpi-label">Bolsas pendientes</div>
+            <div class="kpi-value" id="tp-kpi-pend">—</div>
+            <div class="kpi-sub">total a fabricar</div>
+          </div>
+        </div>
+
+        <!-- Toggle Activas / Terminadas -->
+        <div class="mnt-toggles">
+          <button type="button" class="cola-toggle active" data-tp-vista="activas">🟡 Activas <span class="badge-num" id="tp-tg-act">0</span></button>
+          <button type="button" class="cola-toggle" data-tp-vista="terminadas">✅ Terminadas en Tubera Papel <span class="badge-num" id="tp-tg-ter">0</span></button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nº OF</th>
+                <th>Cliente</th>
+                <th>Nombre Bolsa</th>
+                <th style="text-align:center">Cant Bolsas</th>
+                <th style="text-align:center">Bolsas hechas</th>
+                <th style="text-align:center">%</th>
+                <th class="num">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tp-cola-body">
+              <tr><td colspan="7" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PARTES CARGADOS -->
+      <div class="subpanel" id="tp-panel-partes">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Turno</th>
+                <th>Nº Tubera</th>
+                <th>Legajos</th>
+                <th>Hr In</th>
+                <th>Hr Fin</th>
+                <th>OFs trabajadas</th>
+                <th class="num">Bolsas total</th>
+                <th class="num">Kg desperd.</th>
+                <th>Bobinas sacadas</th>
+              </tr>
+            </thead>
+            <tbody id="tp-partes-body">
+              <tr><td colspan="10" class="empty">Sin partes cargados todavía.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BOBINAS EN MÁQUINA -->
+      <div class="subpanel" id="tp-panel-bobinas">
+        <p class="form-sub" style="margin-bottom:14px">Vista en vivo de qué bobinas estuvieron en uso en el último parte de cada tubera. Sirve de referencia para el próximo turno.</p>
+        <div id="tp-bobinas-maquinas" class="conv-block-list"></div>
+      </div>
     </section>
     <section class="panel" id="panel-sec-tubera-rafia">
       <div class="wip"><div class="wip-icon">🧵</div><h2>Tubera Rafia</h2><p>BioPP / Polipapel. Da forma de tubo al plano de Laminadora.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
@@ -2289,6 +2378,137 @@
   </div>
 </div>
 
+<!-- Modal Cargar Parte de Turno de Tubera Papel -->
+<div class="modal-overlay" id="tp-modal-parte" style="display:none">
+  <div class="modal-card" style="max-width:820px">
+    <div class="modal-head">
+      <h3>📜 Cargar parte de turno — Tubera Papel</h3>
+      <button class="modal-close" onclick="cerrarModalParteTP()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-tp" class="form-grid">
+        <!-- Header del turno -->
+        <label class="field">
+          <span>Fecha</span>
+          <input type="date" name="fecha" id="tp-form-fecha" required>
+        </label>
+        <label class="field">
+          <span>Turno</span>
+          <select name="turno" required>
+            <option value="">— Elegir —</option>
+            <option value="manana">Mañana</option>
+            <option value="tarde">Tarde</option>
+            <option value="noche">Noche</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Nº Tubera</span>
+          <select name="tubera" id="tp-form-tubera" required><option value="">— Elegir —</option></select>
+        </label>
+        <label class="field">
+          <span>Legajo Operario</span>
+          <input type="text" name="legajo_op" required placeholder="Ej: 499">
+        </label>
+        <label class="field">
+          <span>Legajo Ayudante</span>
+          <input type="text" name="legajo_ay" placeholder="Opcional">
+        </label>
+        <label class="field"><span></span></label>
+        <label class="field">
+          <span>Hora Inicio</span>
+          <input type="time" name="hora_in" required>
+        </label>
+        <label class="field">
+          <span>Hora Fin</span>
+          <input type="time" name="hora_fin" required>
+        </label>
+
+        <!-- Bobinas en máquina del turno -->
+        <div class="conv-block field-2">
+          <div class="conv-block-title">🧵 Bobinas en uso este turno</div>
+          <p class="form-sub" style="margin:0 0 10px">Cargá las bobinas que estuvieron en la máquina durante este turno. Si terminaste el turno con alguna bobina sacada, marcá la opción y poné el peso.</p>
+          <div id="tp-bobinas-list">
+            <!-- filas dinámicas -->
+          </div>
+          <button type="button" class="btn-secondary" id="tp-bobina-add" style="margin-top:8px">+ Sumar bobina</button>
+        </div>
+
+        <!-- OFs trabajadas en el turno -->
+        <div class="conv-block field-2">
+          <div class="conv-block-title">📋 OFs trabajadas este turno</div>
+          <p class="form-sub" style="margin:0 0 10px">Un mismo turno puede cubrir varias OFs si se programan en serie por formato. Cargá una línea por cada OF con sus bolsas producidas.</p>
+          <div id="tp-ofs-list">
+            <!-- filas dinámicas -->
+          </div>
+          <button type="button" class="btn-secondary" id="tp-of-add" style="margin-top:8px">+ Sumar OF</button>
+        </div>
+
+        <!-- Kg desperdicio del turno -->
+        <label class="field">
+          <span>Kg Desperdicio del turno</span>
+          <input type="number" name="kg_desp" step="0.1" min="0" placeholder="Estimado o pesado">
+        </label>
+        <label class="field"><span></span></label>
+
+        <label class="field field-2">
+          <span>Comentarios (opcional)</span>
+          <input type="text" name="comentarios" placeholder="Notas del turno, paradas, problemas…">
+        </label>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalParteTP()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="tp-parte-submit">Guardar parte</button>
+        </div>
+      </form>
+      <div id="tp-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cerrar OF en Tubera Papel -->
+<div class="modal-overlay" id="tp-modal-cierre" style="display:none">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-head">
+      <h3>🏁 Cerrar OF en Tubera Papel — <span id="tp-cierre-of">OF</span></h3>
+      <button class="modal-close" onclick="cerrarModalCierreTP()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="conv-padre-card" style="margin-bottom:14px">
+        <div class="padre-info-grid">
+          <div class="item"><small>Cliente</small><strong id="tp-cierre-cli">—</strong></div>
+          <div class="item"><small>Nombre Bolsa</small><strong id="tp-cierre-bolsa">—</strong></div>
+          <div class="item"><small>Cant pedida</small><strong id="tp-cierre-cant">—</strong></div>
+          <div class="item"><small>Bolsas hechas</small><strong id="tp-cierre-hechas">—</strong></div>
+          <div class="item"><small>% Cumplido</small><strong id="tp-cierre-pct">—</strong></div>
+          <div class="item"><small>Estado</small><strong id="tp-cierre-estado">—</strong></div>
+        </div>
+      </div>
+      <p style="margin:0 0 14px;color:var(--text-2);font-size:13px">
+        Al confirmar, esta OF sale de la cola de Tubera Papel y <strong>aparece en la cola del siguiente sector</strong> (Embutido o Costura Papel según corresponda).
+      </p>
+
+      <form id="form-tp-cierre" class="form-grid">
+        <div class="field-2" id="tp-cierre-aviso-noof" style="display:none; padding:12px 14px; background:rgba(245,166,35,0.08); border:1px solid var(--warn,#f5a623); border-radius:8px; color:var(--warn,#f5a623); font-size:13px;">
+          ⚠️ <strong>Esta OF no cumple el objetivo.</strong> Para cerrarla igual, indicá el motivo (queda registrado).
+        </div>
+        <label class="field field-2" id="tp-cierre-motivo-wrap" style="display:none">
+          <span>Motivo (obligatorio)</span>
+          <input type="text" name="motivo" placeholder="Ej: cliente canceló parte, máquina rota, etc." maxlength="200">
+        </label>
+        <label class="field field-2">
+          <span>Legajo del que cierra</span>
+          <input type="text" name="legajo_cierre" required placeholder="Ej: 499">
+        </label>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalCierreTP()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="tp-cierre-submit">Confirmar cierre</button>
+        </div>
+      </form>
+      <div id="tp-cierre-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Cargar Recepción de Tintas -->
 <div class="modal-overlay" id="tnt-modal-recep" style="display:none">
   <div class="modal-card" style="max-width:680px">
@@ -2581,9 +2801,10 @@ function abrirSector(secKey) {
   document.getElementById('secBtn').classList.add('active');
   document.getElementById('secMenu').classList.remove('open');
   // Lazy-load por sector
-  if (secKey === 'recepcion') cargarBobinasStock();  // carga Materiales para el form
-  if (secKey === 'clise')     cargarClise();
-  if (secKey === 'impresion') cargarImpresion();
+  if (secKey === 'recepcion')      cargarBobinasStock();  // carga Materiales para el form
+  if (secKey === 'clise')          cargarClise();
+  if (secKey === 'impresion')      cargarImpresion();
+  if (secKey === 'tubera-papel')   cargarTuberaPapel();
 }
 
 // Dropdown de sectores
@@ -6516,6 +6737,580 @@ document.addEventListener('keydown', (e) => {
   if (mt && mt.style.display === 'flex') cerrarModalTrabajoClise();
   const mc = document.getElementById('cli-modal-cierre');
   if (mc && mc.style.display === 'flex') cerrarModalCierreClise();
+});
+
+// ============================================================
+// PANTALLA TUBERA PAPEL
+// ============================================================
+// Modelo: 1 fila por (parte × OF trabajada). Un parte de turno cubre N OFs.
+// Las filas hermanas comparten Fecha+Turno+Tubera+HoraInicio (claveDeParteTP).
+// Bobinas en uso = texto con códigos separados por coma.
+// Bobinas sacadas (con kg) generan bobinas hijas con remanente al guardar el parte.
+// El cierre de OF se hace desde la cola (botón 🏁 Cerrar OF) — escribe Cierres de OF por Sector.
+// ============================================================
+
+let tpEventosCache = [];
+let tpOFsCache = [];
+let tpMaquinasCache = [];
+let tpVista = 'activas';
+let tpSubTab = 'cola';
+let tpBobIdx = 0;
+let tpOfIdx = 0;
+
+function claveDeParteTP(p) {
+  return `${p['Fecha']}|${p['Turno']}|${p['Nº Tubera']}|${p['Hora Inicio']}`;
+}
+
+// Sub-tabs
+document.querySelectorAll('[data-tp-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tpSubTab = btn.dataset.tpTab;
+    document.querySelectorAll('[data-tp-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#panel-sec-tubera-papel .subpanel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tp-panel-' + tpSubTab).classList.add('active');
+    if (tpSubTab === 'bobinas') renderBobinasMaquinaTP();
+  });
+});
+
+// Toggle Activas / Terminadas
+document.querySelectorAll('.cola-toggle[data-tp-vista]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tpVista = btn.dataset.tpVista;
+    document.querySelectorAll('.cola-toggle[data-tp-vista]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderColaTP();
+  });
+});
+
+async function cargarTuberaPapel() {
+  try {
+    const [eventos, ofs, maquinas, cierres, bobinas] = await Promise.all([
+      leerPestana('Tubera Papel').catch(() => []),
+      leerPestana('OF').catch(() => []),
+      leerPestana('Máquinas').catch(() => []),
+      leerPestana('Cierres de OF por Sector').catch(() => []),
+      leerPestana('Bobinas').catch(() => []),
+    ]);
+    tpEventosCache = eventos || [];
+    tpOFsCache = ofs || [];
+    tpMaquinasCache = maquinas || [];
+    bobinasCache = bobinas || bobinasCache;
+    cierresPorSectorCache = (cierres || []).map(c => ({
+      ...c,
+      'Nº OF': c['Nº OF'] || c['N° OF'] || '',
+      'N° OF': c['N° OF'] || c['Nº OF'] || '',
+    }));
+    // También cargar eventos de Clisé/Impresión para la regla puedeTrabajarseEnSector
+    if (!eventosPorSectorCache['Clisé'])     eventosPorSectorCache['Clisé']     = await leerPestana('Clisé').catch(() => []);
+    if (!eventosPorSectorCache['Impresión']) eventosPorSectorCache['Impresión'] = await leerPestana('Impresión').catch(() => []);
+    eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
+  } catch (err) {
+    console.error('Error cargando Tubera Papel:', err);
+    document.getElementById('tp-cola-body').innerHTML = `<tr><td colspan="7" class="empty">Error: ${err.message}</td></tr>`;
+    return;
+  }
+  renderColaTP();
+  renderPartesTP();
+  renderBobinasMaquinaTP();
+}
+
+function bolsasHechasEnTPporOF(numOF) {
+  return (tpEventosCache || [])
+    .filter(e => String(e['Nº OF']||'').trim() === String(numOF||'').trim())
+    .reduce((s, e) => s + (Number(e['Bolsas Producidas']) || 0), 0);
+}
+
+function renderColaTP() {
+  const tbody = document.getElementById('tp-cola-body');
+  if (!tbody) return;
+
+  const cerradasEnTP = new Set(
+    (cierresPorSectorCache || [])
+      .filter(c => String(c['Sector']||'').trim() === 'Tubera Papel')
+      .map(c => String(c['Nº OF']||'').trim())
+  );
+
+  // ACTIVAS = OFs cuya cadena pasa por Tubera Papel + sectores anteriores cerrados + no cerradas acá
+  const ofsActivas = (tpOFsCache || []).filter(o => {
+    const estado = String(o['Estado']||'').toLowerCase();
+    if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
+    return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache);
+  });
+  const ofsTerminadas = (tpOFsCache || []).filter(o => cerradasEnTP.has(String(o['Nº OF']||'').trim()));
+
+  document.getElementById('tp-tg-act').textContent = ofsActivas.length;
+  document.getElementById('tp-tg-ter').textContent = ofsTerminadas.length;
+  document.getElementById('tp-kpi-cola').textContent = ofsActivas.length;
+
+  let bolsasPend = 0, ofsEnProc = 0;
+  ofsActivas.forEach(o => {
+    const cant = Number(o['Cant Bolsas']) || 0;
+    const hechas = bolsasHechasEnTPporOF(o['Nº OF']);
+    bolsasPend += Math.max(0, cant - hechas);
+    if (hechas > 0) ofsEnProc++;
+  });
+  document.getElementById('tp-kpi-proc').textContent = ofsEnProc;
+  document.getElementById('tp-kpi-pend').textContent = fmtNum(bolsasPend);
+
+  const lista = tpVista === 'terminadas' ? ofsTerminadas : ofsActivas;
+  if (!lista.length) {
+    const msg = tpVista === 'terminadas'
+      ? 'No hay OFs cerradas en Tubera Papel todavía.'
+      : 'No hay OFs en cola para Tubera Papel. Aparecen acá las OFs cuya cadena pasa por este sector y los sectores anteriores ya están cerrados.';
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">${msg}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(o => {
+    const num = String(o['Nº OF']||'').trim();
+    const cant = Number(o['Cant Bolsas']) || 0;
+    const hechas = bolsasHechasEnTPporOF(num);
+    const pct = cant ? Math.min(100, Math.round(hechas / cant * 100)) : 0;
+
+    let accionHTML = '';
+    if (tpVista === 'terminadas') {
+      const cierre = (cierresPorSectorCache || []).find(c =>
+        String(c['Nº OF']||'').trim() === num &&
+        String(c['Sector']||'').trim() === 'Tubera Papel'
+      );
+      const fechaTxt = fmtFechaCorta(excelDateToJs(cierre && cierre['Fecha Cierre']));
+      const motivo = cierre ? String(cierre['Motivo (si no cumple)']||'').trim() : '';
+      const tagMotivo = motivo ? `<span style="font-size:10px;color:var(--warn,#f5a623);display:block;margin-top:2px">⚠️ ${motivo}</span>` : '';
+      accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>${tagMotivo}`;
+    } else {
+      const objetivo = objetivoBolsasOF(o);
+      const cumple = objetivo > 0 && hechas >= objetivo;
+      const clase = cumple ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
+      const titulo = cumple
+        ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
+        : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`;
+      accionHTML = `<button type="button" class="${clase}" title="${titulo}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">🏁 Cerrar OF</button>`;
+    }
+
+    return `<tr>
+      <td><strong>${num}</strong></td>
+      <td>${o['Cliente']||'—'}</td>
+      <td>${o['Nombre Bolsa']||'—'}</td>
+      <td style="text-align:center">${fmtNum(cant)}</td>
+      <td style="text-align:center">${fmtNum(hechas)}</td>
+      <td style="text-align:center">${pct}%</td>
+      <td class="num">${accionHTML}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPartesTP() {
+  const tbody = document.getElementById('tp-partes-body');
+  if (!tbody) return;
+  // Agrupar por clave de parte
+  const grupos = {};
+  (tpEventosCache || []).forEach(e => {
+    if (String(e['Tipo Evento']||'').trim() !== 'Parte de Turno') return;
+    const k = claveDeParteTP(e);
+    if (!grupos[k]) grupos[k] = [];
+    grupos[k].push(e);
+  });
+  const partes = Object.values(grupos).sort((a, b) => {
+    const fa = excelDateToJs(a[0]['Fecha']) || new Date(0);
+    const fb = excelDateToJs(b[0]['Fecha']) || new Date(0);
+    return fb - fa;
+  });
+  if (!partes.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">Sin partes cargados todavía. Tocá "+ Cargar parte de turno" arriba.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = partes.map(hermanas => {
+    const p = hermanas[0];
+    const f = excelDateToJs(p['Fecha']);
+    const ofsTxt = hermanas.map(h => h['Nº OF']).filter(Boolean).join(' / ');
+    const bolsasTotal = hermanas.reduce((s, h) => s + (Number(h['Bolsas Producidas'])||0), 0);
+    const kgDesp = hermanas[0]['Kg Desperdicio'] || 0; // se guarda solo en la primera fila
+    const bobsSacadas = hermanas[0]['Bobinas Sacadas'] || '';
+    return `<tr>
+      <td>${f ? fmtFechaCorta(f) : '—'}</td>
+      <td>${p['Turno']||'—'}</td>
+      <td><span class="of-num">${p['Nº Tubera']||'—'}</span></td>
+      <td>${p['Legajos']||'—'}</td>
+      <td>${excelTimeToHHMM(p['Hora Inicio'])||'—'}</td>
+      <td>${excelTimeToHHMM(p['Hora Fin'])||'—'}</td>
+      <td>${ofsTxt}</td>
+      <td class="num">${fmtNum(bolsasTotal)}</td>
+      <td class="num">${fmtNum(kgDesp)}</td>
+      <td>${bobsSacadas||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderBobinasMaquinaTP() {
+  const cont = document.getElementById('tp-bobinas-maquinas');
+  if (!cont) return;
+  const tuberas = (tpMaquinasCache || []).filter(m => m['Sector'] === 'Tubera Papel');
+  if (!tuberas.length) { cont.innerHTML = '<p class="empty">No hay máquinas de Tubera Papel definidas.</p>'; return; }
+  cont.innerHTML = tuberas.map(m => {
+    const cod = m['Código Máquina'];
+    // Buscar el último parte (más reciente) de esa máquina
+    const partes = (tpEventosCache || [])
+      .filter(e => e['Nº Tubera'] === cod && String(e['Tipo Evento']||'').trim() === 'Parte de Turno');
+    if (!partes.length) {
+      return `<div class="conv-block" style="margin-bottom:12px">
+        <div class="conv-block-title">${cod}</div>
+        <p class="form-sub" style="margin:0">Sin partes cargados todavía.</p>
+      </div>`;
+    }
+    // Último por fecha
+    partes.sort((a, b) => (excelDateToJs(b['Fecha'])||0) - (excelDateToJs(a['Fecha'])||0));
+    const ult = partes[0];
+    const fechaTxt = fmtFechaCorta(excelDateToJs(ult['Fecha']));
+    const bobs = String(ult['Bobinas en Uso']||'').trim();
+    const bobsSac = String(ult['Bobinas Sacadas']||'').trim();
+    return `<div class="conv-block" style="margin-bottom:12px">
+      <div class="conv-block-title">${cod} · último parte ${fechaTxt} (${ult['Turno']||'?'})</div>
+      <div class="padre-info-grid">
+        <div class="item"><small>Legajos</small><strong>${ult['Legajos']||'—'}</strong></div>
+        <div class="item"><small>Bobinas en uso</small><strong>${bobs||'—'}</strong></div>
+        <div class="item"><small>Sacadas en ese parte</small><strong>${bobsSac||'—'}</strong></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// MODAL CARGAR PARTE DE TURNO (Tubera Papel)
+// ============================================================
+function poblarFormTP() {
+  const f = document.getElementById('tp-form-fecha');
+  if (f) f.value = new Date().toISOString().slice(0,10);
+  const sel = document.getElementById('tp-form-tubera');
+  const tuberas = (tpMaquinasCache || []).filter(m =>
+    m['Sector'] === 'Tubera Papel' && String(m['Activa']||'SI').toUpperCase() === 'SI'
+  );
+  sel.innerHTML = '<option value="">— Elegir —</option>' + tuberas.map(m =>
+    `<option value="${m['Código Máquina']}">${m['Código Máquina']}</option>`
+  ).join('');
+}
+
+function agregarBobinaInputTP() {
+  tpBobIdx++;
+  const cont = document.getElementById('tp-bobinas-list');
+  const row = document.createElement('div');
+  row.className = 'tp-bob-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 150px 100px 30px;gap:8px;align-items:end;margin-bottom:10px;padding:10px;background:var(--bg-2);border-radius:6px';
+  row.innerHTML = `
+    <label class="field" style="margin:0"><span>Código bobina</span>
+      <input type="text" name="tp-bob-cod" placeholder="Ej: BOB-2026-00001">
+    </label>
+    <label class="field" style="margin:0"><span>Acción al cerrar turno</span>
+      <select name="tp-bob-accion">
+        <option value="sin_cambios">🟢 Sin cambios</option>
+        <option value="sacada">🔴 Sacada con peso</option>
+      </select>
+    </label>
+    <label class="field" style="margin:0"><span>Kg final</span>
+      <input type="number" name="tp-bob-kgfin" step="0.1" min="0" placeholder="Solo si sacada" disabled>
+    </label>
+    <button type="button" class="bob-del" title="Quitar" onclick="this.parentElement.remove()" style="height:36px;background:none;border:1px solid var(--bg-3);color:var(--text-3);border-radius:4px;cursor:pointer">✕</button>
+  `;
+  // Habilitar/deshabilitar kg final según acción
+  row.querySelector('[name="tp-bob-accion"]').addEventListener('change', e => {
+    const kgInput = row.querySelector('[name="tp-bob-kgfin"]');
+    kgInput.disabled = e.target.value !== 'sacada';
+    if (kgInput.disabled) kgInput.value = '';
+  });
+  cont.appendChild(row);
+}
+
+function agregarOFInputTP() {
+  tpOfIdx++;
+  const cont = document.getElementById('tp-ofs-list');
+  const row = document.createElement('div');
+  row.className = 'tp-of-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 140px 30px;gap:8px;align-items:end;margin-bottom:10px;padding:10px;background:var(--bg-2);border-radius:6px';
+  // Lista de OFs en cola
+  const cerradasEnTP = new Set((cierresPorSectorCache||[]).filter(c => c['Sector']==='Tubera Papel').map(c => c['Nº OF']));
+  const ofsCola = (tpOFsCache||[]).filter(o => {
+    const estado = String(o['Estado']||'').toLowerCase();
+    if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
+    return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache) && !cerradasEnTP.has(o['Nº OF']);
+  });
+  const opts = ofsCola.map(o => `<option value="${o['Nº OF']}">${o['Nº OF']} · ${o['Cliente']||''} · ${o['Nombre Bolsa']||''}</option>`).join('');
+  row.innerHTML = `
+    <label class="field" style="margin:0"><span>OF trabajada</span>
+      <select name="tp-of-num" required>
+        <option value="">— Elegir —</option>${opts}
+      </select>
+    </label>
+    <label class="field" style="margin:0"><span>Bolsas producidas</span>
+      <input type="number" name="tp-of-bolsas" step="1" min="0" required>
+    </label>
+    <button type="button" class="bob-del" title="Quitar" onclick="this.parentElement.remove()" style="height:36px;background:none;border:1px solid var(--bg-3);color:var(--text-3);border-radius:4px;cursor:pointer">✕</button>
+  `;
+  cont.appendChild(row);
+}
+
+document.getElementById('tp-bobina-add').addEventListener('click', agregarBobinaInputTP);
+document.getElementById('tp-of-add').addEventListener('click', agregarOFInputTP);
+
+function abrirModalParteTP() {
+  const form = document.getElementById('form-tp');
+  form.reset();
+  document.getElementById('tp-bobinas-list').innerHTML = '';
+  document.getElementById('tp-ofs-list').innerHTML = '';
+  tpBobIdx = 0; tpOfIdx = 0;
+  poblarFormTP();
+  // Arrancar con 1 bobina y 1 OF
+  agregarBobinaInputTP();
+  agregarOFInputTP();
+  const msg = document.getElementById('tp-msg');
+  msg.textContent = ''; msg.className = 'form-msg';
+  document.getElementById('tp-modal-parte').style.display = 'flex';
+}
+
+function cerrarModalParteTP() {
+  document.getElementById('tp-modal-parte').style.display = 'none';
+}
+
+document.getElementById('tp-btn-nuevo-parte').addEventListener('click', abrirModalParteTP);
+document.getElementById('tp-modal-parte').addEventListener('click', e => {
+  if (e.target.id === 'tp-modal-parte') cerrarModalParteTP();
+});
+
+// Submit parte de turno
+document.getElementById('form-tp').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+
+  const fecha = f.fecha.value;
+  const turno = f.turno.value;
+  const tubera = f.tubera.value;
+  const legOp = f.legajo_op.value.trim();
+  const legAy = f.legajo_ay.value.trim();
+  const horaIn = f.hora_in.value;
+  const horaFin = f.hora_fin.value;
+  const kgDesp = Number(f.kg_desp.value) || 0;
+  const com = f.comentarios.value.trim();
+
+  if (!fecha || !turno || !tubera || !legOp || !horaIn || !horaFin) {
+    showFormMsg('tp-msg', '✗ Faltan campos obligatorios.', false);
+    return;
+  }
+  if (horaFin <= horaIn) {
+    showFormMsg('tp-msg', '✗ La hora fin tiene que ser mayor a la de inicio.', false);
+    return;
+  }
+  const legajos = legAy ? `${legOp} / ${legAy}` : legOp;
+
+  // Recolectar bobinas
+  const bobRows = Array.from(document.querySelectorAll('#tp-bobinas-list .tp-bob-row'));
+  const bobinas = bobRows.map(r => ({
+    cod: r.querySelector('[name="tp-bob-cod"]').value.trim().toUpperCase(),
+    accion: r.querySelector('[name="tp-bob-accion"]').value,
+    kgFin: Number(r.querySelector('[name="tp-bob-kgfin"]').value) || 0,
+  })).filter(b => b.cod);
+  // Validar bobinas sacadas: necesitan kg
+  for (const b of bobinas) {
+    if (b.accion === 'sacada' && b.kgFin <= 0) {
+      showFormMsg('tp-msg', `✗ Bobina ${b.cod} marcada como "Sacada" necesita Kg final.`, false);
+      return;
+    }
+  }
+  const bobsEnUso = bobinas.map(b => b.cod).join(', ');
+  const bobsSacadas = bobinas.filter(b => b.accion === 'sacada').map(b => b.cod).join(', ');
+  const kgSacadasTotal = bobinas.filter(b => b.accion === 'sacada').reduce((s, b) => s + b.kgFin, 0);
+
+  // Recolectar OFs trabajadas
+  const ofRows = Array.from(document.querySelectorAll('#tp-ofs-list .tp-of-row'));
+  const ofsTrabajadas = ofRows.map(r => ({
+    num: r.querySelector('[name="tp-of-num"]').value.trim(),
+    bolsas: Number(r.querySelector('[name="tp-of-bolsas"]').value) || 0,
+  })).filter(x => x.num);
+  if (!ofsTrabajadas.length) {
+    showFormMsg('tp-msg', '✗ Cargá al menos 1 OF trabajada.', false);
+    return;
+  }
+
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('tp-parte-submit');
+  const txtOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  try {
+    // 1. Append 1 fila por OF trabajada (todas comparten claveDeParteTP)
+    // Headers: Fecha · Tipo Evento · Turno · Nº Tubera · Legajos · Bobinas en Uso · Nº OF
+    //          · Bolsas Producidas · Bobinas Sacadas · Kg Bobinas Sacadas · Kg Desperdicio
+    //          · Hora Inicio · Hora Fin · Observaciones
+    for (let i = 0; i < ofsTrabajadas.length; i++) {
+      const o = ofsTrabajadas[i];
+      const esPrimera = (i === 0);
+      await appendFila('Tubera Papel', [
+        fecha, 'Parte de Turno', turno, tubera, legajos,
+        bobsEnUso, o.num, o.bolsas,
+        esPrimera ? bobsSacadas : '',     // Bobinas Sacadas solo en la primera fila
+        esPrimera ? kgSacadasTotal : '',  // Idem
+        esPrimera ? kgDesp : '',          // Idem
+        horaIn, horaFin, esPrimera ? com : '',
+      ]);
+      tpEventosCache.push({
+        'Fecha': fecha, 'Tipo Evento': 'Parte de Turno', 'Turno': turno,
+        'Nº Tubera': tubera, 'Legajos': legajos, 'Bobinas en Uso': bobsEnUso,
+        'Nº OF': o.num, 'Bolsas Producidas': o.bolsas,
+        'Bobinas Sacadas': esPrimera ? bobsSacadas : '',
+        'Kg Bobinas Sacadas': esPrimera ? kgSacadasTotal : '',
+        'Kg Desperdicio': esPrimera ? kgDesp : '',
+        'Hora Inicio': horaIn, 'Hora Fin': horaFin,
+        'Observaciones': esPrimera ? com : '',
+      });
+    }
+
+    // 2. Procesar bobinas SACADAS: marcar transformada + generar hija con remanente
+    //    (Para v1 usamos kgFin directamente; la conversión mts ↔ kg depende del producto.)
+    for (const b of bobinas) {
+      if (b.accion !== 'sacada') continue;
+      const bob = (bobinasCache || []).find(x => String(x['Código Bobina']||'').toUpperCase() === b.cod);
+      if (!bob || !bob._rowIndex) continue;
+      // Generar hija con kgFin
+      const anio = new Date().getFullYear();
+      const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
+      let max = 0;
+      bobinasCache.forEach(x => {
+        const m = String(x['Código Bobina']||'').match(re);
+        if (m) max = Math.max(max, parseInt(m[1], 10));
+      });
+      const codHija = `BOB-${anio}-${String(max+1).padStart(5,'0')}`;
+      const ancho = Number(bob['Formato (cm)']) || 0;
+      const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
+      const mtsHija = (ancho && gramaje) ? Math.round(b.kgFin * 1000 / (gramaje * ancho / 100)) : 0;
+      // Headers Bobinas: Código · Nº OC · Proveedor · Fecha Ingreso · Producto · Formato · Kg · Gramaje · Mts · Padre 1 · Padre 2 · Origen · Estado · Sector Actual · Observaciones
+      await appendFila('Bobinas', [
+        codHija, '', '', fecha, bob['Producto'], ancho, b.kgFin, gramaje, mtsHija,
+        b.cod, '', 'Tubera Papel-remanente', 'disponible', '', `Remanente del parte de turno en ${tubera} (${fecha})`,
+      ]);
+      await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
+      // Sumar al cache
+      bobinasCache.push({
+        'Código Bobina': codHija, 'Fecha Ingreso': fecha, 'Producto': bob['Producto'],
+        'Formato (cm)': ancho, 'Kg': b.kgFin, 'Gramaje (g/m²)': gramaje, 'Mts Totales': mtsHija,
+        'Bobina Padre 1': b.cod, 'Origen': 'Tubera Papel-remanente', 'Estado': 'disponible',
+      });
+    }
+
+    eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
+    renderColaTP();
+    renderPartesTP();
+    renderBobinasMaquinaTP();
+    showFormMsg('tp-msg', `✓ Parte guardado: ${ofsTrabajadas.length} OF(s)${bobsSacadas ? ' · hijas generadas' : ''}.`, true);
+    setTimeout(() => {
+      cerrarModalParteTP();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 1100);
+  } catch (err) {
+    showFormMsg('tp-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
+// ============================================================
+// MODAL CERRAR OF EN TUBERA PAPEL
+// ============================================================
+function abrirModalCierreTP(numOF) {
+  const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada: ' + numOF); return; }
+  const cant = Number(of['Cant Bolsas']) || 0;
+  const objetivo = objetivoBolsasOF(of);
+  const hechas = bolsasHechasEnTPporOF(numOF);
+  const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+  const cumple = objetivo > 0 && hechas >= objetivo;
+
+  document.getElementById('tp-cierre-of').textContent = numOF;
+  document.getElementById('tp-cierre-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('tp-cierre-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('tp-cierre-cant').textContent = fmtNum(cant);
+  document.getElementById('tp-cierre-hechas').textContent = fmtNum(hechas);
+  document.getElementById('tp-cierre-pct').textContent = pct + '%';
+  const estadoEl = document.getElementById('tp-cierre-estado');
+  if (cumple) { estadoEl.textContent = '✅ Cumple'; estadoEl.style.color = 'var(--ok)'; }
+  else { estadoEl.textContent = `⚠️ Faltan ${fmtNum(objetivo - hechas)} bolsas`; estadoEl.style.color = 'var(--warn, #f5a623)'; }
+
+  const wrap = document.getElementById('tp-cierre-motivo-wrap');
+  const aviso = document.getElementById('tp-cierre-aviso-noof');
+  const motivoInput = wrap.querySelector('input[name="motivo"]');
+  if (cumple) {
+    wrap.style.display = 'none'; aviso.style.display = 'none';
+    motivoInput.required = false; motivoInput.value = '';
+  } else {
+    wrap.style.display = ''; aviso.style.display = ''; motivoInput.required = true;
+  }
+
+  const f = document.getElementById('form-tp-cierre');
+  f.querySelector('[name="legajo_cierre"]').value = '';
+  f.dataset.numOf = numOF;
+  f.dataset.cumple = cumple ? '1' : '0';
+  f.dataset.hechas = String(hechas);
+  f.dataset.pct = String(pct);
+  const msg = document.getElementById('tp-cierre-msg');
+  msg.textContent = ''; msg.className = 'form-msg';
+  document.getElementById('tp-modal-cierre').style.display = 'flex';
+}
+
+function cerrarModalCierreTP() {
+  document.getElementById('tp-modal-cierre').style.display = 'none';
+}
+document.getElementById('tp-modal-cierre').addEventListener('click', e => {
+  if (e.target.id === 'tp-modal-cierre') cerrarModalCierreTP();
+});
+
+document.getElementById('form-tp-cierre').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOF = f.dataset.numOf;
+  const cumple = f.dataset.cumple === '1';
+  const hechas = Number(f.dataset.hechas) || 0;
+  const pct = Number(f.dataset.pct) || 0;
+  const legajo = f.querySelector('[name="legajo_cierre"]').value.trim();
+  const motivo = f.querySelector('[name="motivo"]').value.trim();
+  if (!legajo) { showFormMsg('tp-cierre-msg', '✗ Cargá el legajo.', false); return; }
+  if (!cumple && !motivo) { showFormMsg('tp-cierre-msg', '✗ Cargá el motivo (no cumple objetivo).', false); return; }
+
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('tp-cierre-submit');
+  const txtOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    await appendFila('Cierres de OF por Sector', [
+      numOF, 'Tubera Papel', fecha, hechas, pct + '%', cumple ? '' : motivo, legajo,
+    ]);
+    cierresPorSectorCache.push({
+      'Nº OF': numOF, 'N° OF': numOF,
+      'Sector': 'Tubera Papel', 'Fecha Cierre': fecha,
+      'Bolsas Cumplidas': hechas, '% Cumplido': pct + '%',
+      'Motivo (si no cumple)': cumple ? '' : motivo, 'Legajo': legajo,
+    });
+    renderColaTP();
+    showFormMsg('tp-cierre-msg', `✓ OF ${numOF} cerrada en Tubera Papel.`, true);
+    setTimeout(() => {
+      cerrarModalCierreTP();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 1100);
+  } catch (err) {
+    showFormMsg('tp-cierre-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
+// Esc cierra los modales de Tubera Papel
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const mp = document.getElementById('tp-modal-parte');
+  if (mp && mp.style.display === 'flex') cerrarModalParteTP();
+  const mc = document.getElementById('tp-modal-cierre');
+  if (mc && mc.style.display === 'flex') cerrarModalCierreTP();
 });
 
 // Botón + Nueva OF → redirige al módulo Ventas (las OFs nacen ahí)
