@@ -1386,7 +1386,97 @@
       </div>
     </section>
     <section class="panel" id="panel-sec-clise">
-      <div class="wip"><div class="wip-icon">🎨</div><h2>Clisé</h2><p>Tabla con OF · Cliente · Fecha · Cant Colores · Legajos · IMP Destino · Hora In/Fin · Arte (PDF) · Comentarios.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">🎨 Clisé</h2>
+          <p class="page-sub">Preparación de cilindros de impresión (1 por color) · sin aprobación · cerrar OF habilita Impresión</p>
+        </div>
+      </div>
+
+      <div class="subtabs">
+        <button type="button" class="subtab-btn active" data-cli-tab="cola">📋 OFs en cola</button>
+        <button type="button" class="subtab-btn" data-cli-tab="trabajos">📝 Trabajos cargados</button>
+      </div>
+
+      <!-- OFs EN COLA -->
+      <div class="subpanel active" id="cli-panel-cola">
+        <div class="kpi-grid kpi-grid-3">
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">OFs en cola</div>
+            <div class="kpi-value" id="cli-kpi-cola">—</div>
+            <div class="kpi-sub">esperan clisés para imprimir</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Trabajos cargados (mes)</div>
+            <div class="kpi-value" id="cli-kpi-mes">—</div>
+            <div class="kpi-sub">eventos de Clisé del mes</div>
+          </div>
+          <div class="kpi-card kpi-warn">
+            <div class="kpi-label">OFs cerradas (mes)</div>
+            <div class="kpi-value" id="cli-kpi-cerradas">—</div>
+            <div class="kpi-sub">listas para Impresión</div>
+          </div>
+        </div>
+
+        <!-- Toggle Activas / Terminadas -->
+        <div class="mnt-toggles">
+          <button type="button" class="cli-cola-toggle active" data-cli-vista="activas">🟡 Activas <span class="badge-num" id="cli-tg-act">0</span></button>
+          <button type="button" class="cli-cola-toggle" data-cli-vista="terminadas">✅ Terminadas <span class="badge-num" id="cli-tg-ter">0</span></button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <colgroup>
+              <col style="width:150px">
+              <col style="width:auto">
+              <col style="width:auto">
+              <col style="width:90px">
+              <col style="width:auto">
+              <col style="width:80px">
+              <col style="width:280px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Nº OF</th>
+                <th>Cliente</th>
+                <th>Nombre Bolsa</th>
+                <th class="num">Cant Colores</th>
+                <th>Pantones</th>
+                <th class="num">Trabajos</th>
+                <th class="num">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cli-cola-body">
+              <tr><td colspan="7" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TRABAJOS CARGADOS (histórico) -->
+      <div class="subpanel" id="cli-panel-trabajos">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nº OF</th>
+                <th>Cliente</th>
+                <th>Nombre Bolsa</th>
+                <th class="num">Cant Colores</th>
+                <th>Legajos</th>
+                <th>IMP Destino</th>
+                <th>Hr Inicio</th>
+                <th>Hr Fin</th>
+                <th>Comentarios</th>
+              </tr>
+            </thead>
+            <tbody id="cli-trabajos-body">
+              <tr><td colspan="10" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
     <section class="panel" id="panel-sec-impresion">
       <div class="page-head">
@@ -2097,6 +2187,106 @@
   </div>
 </div>
 
+<!-- Modal Cargar Trabajo de Clisé (se abre desde "Cargar trabajo" en cada fila de OFs en cola de Clisé) -->
+<div class="modal-overlay" id="cli-modal-trabajo" style="display:none">
+  <div class="modal-card" style="max-width:680px">
+    <div class="modal-head">
+      <h3>🎨 Cargar trabajo de Clisé — <span id="cli-modal-titulo">OF</span></h3>
+      <button class="modal-close" onclick="cerrarModalTrabajoClise()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Header pre-cargado con info de la OF -->
+      <div class="conv-padre-card" id="cli-of-card" style="margin-bottom:16px">
+        <div class="padre-info-grid">
+          <div class="item"><small>Cliente</small><strong id="cli-of-cli">—</strong></div>
+          <div class="item"><small>Nombre Bolsa</small><strong id="cli-of-bolsa">—</strong></div>
+          <div class="item"><small>Tipo</small><strong id="cli-of-tipo">—</strong></div>
+          <div class="item"><small>Cant Colores</small><strong id="cli-of-cols">—</strong></div>
+          <div class="item field-2"><small>Pantones a preparar</small><strong id="cli-of-pantones">—</strong></div>
+        </div>
+      </div>
+
+      <form id="form-cli" class="form-grid">
+        <input type="hidden" name="of" id="cli-form-of">
+
+        <label class="field">
+          <span>Fecha</span>
+          <input type="date" name="fecha" id="cli-form-fecha" required>
+        </label>
+        <label class="field">
+          <span>IMP Destino</span>
+          <select name="imp_destino" id="cli-form-imp" required><option value="">— Elegir —</option></select>
+        </label>
+
+        <label class="field">
+          <span>Legajo Operario</span>
+          <input type="text" name="legajo_op" required placeholder="Ej: 499">
+        </label>
+        <label class="field">
+          <span>Legajo Ayudante</span>
+          <input type="text" name="legajo_ay" placeholder="Opcional">
+        </label>
+
+        <label class="field">
+          <span>Hora Inicio</span>
+          <input type="time" name="hora_in" required>
+        </label>
+        <label class="field">
+          <span>Hora Fin</span>
+          <input type="time" name="hora_fin" required>
+        </label>
+
+        <label class="field field-2">
+          <span>Comentarios (opcional)</span>
+          <input type="text" name="comentarios" placeholder="Notas para Impresión, si pasó algo…">
+        </label>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalTrabajoClise()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="cli-trabajo-submit">Guardar trabajo</button>
+        </div>
+      </form>
+      <div id="cli-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cerrar OF en Clisé -->
+<div class="modal-overlay" id="cli-modal-cierre" style="display:none">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-head">
+      <h3>🏁 Cerrar OF en Clisé — <span id="cli-cierre-of">OF</span></h3>
+      <button class="modal-close" onclick="cerrarModalCierreClise()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="conv-padre-card" style="margin-bottom:14px">
+        <div class="padre-info-grid">
+          <div class="item"><small>Cliente</small><strong id="cli-cierre-cli">—</strong></div>
+          <div class="item"><small>Nombre Bolsa</small><strong id="cli-cierre-bolsa">—</strong></div>
+          <div class="item"><small>Cant Colores</small><strong id="cli-cierre-cols">—</strong></div>
+          <div class="item"><small>Trabajos cargados</small><strong id="cli-cierre-trab">—</strong></div>
+        </div>
+      </div>
+      <p style="margin:0 0 14px;color:var(--text-2);font-size:13px">
+        Al confirmar, esta OF sale de la cola de Clisé y <strong>aparece en la cola de Impresión</strong>.
+      </p>
+
+      <form id="form-cli-cierre" class="form-grid">
+        <label class="field field-2">
+          <span>Legajo del que cierra</span>
+          <input type="text" name="legajo_cierre" required placeholder="Ej: 499">
+        </label>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalCierreClise()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="cli-cierre-submit">Confirmar cierre</button>
+        </div>
+      </form>
+      <div id="cli-cierre-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Cargar Recepción de Tintas -->
 <div class="modal-overlay" id="tnt-modal-recep" style="display:none">
   <div class="modal-card" style="max-width:680px">
@@ -2371,6 +2561,7 @@ function abrirSector(secKey) {
   document.getElementById('secMenu').classList.remove('open');
   // Lazy-load por sector
   if (secKey === 'recepcion') cargarBobinasStock();  // carga Materiales para el form
+  if (secKey === 'clise')     cargarClise();
   if (secKey === 'impresion') cargarImpresion();
 }
 
@@ -4513,25 +4704,32 @@ async function cargarImpresion() {
 }
 
 // Decide si una OF puede trabajarse HOY en un sector dado, según el flujo de la cadena.
-// Regla nueva (refactor Impresión 2026-05-14):
+// Regla (refinada 2026-05-17 para integración con Clisé):
 //  - Sector debe estar en la cadena de la OF.
-//  - Todos los sectores ANTERIORES deben tener al menos 1 evento para esta OF.
-//  - Este sector NO debe estar CERRADO para esta OF (en pestaña "Cierres de OF por Sector").
+//  - Todos los sectores ANTERIORES deben estar CERRADOS para esta OF (cierre explícito
+//    en pestaña "Cierres de OF por Sector"). El cierre es el gate — no alcanza con que
+//    haya al menos 1 evento. Esto evita que Impresión arranque antes de que Clisé termine.
+//  - Este sector NO debe estar CERRADO para esta OF.
 //  - YA NO se exige que sectores posteriores estén vacíos: una OF grande puede trabajarse
 //    en varios sectores en paralelo mientras no esté cerrada en este sector.
 function puedeTrabajarseEnSector(of, sector, eventosPorSector) {
   const cadena = String(of['Cadena Sectores']||'').split('→').map(s => s.trim()).filter(Boolean);
   const idx = cadena.indexOf(sector);
   if (idx === -1) return false; // sector no está en su cadena
-  // Sectores anteriores: TODOS deben tener al menos 1 evento para esta OF
+  const numOF = String(of['Nº OF']||'').trim();
+  const cierres = cierresPorSectorCache || [];
+  // Sectores anteriores: TODOS deben estar CERRADOS para esta OF
   for (let i = 0; i < idx; i++) {
     const sec = cadena[i];
-    const eventos = eventosPorSector[sec] || [];
-    if (!eventos.some(e => e['Nº OF'] === of['Nº OF'])) return false;
+    const cerradoAnt = cierres.some(c =>
+      String(c['Nº OF']||'').trim() === numOF &&
+      String(c['Sector']||'').trim() === sec
+    );
+    if (!cerradoAnt) return false;
   }
   // Este sector NO debe estar cerrado para esta OF
-  const cerrado = (cierresPorSectorCache || []).some(c =>
-    String(c['Nº OF']||'').trim() === String(of['Nº OF']||'').trim() &&
+  const cerrado = cierres.some(c =>
+    String(c['Nº OF']||'').trim() === numOF &&
     String(c['Sector']||'').trim() === sector
   );
   if (cerrado) return false;
@@ -5629,7 +5827,7 @@ function renderColaImpresion() {
   if (!lista.length) {
     const msg = colaVista === 'terminadas'
       ? 'No hay OFs terminadas en Impresión todavía. Cuando cierres una OF acá aparecerá.'
-      : 'No hay OFs en cola para Impresión. Una OF aparece acá cuando Clisé carga al menos 1 evento para ella.';
+      : 'No hay OFs en cola para Impresión. Una OF aparece acá cuando Clisé se cierra para esa OF.';
     tbody.innerHTML = `<tr><td colspan="9" class="empty">${msg}</td></tr>`;
     return;
   }
@@ -5786,6 +5984,431 @@ document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   const m = document.getElementById('imp-modal-parte');
   if (m && m.style.display === 'flex') cerrarModalParte();
+});
+
+// ============================================================
+// PANTALLA CLISÉ
+// ============================================================
+// Sector simple: tabla de OFs en cola → cargar trabajo (modal liviano) → cerrar OF.
+// Sin aprobación de supervisor. Sin descuento de stock. Sin bobinas.
+// El cierre de Clisé es el gate que habilita Impresión (puedeTrabajarseEnSector).
+// ============================================================
+
+// Caches (reusables — comparten con Impresión cuando aplica)
+let cliClisesCache = [];
+let cliOFsCache = [];
+let cliMaquinasCache = [];
+let cliVista = 'activas'; // 'activas' | 'terminadas'
+let cliSubTab = 'cola';   // 'cola' | 'trabajos'
+
+// Sub-tabs internos de Clisé
+document.querySelectorAll('[data-cli-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    cliSubTab = btn.dataset.cliTab;
+    document.querySelectorAll('[data-cli-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#panel-sec-clise .subpanel').forEach(p => p.classList.remove('active'));
+    document.getElementById('cli-panel-' + cliSubTab).classList.add('active');
+  });
+});
+
+// Toggle Activas / Terminadas
+document.querySelectorAll('.cli-cola-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    cliVista = btn.dataset.cliVista;
+    document.querySelectorAll('.cli-cola-toggle').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderColaClise();
+  });
+});
+
+async function cargarClise() {
+  try {
+    // Necesitamos: pestaña Clisé, OF, Máquinas (para dropdown IMP Destino) y Cierres de OF por Sector.
+    const promesas = [
+      leerPestana('Clisé').catch(() => []),
+      leerPestana('OF').catch(() => []),
+      leerPestana('Máquinas').catch(() => []),
+      leerPestana('Cierres de OF por Sector').catch(() => []),
+    ];
+    const [clises, ofs, maquinas, cierres] = await Promise.all(promesas);
+    cliClisesCache = clises || [];
+    cliOFsCache = ofs || [];
+    cliMaquinasCache = maquinas || [];
+    // Normalizar headers de Cierres (tolerancia Nº/N°)
+    cierresPorSectorCache = (cierres || []).map(c => ({
+      ...c,
+      'Nº OF': c['Nº OF'] || c['N° OF'] || '',
+      'N° OF': c['N° OF'] || c['Nº OF'] || '',
+    }));
+    // Eventos por sector: para Clisé solo necesitamos él mismo (no hay sectores anteriores en su cadena)
+    eventosPorSectorCache = eventosPorSectorCache || {};
+    eventosPorSectorCache['Clisé'] = cliClisesCache;
+  } catch (err) {
+    console.error('Error cargando Clisé:', err);
+    document.getElementById('cli-cola-body').innerHTML = `<tr><td colspan="7" class="empty">Error: ${err.message}</td></tr>`;
+    return;
+  }
+  poblarFormClise();
+  renderColaClise();
+  renderTrabajosClise();
+  renderKPIsClise();
+}
+
+function poblarFormClise() {
+  // Fecha hoy por default (editable — Franco aclaró que pueden empezar un día y terminar otro)
+  const fInput = document.getElementById('cli-form-fecha');
+  if (fInput) fInput.value = new Date().toISOString().slice(0,10);
+  // Dropdown IMP Destino con todas las impresoras activas
+  const imps = (cliMaquinasCache || []).filter(m =>
+    m['Sector'] === 'Impresión' && String(m['Activa']||'SI').toUpperCase() === 'SI'
+  );
+  const opts = imps.map(m => `<option value="${m['Código Máquina']}">${m['Código Máquina']}</option>`).join('');
+  document.getElementById('cli-form-imp').innerHTML = '<option value="">— Elegir —</option>' + opts;
+}
+
+function trabajosClisePorOF(numOF) {
+  return (cliClisesCache || []).filter(c => String(c['Nº OF']||'').trim() === String(numOF||'').trim());
+}
+
+function renderKPIsClise() {
+  // Trabajos del mes
+  const hoy = new Date();
+  const mesActual = hoy.toISOString().slice(0,7); // YYYY-MM
+  const trabajosMes = (cliClisesCache || []).filter(c => String(c['Fecha']||'').slice(0,7) === mesActual);
+  // OFs cerradas en Clisé este mes
+  const cerradasMes = (cierresPorSectorCache || []).filter(c =>
+    String(c['Sector']||'').trim() === 'Clisé' &&
+    String(c['Fecha Cierre']||'').slice(0,7) === mesActual
+  );
+  document.getElementById('cli-kpi-mes').textContent = trabajosMes.length;
+  document.getElementById('cli-kpi-cerradas').textContent = cerradasMes.length;
+}
+
+function renderColaClise() {
+  const tbody = document.getElementById('cli-cola-body');
+  if (!tbody) return;
+
+  // Set de OFs CERRADAS en Clisé
+  const cerradasEnClise = new Set(
+    (cierresPorSectorCache || [])
+      .filter(c => String(c['Sector']||'').trim() === 'Clisé')
+      .map(c => String(c['Nº OF']||'').trim())
+  );
+
+  // ACTIVAS = OFs cuya cadena pasa por Clisé y no están cerradas en Clisé
+  const ofsActivas = (cliOFsCache || []).filter(o => {
+    const estado = String(o['Estado']||'').toLowerCase();
+    if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
+    const cadena = String(o['Cadena Sectores']||'');
+    if (!cadena.includes('Clisé')) return false;
+    return !cerradasEnClise.has(String(o['Nº OF']||'').trim());
+  });
+  // TERMINADAS = OFs cerradas en Clisé
+  const ofsTerminadas = (cliOFsCache || []).filter(o => cerradasEnClise.has(String(o['Nº OF']||'').trim()));
+
+  // Badges del toggle + KPI principal
+  document.getElementById('cli-tg-act').textContent = ofsActivas.length;
+  document.getElementById('cli-tg-ter').textContent = ofsTerminadas.length;
+  document.getElementById('cli-kpi-cola').textContent = ofsActivas.length;
+
+  const lista = cliVista === 'terminadas' ? ofsTerminadas : ofsActivas;
+  if (!lista.length) {
+    const msg = cliVista === 'terminadas'
+      ? 'No hay OFs cerradas en Clisé todavía. Cuando cierres una OF acá aparecerá.'
+      : 'No hay OFs en cola para Clisé. Aparecen acá las OFs que llevan impresión y no fueron cerradas en este sector.';
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">${msg}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(o => {
+    const num = String(o['Nº OF']||'').trim();
+    const cantColores = Number(o['Cant Colores']) || 0;
+    const pantonesArr = [];
+    for (let i = 1; i <= 6; i++) {
+      const color = String(o['Color '+i]||'').trim().toUpperCase();
+      const pantone = String(o['Pantone '+i]||'').trim();
+      if (pantone) pantonesArr.push(color ? `${color} ${pantone}` : pantone);
+    }
+    const pantones = pantonesArr.length ? pantonesArr.join(' · ') : '—';
+    const trabajos = trabajosClisePorOF(num).length;
+
+    let accionHTML = '';
+    if (cliVista === 'terminadas') {
+      const cierre = (cierresPorSectorCache || []).find(c =>
+        String(c['Nº OF']||'').trim() === num &&
+        String(c['Sector']||'').trim() === 'Clisé'
+      );
+      const fechaCierre = cierre ? cierre['Fecha Cierre'] : '—';
+      const fechaTxt = (typeof fechaCierre === 'string' && fechaCierre.includes('-'))
+        ? fechaCierre.split('-').reverse().slice(0,2).join('/')
+        : (fechaCierre || '—');
+      accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>`;
+    } else {
+      const puedeCerrar = trabajos > 0;
+      const claseCierre = puedeCerrar ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
+      const tituloCierre = puedeCerrar
+        ? 'Cerrar OF en Clisé (habilita Impresión)'
+        : 'Cargá al menos 1 trabajo antes de cerrar';
+      const disabledCierre = puedeCerrar ? '' : 'disabled';
+      accionHTML = `
+        <button type="button" class="btn-cargar-parte" onclick="abrirModalTrabajoClise('${num.replace(/'/g, "\\'")}')">Cargar trabajo</button>
+        <button type="button" class="${claseCierre}" title="${tituloCierre}" ${disabledCierre} onclick="abrirModalCierreClise('${num.replace(/'/g, "\\'")}')">🏁 Cerrar OF</button>
+      `;
+    }
+
+    return `<tr>
+      <td><strong>${num}</strong></td>
+      <td>${o['Cliente']||'—'}</td>
+      <td>${o['Nombre Bolsa']||'—'}</td>
+      <td class="num">${cantColores || '—'}</td>
+      <td>${pantones}</td>
+      <td class="num">${trabajos}</td>
+      <td class="num">${accionHTML}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTrabajosClise() {
+  const tbody = document.getElementById('cli-trabajos-body');
+  if (!tbody) return;
+  const lista = (cliClisesCache || []).slice().sort((a, b) => {
+    return String(b['Fecha']||'').localeCompare(String(a['Fecha']||''));
+  });
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">No hay trabajos cargados todavía.</td></tr>';
+    return;
+  }
+  // Lookup rápido por Nº OF para traer Cliente / Nombre Bolsa / Cant Colores
+  const ofsMap = {};
+  (cliOFsCache || []).forEach(o => { ofsMap[String(o['Nº OF']||'').trim()] = o; });
+
+  tbody.innerHTML = lista.map(c => {
+    const numOF = String(c['Nº OF']||'').trim();
+    const of = ofsMap[numOF] || {};
+    const cli = of['Cliente'] || c['Cliente'] || '—';
+    const bolsa = of['Nombre Bolsa'] || '—';
+    const cols = of['Cant Colores'] || c['Cant Colores'] || '—';
+    const legs = [c['Legajos'], c['Legajo Operario'], c['Legajo Ayudante']].filter(Boolean).join(' / ') || '—';
+    const fechaTxt = (typeof c['Fecha'] === 'string' && c['Fecha'].includes('-'))
+      ? c['Fecha'].split('-').reverse().join('/')
+      : (c['Fecha'] || '—');
+    return `<tr>
+      <td>${fechaTxt}</td>
+      <td><strong>${numOF}</strong></td>
+      <td>${cli}</td>
+      <td>${bolsa}</td>
+      <td class="num">${cols}</td>
+      <td>${legs}</td>
+      <td>${c['IMP Destino']||'—'}</td>
+      <td>${excelTimeToHHMM(c['Hora Inicio'])||'—'}</td>
+      <td>${excelTimeToHHMM(c['Hora Fin'])||'—'}</td>
+      <td>${c['Comentarios']||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// MODAL CARGAR TRABAJO DE CLISÉ
+// ============================================================
+function abrirModalTrabajoClise(numOF) {
+  const of = (cliOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada: ' + numOF); return; }
+
+  document.getElementById('cli-modal-titulo').textContent = numOF;
+  document.getElementById('cli-of-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('cli-of-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('cli-of-tipo').textContent = of['Tipo Bolsa'] || '—';
+  document.getElementById('cli-of-cols').textContent = of['Cant Colores'] || '—';
+  const pantonesArr = [];
+  for (let i = 1; i <= 6; i++) {
+    const color = String(of['Color '+i]||'').trim().toUpperCase();
+    const pantone = String(of['Pantone '+i]||'').trim();
+    if (pantone) pantonesArr.push(color ? `${color} ${pantone}` : pantone);
+  }
+  document.getElementById('cli-of-pantones').innerHTML = pantonesArr.length
+    ? pantonesArr.map(p => `<span style="display:inline-block;background:rgba(232,255,71,0.15);padding:2px 8px;border-radius:10px;margin:2px;font-size:11px">${p}</span>`).join(' ')
+    : '—';
+
+  // Reset form
+  const form = document.getElementById('form-cli');
+  form.reset();
+  document.getElementById('cli-form-of').value = numOF;
+  poblarFormClise();
+  const msgEl = document.getElementById('cli-msg');
+  msgEl.textContent = ''; msgEl.className = 'form-msg';
+
+  document.getElementById('cli-modal-trabajo').style.display = 'flex';
+}
+
+function cerrarModalTrabajoClise() {
+  document.getElementById('cli-modal-trabajo').style.display = 'none';
+}
+
+document.getElementById('cli-modal-trabajo').addEventListener('click', (e) => {
+  if (e.target.id === 'cli-modal-trabajo') cerrarModalTrabajoClise();
+});
+
+// Submit Cargar trabajo
+document.getElementById('form-cli').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+
+  const numOF = f.of.value.trim();
+  const fecha = f.fecha.value;
+  const impDest = f.imp_destino.value;
+  const legOp = f.legajo_op.value.trim();
+  const legAy = f.legajo_ay.value.trim();
+  const horaIn = f.hora_in.value;
+  const horaFin = f.hora_fin.value;
+  const com = f.comentarios.value.trim();
+
+  if (!numOF || !fecha || !impDest || !legOp || !horaIn || !horaFin) {
+    showFormMsg('cli-msg', '✗ Faltan campos obligatorios.', false);
+    return;
+  }
+  // Validación simple: hora_fin > hora_in
+  if (horaFin <= horaIn) {
+    showFormMsg('cli-msg', '✗ La hora fin tiene que ser mayor a la de inicio.', false);
+    return;
+  }
+
+  const of = (cliOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
+  const cliente = of ? (of['Cliente']||'') : '';
+  const cantCols = of ? (of['Cant Colores']||'') : '';
+  const legajos = legAy ? `${legOp} / ${legAy}` : legOp;
+
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('cli-trabajo-submit');
+  const txtOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  try {
+    // Headers de "Clisé": Nº OF · Cliente · Fecha · Cant Colores · Legajos · IMP Destino · Hora Inicio · Hora Fin · Arte (link) · Comentarios
+    await appendFila('Clisé', [
+      numOF,
+      cliente,
+      fecha,
+      cantCols,
+      legajos,
+      impDest,
+      horaIn,
+      horaFin,
+      '', // Arte (link) — pendiente feature global
+      com,
+    ]);
+    // Optimistic update
+    cliClisesCache.push({
+      'Nº OF': numOF,
+      'Cliente': cliente,
+      'Fecha': fecha,
+      'Cant Colores': cantCols,
+      'Legajos': legajos,
+      'IMP Destino': impDest,
+      'Hora Inicio': horaIn,
+      'Hora Fin': horaFin,
+      'Arte (link)': '',
+      'Comentarios': com,
+    });
+    eventosPorSectorCache['Clisé'] = cliClisesCache;
+    renderColaClise();
+    renderTrabajosClise();
+    renderKPIsClise();
+    showFormMsg('cli-msg', `✓ Trabajo de Clisé guardado para ${numOF}.`, true);
+    setTimeout(() => {
+      cerrarModalTrabajoClise();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 900);
+  } catch (err) {
+    showFormMsg('cli-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
+// ============================================================
+// MODAL CERRAR OF EN CLISÉ
+// ============================================================
+function abrirModalCierreClise(numOF) {
+  const of = (cliOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada: ' + numOF); return; }
+  const trabajos = trabajosClisePorOF(numOF).length;
+  if (trabajos === 0) { alert('Cargá al menos 1 trabajo antes de cerrar la OF en Clisé.'); return; }
+
+  document.getElementById('cli-cierre-of').textContent = numOF;
+  document.getElementById('cli-cierre-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('cli-cierre-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('cli-cierre-cols').textContent = of['Cant Colores'] || '—';
+  document.getElementById('cli-cierre-trab').textContent = trabajos;
+
+  const f = document.getElementById('form-cli-cierre');
+  f.reset();
+  f.dataset.numOf = numOF;
+  const msgEl = document.getElementById('cli-cierre-msg');
+  msgEl.textContent = ''; msgEl.className = 'form-msg';
+
+  document.getElementById('cli-modal-cierre').style.display = 'flex';
+}
+
+function cerrarModalCierreClise() {
+  document.getElementById('cli-modal-cierre').style.display = 'none';
+}
+
+document.getElementById('cli-modal-cierre').addEventListener('click', (e) => {
+  if (e.target.id === 'cli-modal-cierre') cerrarModalCierreClise();
+});
+
+document.getElementById('form-cli-cierre').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOF = f.dataset.numOf;
+  const legajo = f.querySelector('[name="legajo_cierre"]').value.trim();
+  if (!legajo) { showFormMsg('cli-cierre-msg', '✗ Cargá el legajo del que cierra.', false); return; }
+
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('cli-cierre-submit');
+  const txtOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    // Headers de "Cierres de OF por Sector":
+    // Nº OF · Sector · Fecha Cierre · Bolsas Cumplidas · % Cumplido · Motivo (si no cumple) · Legajo
+    // Clisé no produce bolsas: Bolsas Cumplidas=0, % Cumplido=100% (cumplido por tener trabajos), sin motivo.
+    await appendFila('Cierres de OF por Sector', [
+      numOF, 'Clisé', fecha, 0, '100%', '', legajo,
+    ]);
+    cierresPorSectorCache.push({
+      'Nº OF': numOF, 'N° OF': numOF,
+      'Sector': 'Clisé', 'Fecha Cierre': fecha,
+      'Bolsas Cumplidas': 0, '% Cumplido': '100%',
+      'Motivo (si no cumple)': '', 'Legajo': legajo,
+    });
+    renderColaClise();
+    renderKPIsClise();
+    showFormMsg('cli-cierre-msg', `✓ OF ${numOF} cerrada en Clisé. Ya aparece en la cola de Impresión.`, true);
+    setTimeout(() => {
+      cerrarModalCierreClise();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 1100);
+  } catch (err) {
+    showFormMsg('cli-cierre-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
+// Esc cierra los modales de Clisé
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const mt = document.getElementById('cli-modal-trabajo');
+  if (mt && mt.style.display === 'flex') cerrarModalTrabajoClise();
+  const mc = document.getElementById('cli-modal-cierre');
+  if (mc && mc.style.display === 'flex') cerrarModalCierreClise();
 });
 
 // Botón + Nueva OF → redirige al módulo Ventas (las OFs nacen ahí)
