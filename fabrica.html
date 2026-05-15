@@ -4876,16 +4876,38 @@ function autocompletarBobina(row) {
     recalcImpKPIs();
     return;
   }
-  // Validar ancho contra el ancho de la OF (la bobina NO puede ser más chica que el ancho de la bolsa)
+  // Validar ancho contra el ancho de la OF
+  //  - bobina < OF → ERROR bloqueante (no se puede hacer la bolsa)
+  //  - bobina = OF → OK normal
+  //  - bobina > OF → ALERTA con motivo obligatorio (se desperdicia ancho, pero a veces es necesario)
+  delete row.dataset.motivoAnchoSobrado;
   const numOF = document.getElementById('imp-form-of').value;
   const ofObj = numOF ? impOFsCache.find(o => o['Nº OF'] === numOF) : null;
   const anchoOF = ofObj ? Number(ofObj['Ancho (cm)']) || 0 : 0;
   const anchoBob = Number(bob['Formato (cm)']) || 0;
-  if (anchoOF && anchoBob && anchoBob !== anchoOF) {
-    info.textContent = `✗ Ancho de bobina (${anchoBob} cm) no coincide con la OF (${anchoOF} cm). Buscá una bobina del ancho correcto.`;
+  if (anchoOF && anchoBob && anchoBob < anchoOF) {
+    info.textContent = `✗ Bobina (${anchoBob} cm) MÁS CHICA que la OF (${anchoOF} cm). Buscá otra.`;
     info.style.color = 'var(--danger)';
     recalcImpKPIs();
     return;
+  }
+  if (anchoOF && anchoBob && anchoBob > anchoOF) {
+    const diff = anchoBob - anchoOF;
+    const motivo = prompt(
+      `⚠️ ATENCIÓN — bobina más ANCHA que la OF\n\n` +
+      `Bobina: ${cod}\n` +
+      `Ancho bobina: ${anchoBob} cm\n` +
+      `Ancho OF: ${anchoOF} cm\n` +
+      `Sobrante: +${diff} cm (se desperdicia)\n\n` +
+      `Si querés usarla igual, escribí el MOTIVO obligatorio (queda registrado en el parte):`
+    );
+    if (!motivo || !motivo.trim()) {
+      info.textContent = `✗ Bobina más ancha (${anchoBob} > ${anchoOF} cm). Cargá otra o aceptá con motivo.`;
+      info.style.color = 'var(--danger)';
+      recalcImpKPIs();
+      return;
+    }
+    row.dataset.motivoAnchoSobrado = motivo.trim();
   }
   // Validar que la bobina no esté ya cargada en otra fila del mismo parte
   const yaCargada = Array.from(document.querySelectorAll('#imp-bobinas-list .bob-row'))
@@ -4903,8 +4925,9 @@ function autocompletarBobina(row) {
   row.dataset.gramaje = String(Number(bob['Gramaje (g/m²)']) || 0);
   row.dataset.producto = bob['Producto'] || '';
   row.dataset.rowindex = String(bob._rowIndex || '');
-  info.textContent = `✓ ${bob['Producto']||''} · ${bob['Formato (cm)']||'?'} cm · ${fmtNum(bob['Mts Totales']||0)} m disp.`;
-  info.style.color = 'var(--ok)';
+  const motivoTag = row.dataset.motivoAnchoSobrado ? ` · ⚠️ ancha (${row.dataset.motivoAnchoSobrado})` : '';
+  info.textContent = `✓ ${bob['Producto']||''} · ${bob['Formato (cm)']||'?'} cm · ${fmtNum(bob['Mts Totales']||0)} m disp.${motivoTag}`;
+  info.style.color = row.dataset.motivoAnchoSobrado ? 'var(--warn, #f5a623)' : 'var(--ok)';
   recalcImpKPIs();
 }
 
@@ -5005,26 +5028,33 @@ function renderTintasModal(pantonesObjs) {
 // Render tabla Partes
 function renderTablaImpresion() {
   const hoy = new Date();
-  const pendientes = impPartesCache.filter(p => String(p['Aprobado Supervisor']||'').toUpperCase() !== 'SI');
-  const aprobados = impPartesCache.filter(p => String(p['Aprobado Supervisor']||'').toUpperCase() === 'SI');
-  // KPIs del MES — solo cuentan partes APROBADOS (los pendientes no contabilizan producción real)
+  // Estado por parte (no por fila): agrupar todas las filas por claveDeParte y usar el estado de las hermanas.
+  // Como las hermanas tienen siempre el mismo Aprobado Supervisor (se aprueba/rechaza el parte completo),
+  // alcanza con leer la primera fila del grupo.
+  const gruposCache = {};
+  (impPartesCache || []).forEach(p => {
+    const k = claveDeParte(p);
+    if (!gruposCache[k]) gruposCache[k] = [];
+    gruposCache[k].push(p);
+  });
+  const partesUnicos = Object.values(gruposCache).map(hs => hs[0]); // 1 representante por parte
+  const pendientes = partesUnicos.filter(p => {
+    const a = String(p['Aprobado Supervisor']||'').toUpperCase();
+    return a !== 'SI' && a !== 'NO'; // solo realmente pendientes (no rechazados)
+  });
+  const aprobados = partesUnicos.filter(p => String(p['Aprobado Supervisor']||'').toUpperCase() === 'SI');
+  // KPIs del MES — solo APROBADOS, sumando bolsas/mts de TODAS las hermanas del parte
   const mtsMes = aprobados.reduce((s, p) => {
     const f = excelDateToJs(p['Fecha']);
     if (f && f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()) {
-      return s + (Number(p['Mts Reales'])||0);
+      return s + gruposCache[claveDeParte(p)].reduce((acc, h) => acc + (Number(h['Mts Reales'])||0), 0);
     }
     return s;
   }, 0);
   const bolsasMes = aprobados.reduce((s, p) => {
     const f = excelDateToJs(p['Fecha']);
     if (f && f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()) {
-      // Bolsas Producidas: usa columna si existe, sino parsea "Bolsas: NN" en Observaciones
-      let b = Number(p['Bolsas Producidas']) || 0;
-      if (!b) {
-        const m = String(p['Observaciones']||'').match(/Bolsas:\s*(\d+)/i);
-        if (m) b = Number(m[1]) || 0;
-      }
-      return s + b;
+      return s + gruposCache[claveDeParte(p)].reduce((acc, h) => acc + bolsasDeFila(h), 0);
     }
     return s;
   }, 0);
@@ -5034,14 +5064,15 @@ function renderTablaImpresion() {
   document.getElementById('imp-tg-pend').textContent = pendientes.length;
   document.getElementById('imp-tg-apr').textContent = aprobados.length;
 
-  // Filtros
+  // Filtros sobre partes únicos (no filas individuales)
   const fOf = (document.getElementById('imp-filt-of').value || '').toLowerCase().trim();
   const fImp = document.getElementById('imp-filt-imp').value || '';
   const fCli = (document.getElementById('imp-filt-cli').value || '').toLowerCase().trim();
-  let lista = impPartesCache.filter(p => {
-    const apr = String(p['Aprobado Supervisor']||'').toUpperCase() === 'SI';
-    if (impVista === 'pendiente' && apr) return false;
-    if (impVista === 'aprobado' && !apr) return false;
+  let lista = partesUnicos.filter(p => {
+    const apr = String(p['Aprobado Supervisor']||'').toUpperCase();
+    if (apr === 'NO') return false; // Rechazados nunca se muestran (no aportan info)
+    if (impVista === 'pendiente' && apr === 'SI') return false;
+    if (impVista === 'aprobado' && apr !== 'SI') return false;
     if (fOf && !String(p['Nº OF']||'').toLowerCase().includes(fOf)) return false;
     if (fImp && p['Nº Impresora'] !== fImp) return false;
     if (fCli && !String(p['Cliente']||'').toLowerCase().includes(fCli)) return false;
@@ -5061,38 +5092,38 @@ function renderTablaImpresion() {
     return;
   }
   tbody.innerHTML = lista.map(p => {
+    const hermanas = gruposCache[claveDeParte(p)];
     const f = excelDateToJs(p['Fecha']);
     const apr = String(p['Aprobado Supervisor']||'').toUpperCase();
-    // Bolsas Producidas: si no está la columna, parsea "Bolsas: NN" del campo Observaciones
-    let bolsasShow = p['Bolsas Producidas'];
-    if (!bolsasShow) {
-      const m = String(p['Observaciones']||'').match(/Bolsas:\s*(\d+)/i);
-      if (m) bolsasShow = Number(m[1]);
-    }
-    // Nombre Bolsa: cruzar con la OF (no se guarda en cada parte, está en la OF)
+    // Sumar Bolsas y Mts Reales de todas las hermanas del parte
+    const bolsasTotal = hermanas.reduce((s, h) => s + bolsasDeFila(h), 0);
+    const mtsTotal = hermanas.reduce((s, h) => s + (Number(h['Mts Reales'])||0), 0);
+    // Mts/Min: usamos el de la última (la que tiene bolsas) porque ese es el KPI representativo
+    const ultima = hermanas.find(h => bolsasDeFila(h) > 0) || hermanas[hermanas.length - 1];
+    const mtsMin = ultima['KPI Mts/Min'] || '';
+    // Nombre Bolsa: cruzar con la OF
     const ofObj = (impOFsCache || []).find(o => o['Nº OF'] === p['Nº OF']);
     const nombreBolsa = ofObj ? (ofObj['Nombre Bolsa'] || '—') : '—';
-    const aprTxt = apr === 'NO' ? '✗ Rechazado' : (apr === 'SI' ? '✓ Aprobado' : '');
+    // Indicador de bobinas múltiples
+    const tagBobinas = hermanas.length > 1 ? ` <span style="font-size:10px;color:var(--text-3)">(${hermanas.length} bob.)</span>` : '';
     const acciones = apr === 'SI'
       ? '<span style="color:var(--ok)">✓ Aprobado</span>'
-      : apr === 'NO'
-        ? '<span style="color:var(--danger)">✗ Rechazado</span>'
-        : `<button class="btn-editar" onclick="editarParteImp(${p._rowIndex}, '${p['Nº OF']}')">Editar</button>
-           <button class="btn-rechazar" onclick="rechazarParteImp(${p._rowIndex}, '${p['Nº OF']}')">Rechazar</button>
-           <button class="btn-aprobar" onclick="aprobarParteImp(${p._rowIndex}, '${p['Nº OF']}')">Aprobar</button>`;
+      : `<button class="btn-editar" onclick="editarParteImp(${p._rowIndex}, '${p['Nº OF']}')">Editar</button>
+         <button class="btn-rechazar" onclick="rechazarParteImp(${p._rowIndex}, '${p['Nº OF']}')">Rechazar</button>
+         <button class="btn-aprobar" onclick="aprobarParteImp(${p._rowIndex}, '${p['Nº OF']}')">Aprobar</button>`;
     return `
       <tr>
         <td>${f ? fmtFechaCorta(f) : '—'}</td>
-        <td><span class="of-num">${p['Nº OF'] || '—'}</span></td>
+        <td><span class="of-num">${p['Nº OF'] || '—'}</span>${tagBobinas}</td>
         <td><span class="of-num">${p['Nº Impresora'] || '—'}</span></td>
         <td title="${p['Cliente']||''}">${p['Cliente'] || '—'}</td>
         <td>${nombreBolsa}</td>
         <td>${excelTimeToHHMM(p['Hora Inicio'])}</td>
         <td>${excelTimeToHHMM(p['Hora Fin'])}</td>
         <td title="${p['Legajos']||''}">${p['Legajos'] || '—'}</td>
-        <td class="num">${fmtNum(bolsasShow)}</td>
-        <td class="num">${fmtNum(p['Mts Reales'])}</td>
-        <td class="num">${p['KPI Mts/Min'] ? p['KPI Mts/Min'] : '—'}</td>
+        <td class="num">${fmtNum(bolsasTotal)}</td>
+        <td class="num">${fmtNum(Math.round(mtsTotal))}</td>
+        <td class="num">${mtsMin || '—'}</td>
         <td class="num">${acciones}</td>
       </tr>
     `;
@@ -5324,17 +5355,6 @@ document.getElementById('tnt-btn-clear').addEventListener('click', () => {
   renderTintasHistorico();
 });
 
-// Aprobar parte
-async function aprobarParteImp(rowIndex, numOf) {
-  if (!confirm(`¿Aprobar parte de la OF ${numOf}?`)) return;
-  try {
-    await actualizarCeldaEnFila('Impresión', rowIndex, 'Aprobado Supervisor', 'SI');
-    cargarImpresion();
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
-}
-
 // SUBMIT del form Cargar Parte (modelo nuevo: lista de bobinas + tintas auto + auto-calc)
 document.getElementById('form-imp').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -5464,9 +5484,11 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
       const mtsRealesFila = esUltima ? Math.round(mtsUsadosUltima) : mtsIni;
       const mtsFinalesFila = esUltima ? Math.max(0, Math.round(mtsRem)) : 0;
       const kgDespFila = esUltima ? kgDesp : 0;
+      // Si la bobina entró con motivo de "ancho sobrado" (más ancha que la OF), lo agregamos a su fila
+      const motivoAncho = r.dataset.motivoAnchoSobrado ? ` · ⚠️ Bobina ancha: ${r.dataset.motivoAnchoSobrado}` : '';
       const obsFila = esUltima
-        ? `Bolsas: ${bolsas}${obs ? ' · ' + obs : ''}${bobsValidas.length > 1 ? ' · ' + bobsValidas.length + ' bobinas' : ''}`
-        : `Consumida completa en este turno (parte multi-bobina)`;
+        ? `Bolsas: ${bolsas}${obs ? ' · ' + obs : ''}${bobsValidas.length > 1 ? ' · ' + bobsValidas.length + ' bobinas' : ''}${motivoAncho}`
+        : `Consumida completa en este turno (parte multi-bobina)${motivoAncho}`;
       if (editMode) {
         const rowIdx = editRowIndices[i];
         // UPDATE celda por celda — solo los campos que pueden haber cambiado
