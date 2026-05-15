@@ -5617,6 +5617,30 @@ function puedeCerrarseOF(numOF) {
 function abrirModalCierreOF(numOF) {
   const of = (impOFsCache || []).find(o => o['Nº OF'] === numOF);
   if (!of) { alert('No encontré la OF.'); return; }
+
+  // VALIDACIÓN CRÍTICA: bloquear cierre si hay partes con Aprobado=Pendiente.
+  // Sin esto, las bobinas con remanente nunca generan hija (la lógica está en aprobarParteImp)
+  // y el stock queda mal. Solo se permite cerrar cuando todos los partes están aprobados
+  // (SI) o rechazados (NO) — sea cual sea, ya quedaron decididos.
+  const partesPendientes = (impPartesCache || []).filter(p =>
+    String(p['Nº OF']||'').trim() === String(numOF).trim() &&
+    !['SI','NO'].includes(String(p['Aprobado Supervisor']||'').toUpperCase())
+  );
+  // Agrupar por clave de parte (Fecha+OF+Impresora+HoraInicio) — un parte = N filas hermanas
+  const clavesUnicas = new Set(partesPendientes.map(p => claveDeParte(p)));
+  if (clavesUnicas.size > 0) {
+    alert(
+      `⚠️ NO se puede cerrar la OF.\n\n` +
+      `Hay ${clavesUnicas.size} parte${clavesUnicas.size === 1 ? '' : 's'} de impresión pendiente${clavesUnicas.size === 1 ? '' : 's'} de aprobación para esta OF.\n\n` +
+      `Antes de cerrar:\n` +
+      `1. Ir a "Partes cargados"\n` +
+      `2. Aprobar o Rechazar cada parte pendiente\n` +
+      `3. Volver acá y cerrar la OF\n\n` +
+      `Si cerrás con partes pendientes, las bobinas con remanente NO se guardan en stock.`
+    );
+    return;
+  }
+
   const cant = Number(of['Cant Bolsas']) || 0;
   let exc = Number(of['% Excedente']) || 0;
   if (exc > 1) exc = exc / 100;
@@ -5855,13 +5879,23 @@ function renderColaImpresion() {
       // Vista ACTIVAS — botones normales
       const objetivo = objetivoBolsasOF(o);
       const cumpleObjetivo = objetivo > 0 && hechas >= objetivo;
-      const claseCierre = cumpleObjetivo ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
-      const tituloCierre = cumpleObjetivo
-        ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
-        : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`;
+      // Contar partes pendientes de aprobación para esta OF (puede haber N filas hermanas → unificamos por clave)
+      const pendientes = (impPartesCache || []).filter(p =>
+        String(p['Nº OF']||'').trim() === String(num).trim() &&
+        !['SI','NO'].includes(String(p['Aprobado Supervisor']||'').toUpperCase())
+      );
+      const clavesPend = new Set(pendientes.map(p => claveDeParte(p)));
+      const hayPend = clavesPend.size > 0;
+      const claseCierre = hayPend ? 'btn-cerrar-of-pend' : (cumpleObjetivo ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend');
+      const tituloCierre = hayPend
+        ? `⚠️ NO se puede cerrar: hay ${clavesPend.size} parte(s) pendiente(s) de aprobación. Aprobá/rechazá primero.`
+        : (cumpleObjetivo
+          ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
+          : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`);
+      const labelCierre = hayPend ? `🔒 Cerrar OF (${clavesPend.size} pend.)` : '🏁 Cerrar OF';
       accionHTML = `
         <button type="button" class="btn-cargar-parte" onclick="abrirModalParte('${num.replace(/'/g, "\\'")}')">Cargar Parte</button>
-        <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreOF('${num.replace(/'/g, "\\'")}')">🏁 Cerrar OF</button>
+        <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreOF('${num.replace(/'/g, "\\'")}')">${labelCierre}</button>
       `;
     }
 
