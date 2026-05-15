@@ -2541,11 +2541,27 @@ document.querySelectorAll('.tab-btn[data-panel]').forEach(btn => {
   btn.addEventListener('click', () => activarPanel(btn.dataset.panel, btn));
 });
 
+// Resetea los sub-tabs del panel: primer subtab-btn + primer subpanel quedan activos.
+// Se llama al entrar a cualquier panel principal, así no hay que clickear de más.
+function resetSubtabsDePanel(panel) {
+  if (!panel) return;
+  const btns = panel.querySelectorAll('.subtab-btn');
+  const panels = panel.querySelectorAll('.subpanel');
+  if (!btns.length || !panels.length) return;
+  btns.forEach(b => b.classList.remove('active'));
+  panels.forEach(p => p.classList.remove('active'));
+  btns[0].classList.add('active');
+  panels[0].classList.add('active');
+}
+
 function activarPanel(panelId, btnEl) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   const panel = document.getElementById('panel-' + panelId);
-  if (panel) panel.classList.add('active');
+  if (panel) {
+    panel.classList.add('active');
+    resetSubtabsDePanel(panel);
+  }
   if (btnEl) btnEl.classList.add('active');
   document.getElementById('secMenu').classList.remove('open');
   // Lazy-load por panel
@@ -2558,7 +2574,10 @@ function abrirSector(secKey) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   const panel = document.getElementById('panel-sec-' + secKey);
-  if (panel) panel.classList.add('active');
+  if (panel) {
+    panel.classList.add('active');
+    resetSubtabsDePanel(panel);
+  }
   document.getElementById('secBtn').classList.add('active');
   document.getElementById('secMenu').classList.remove('open');
   // Lazy-load por sector
@@ -3056,14 +3075,20 @@ if (eofClear) eofClear.addEventListener('click', () => {
 let bobinasCache = [];
 let materialesCache = [];
 
-// Sub-tab navigation
-document.querySelectorAll('.subtab-btn').forEach(btn => {
+// Sub-tab navigation — solo subtabs genéricos (data-subtab). Los específicos (data-imp-tab,
+// data-cli-tab, data-mnt-tab) tienen sus propios listeners. SCOPE al panel padre para
+// evitar borrar el .active de subtabs de OTROS sectores (bug que dejaba la pantalla en blanco
+// al volver a un sector cuyos subtabs habían perdido el active).
+document.querySelectorAll('.subtab-btn[data-subtab]').forEach(btn => {
   btn.addEventListener('click', () => {
     const id = btn.dataset.subtab;
-    document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.subpanel').forEach(p => p.classList.remove('active'));
+    if (!id) return;
+    const contenedor = btn.closest('.panel') || document;
+    contenedor.querySelectorAll('.subtab-btn[data-subtab]').forEach(b => b.classList.remove('active'));
+    contenedor.querySelectorAll('.subpanel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('subpanel-' + id).classList.add('active');
+    const target = document.getElementById('subpanel-' + id);
+    if (target) target.classList.add('active');
   });
 });
 
