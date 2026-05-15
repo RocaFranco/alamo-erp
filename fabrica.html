@@ -766,11 +766,13 @@
   }
   .sec-actual.terminada { color: var(--ok); background: rgba(108,240,142,0.12); }
   .sec-actual.sin-iniciar { color: var(--text-3); }
+  .sec-actual.esperando { color: var(--warn, #f5a623); background: rgba(245,166,35,0.10); }
   .sec-dot {
     width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
   }
   .sec-actual.terminada .sec-dot { background: var(--ok); }
   .sec-actual.sin-iniciar .sec-dot { background: var(--text-3); }
+  .sec-actual.esperando .sec-dot { background: var(--warn, #f5a623); }
   /* Breakdown de avance por sector — pills compactas */
   .sector-pills {
     display: flex; flex-wrap: wrap; gap: 4px;
@@ -2937,15 +2939,35 @@ const SECTOR_ABREV = {
 };
 
 function renderSectorPills(avPorSector) {
-  // Solo muestro sectores EN PROCESO (>0% y <100%). Los terminados o sin actividad no aparecen.
-  const enProceso = (avPorSector || []).filter(a => a.pct > 0 && a.pct < 1);
-  if (!enProceso.length) {
+  if (!avPorSector || !avPorSector.length) {
     return '<span class="sec-actual sin-iniciar"><span class="sec-dot"></span>Sin Iniciar</span>';
   }
-  return '<div class="sector-pills">' + enProceso.map(({sector, pct}) => {
-    const pctTxt = Math.round(pct * 100) + '%';
-    return `<span class="sector-pill active" title="${sector}: ${pctTxt}"><span class="sec-name">${SECTOR_ABREV[sector] || sector}</span><span class="sec-pct">${pctTxt}</span></span>`;
-  }).join('') + '</div>';
+  // Sin actividad en ningún sector → "Sin Iniciar"
+  const hayActividad = avPorSector.some(a => a.pct > 0);
+  if (!hayActividad) {
+    return '<span class="sec-actual sin-iniciar"><span class="sec-dot"></span>Sin Iniciar</span>';
+  }
+  // Todos los sectores al 100% → "Terminada"
+  const todosTerminados = avPorSector.every(a => a.pct >= 1);
+  if (todosTerminados) {
+    return '<span class="sec-actual terminada"><span class="sec-dot"></span>Terminada</span>';
+  }
+  // Hay sectores con avance parcial → mostrar pills de los parciales
+  const parciales = avPorSector.filter(a => a.pct > 0 && a.pct < 1);
+  if (parciales.length) {
+    return '<div class="sector-pills">' + parciales.map(({sector, pct}) => {
+      const pctTxt = Math.round(pct * 100) + '%';
+      return `<span class="sector-pill active" title="${sector}: ${pctTxt}"><span class="sec-name">${SECTOR_ABREV[sector] || sector}</span><span class="sec-pct">${pctTxt}</span></span>`;
+    }).join('') + '</div>';
+  }
+  // Todos los sectores iniciados están al 100% (binarios) y hay siguientes en 0% → "Esperando [próximo]"
+  const proximo = avPorSector.find(a => a.pct === 0);
+  if (proximo) {
+    const nombre = SECTOR_ABREV[proximo.sector] || proximo.sector;
+    return `<span class="sec-actual esperando" title="Esperando ${proximo.sector}"><span class="sec-dot"></span>Esperando ${nombre}</span>`;
+  }
+  // Fallback (no debería caer acá)
+  return '<span class="sec-actual sin-iniciar"><span class="sec-dot"></span>Sin Iniciar</span>';
 }
 
 function getFiltrosEOF() {
