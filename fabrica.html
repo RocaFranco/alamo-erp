@@ -1430,9 +1430,9 @@
               <col style="width:150px">
               <col style="width:auto">
               <col style="width:auto">
+              <col style="width:130px">
+              <col style="width:280px">
               <col style="width:90px">
-              <col style="width:auto">
-              <col style="width:80px">
               <col style="width:280px">
             </colgroup>
             <thead>
@@ -1440,9 +1440,9 @@
                 <th>Nº OF</th>
                 <th>Cliente</th>
                 <th>Nombre Bolsa</th>
-                <th class="num">Cant Colores</th>
-                <th>Pantones</th>
-                <th class="num">Trabajos</th>
+                <th style="text-align:center">Cant Colores</th>
+                <th style="text-align:center">Pantones</th>
+                <th style="text-align:center">Trabajos</th>
                 <th class="num">Acciones</th>
               </tr>
             </thead>
@@ -1463,7 +1463,7 @@
                 <th>Nº OF</th>
                 <th>Cliente</th>
                 <th>Nombre Bolsa</th>
-                <th class="num">Cant Colores</th>
+                <th style="text-align:center">Cant Colores</th>
                 <th>Legajos</th>
                 <th>IMP Destino</th>
                 <th>Hr Inicio</th>
@@ -1524,10 +1524,10 @@
               <col style="width:150px">
               <col style="width:auto">
               <col style="width:auto">
-              <col style="width:90px">
-              <col style="width:110px">
-              <col style="width:auto">
-              <col style="width:120px">
+              <col style="width:80px">
+              <col style="width:130px">
+              <col style="width:280px">
+              <col style="width:130px">
               <col style="width:60px">
               <col style="width:280px">
             </colgroup>
@@ -1537,10 +1537,10 @@
                 <th>Cliente</th>
                 <th>Nombre Bolsa</th>
                 <th>Tipo</th>
-                <th class="num">Cant Bolsas</th>
-                <th>Pantones</th>
-                <th class="num">Bolsas hechas</th>
-                <th class="num">%</th>
+                <th style="text-align:center">Cant Bolsas</th>
+                <th style="text-align:center">Pantones</th>
+                <th style="text-align:center">Bolsas hechas</th>
+                <th style="text-align:center">%</th>
                 <th class="num">Acción</th>
               </tr>
             </thead>
@@ -5873,10 +5873,10 @@ function renderColaImpresion() {
       <td>${o['Cliente']||'—'}</td>
       <td>${o['Nombre Bolsa']||'—'}</td>
       <td>${o['Tipo Bolsa']||'—'}</td>
-      <td class="num" style="padding-right:36px">${fmtNum(cant)}</td>
-      <td style="padding-left:36px">${pantonesHTML}</td>
-      <td class="num">${fmtNum(hechas)}</td>
-      <td class="num">${pct}%</td>
+      <td style="text-align:center">${fmtNum(cant)}</td>
+      <td style="text-align:center">${pantonesHTML}</td>
+      <td style="text-align:center">${fmtNum(hechas)}</td>
+      <td style="text-align:center">${pct}%</td>
       <td class="num">${accionHTML}</td>
     </tr>`;
   }).join('');
@@ -6171,9 +6171,9 @@ function renderColaClise() {
       <td><strong>${num}</strong></td>
       <td>${o['Cliente']||'—'}</td>
       <td>${o['Nombre Bolsa']||'—'}</td>
-      <td class="num" style="padding-right:36px">${cantColores || '—'}</td>
-      <td style="padding-left:36px">${pantonesHTML}</td>
-      <td class="num">${trabajos}</td>
+      <td style="text-align:center">${cantColores || '—'}</td>
+      <td style="text-align:center">${pantonesHTML}</td>
+      <td style="text-align:center">${trabajos}</td>
       <td class="num">${accionHTML}</td>
     </tr>`;
   }).join('');
@@ -6208,7 +6208,7 @@ function renderTrabajosClise() {
       <td><strong>${numOF}</strong></td>
       <td>${cli}</td>
       <td>${bolsa}</td>
-      <td class="num">${cols}</td>
+      <td style="text-align:center">${cols}</td>
       <td>${legs}</td>
       <td>${c['IMP Destino']||'—'}</td>
       <td>${excelTimeToHHMM(c['Hora Inicio'])||'—'}</td>
