@@ -269,6 +269,64 @@
     min-width: 70px; text-align: right;
   }
 
+  /* ---------- STOCK TINTAS — listado por categoría (1 columna, letra grande) ---------- */
+  .tnt-pant-list {
+    display: flex; flex-direction: column;
+    padding-top: 6px;
+  }
+  .tnt-pant-row {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 16px; align-items: center;
+    padding: 10px 0; border-bottom: 1px dashed var(--line);
+    font-size: 14px;
+  }
+  .tnt-pant-row:last-child { border-bottom: none; }
+  .tnt-pant-nombre { color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; }
+  .tnt-pant-kg {
+    font-family: 'DM Mono', monospace; font-weight: 700; font-size: 15px;
+    min-width: 90px; text-align: right;
+  }
+  .tnt-pant-badge {
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    padding: 3px 9px; border-radius: 999px; min-width: 110px; text-align: center;
+  }
+  /* Estados de stock por umbral */
+  .tnt-stock-seguro  { background: rgba(57, 211, 83, 0.15); color: var(--ok); border: 1px solid rgba(57,211,83,0.4); }
+  .tnt-stock-medio   { background: rgba(245, 166, 35, 0.15); color: var(--warn, #f5a623); border: 1px solid rgba(245,166,35,0.4); }
+  .tnt-stock-bajo    { background: rgba(255, 90, 90, 0.18); color: var(--danger); border: 1px solid rgba(255,90,90,0.5); }
+  .tnt-stock-agotado { background: rgba(255,255,255,0.04); color: var(--text-3); border: 1px solid var(--line); }
+  .tnt-stock-negativo {
+    background: rgba(255, 90, 90, 0.35); color: #fff; border: 1px solid var(--danger);
+    animation: pulse-danger 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-danger {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,90,90,0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(255,90,90,0); }
+  }
+  /* Color del kg según estado */
+  .tnt-pant-row.row-seguro .tnt-pant-kg  { color: var(--ok); }
+  .tnt-pant-row.row-medio .tnt-pant-kg   { color: var(--warn, #f5a623); }
+  .tnt-pant-row.row-bajo .tnt-pant-kg    { color: var(--danger); }
+  .tnt-pant-row.row-negativo .tnt-pant-kg { color: var(--danger); font-size: 17px; }
+  .tnt-pant-row.row-agotado .tnt-pant-nombre,
+  .tnt-pant-row.row-agotado .tnt-pant-kg { color: var(--text-3); }
+
+  /* Lista dinámica de pantones en el modal Recepción Tintas (Color + Pantone + Kg + ✕) */
+  .tnt-recep-row {
+    display: grid; grid-template-columns: 1.4fr 1.4fr 0.8fr auto;
+    gap: 10px; padding: 10px 0 6px;
+    border-bottom: 1px dashed var(--line);
+    align-items: end;
+  }
+  .tnt-recep-row:last-of-type { border-bottom: none; }
+  .tnt-recep-row .field { gap: 4px; margin-bottom: 0; }
+  .tnt-recep-row .field input,
+  .tnt-recep-row .field select { padding: 7px 10px; font-size: 12px; }
+  .tnt-recep-row .field span { font-size: 10px; }
+  .tnt-recep-del { align-self: end; margin-bottom: 4px; }
+  .tnt-recep-row .pantone-hint { display: block; }
+
   /* ---------- FORMS ---------- */
   .form-card {
     background: var(--bg-2); border: 1px solid var(--line);
@@ -402,14 +460,17 @@
   .mnt-toggle.active .badge-num { color: var(--accent); }
 
   /* Impresión — toggles vista (mismo estilo que mantenimiento) */
-  .imp-toggle {
+  .imp-toggle, .cola-toggle {
     background: var(--bg-2); border: 1px solid var(--line);
     color: var(--text-2); padding: 9px 18px; border-radius: 8px;
     font-family: inherit; font-size: 13px; font-weight: 600;
     cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
     transition: all 0.15s;
   }
-  .imp-toggle:hover { color: var(--text); border-color: var(--text-3); }
+  .imp-toggle:hover, .cola-toggle:hover { color: var(--text); border-color: var(--text-3); }
+  .cola-toggle.active {
+    background: var(--accent); color: var(--bg); border-color: var(--accent);
+  }
   .imp-toggle.active {
     background: var(--bg-3); color: var(--accent);
     border-color: var(--accent);
@@ -508,6 +569,20 @@
     transition: all 0.15s;
   }
   .btn-imprimir:hover { color: var(--accent); border-color: var(--accent); }
+  /* Botón Cerrar OF — verde si cumple objetivo, ámbar si todavía no llegó */
+  .btn-cerrar-of-ok, .btn-cerrar-of-pend {
+    border: none; padding: 7px 12px; border-radius: 7px;
+    font-family: inherit; font-size: 12px; font-weight: 700;
+    cursor: pointer; letter-spacing: 0.3px;
+    margin-left: 6px; transition: all 0.15s;
+  }
+  .btn-cerrar-of-ok { background: var(--ok); color: var(--bg); }
+  .btn-cerrar-of-ok:hover { filter: brightness(1.1); }
+  .btn-cerrar-of-pend {
+    background: transparent; color: var(--warn, #f5a623);
+    border: 1px solid var(--warn, #f5a623);
+  }
+  .btn-cerrar-of-pend:hover { background: var(--warn, #f5a623); color: var(--bg); }
   .btn-aprobar:hover { filter: brightness(1.1); }
 
   /* Mantenimiento — pill de urgencia */
@@ -1347,6 +1422,12 @@
           </div>
         </div>
 
+        <!-- Toggle Activas / Terminadas -->
+        <div class="mnt-toggles">
+          <button type="button" class="cola-toggle active" data-cola-vista="activas">🟡 Activas <span class="badge-num" id="imp-cola-tg-act">0</span></button>
+          <button type="button" class="cola-toggle" data-cola-vista="terminadas">✅ Terminadas en Impresión <span class="badge-num" id="imp-cola-tg-ter">0</span></button>
+        </div>
+
         <div class="table-wrapper">
           <table class="data-table">
             <colgroup>
@@ -1358,7 +1439,7 @@
               <col style="width:auto">
               <col style="width:120px">
               <col style="width:60px">
-              <col style="width:170px">
+              <col style="width:280px">
             </colgroup>
             <thead>
               <tr>
@@ -1463,7 +1544,8 @@
               <col style="width:80px">
               <col style="width:130px">
               <col>
-              <col style="width:120px">
+              <col style="width:100px">
+              <col style="width:100px">
               <col style="width:140px">
               <col style="width:110px">
               <col style="width:130px">
@@ -1475,6 +1557,7 @@
                 <th>Fecha</th>
                 <th>Nº OF</th>
                 <th>Nombre Bolsa</th>
+                <th>Color</th>
                 <th>Pantone</th>
                 <th>Sustrato</th>
                 <th class="num">Kg Consumidos</th>
@@ -1486,6 +1569,7 @@
                 <th></th>
                 <th><input type="text" class="col-filter" id="tnt-filt-of"  placeholder="Nº OF…"></th>
                 <th></th>
+                <th></th>
                 <th><input type="text" class="col-filter" id="tnt-filt-pan" placeholder="Pantone…"></th>
                 <th></th>
                 <th></th>
@@ -1495,7 +1579,7 @@
               </tr>
             </thead>
             <tbody id="tnt-body">
-              <tr><td colspan="9" class="empty">Cargando consumo de tintas…</td></tr>
+              <tr><td colspan="10" class="empty">Cargando consumo de tintas…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1619,13 +1703,37 @@
         </div>
       </div>
 
-      <!-- SUBTAB STOCK TINTAS (WIP) -->
+      <!-- SUBTAB STOCK TINTAS -->
       <div class="subpanel" id="subpanel-stock-tintas">
-        <div class="section-head">
-          <h3>Stock de Tintas</h3>
-          <button type="button" class="btn-imprimir" onclick="imprimirStockTintas()">🖨️ Imprimir / PDF</button>
+        <div class="kpi-grid kpi-grid-3">
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">Total tintas en stock</div>
+            <div class="kpi-value" id="tnt-kpi-total">—</div>
+            <div class="kpi-sub" id="tnt-kpi-total-sub">cargando…</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Pantones con stock</div>
+            <div class="kpi-value" id="tnt-kpi-pantones">—</div>
+            <div class="kpi-sub">items distintos</div>
+          </div>
+          <div class="kpi-card kpi-warn">
+            <div class="kpi-label">Pantones agotados</div>
+            <div class="kpi-value" id="tnt-kpi-agot">—</div>
+            <div class="kpi-sub">sin kg disponibles</div>
+          </div>
         </div>
-        <div class="wip"><div class="wip-icon">🎨</div><h2>Stock de Tintas</h2><p>Inventario de tintas por Pantone × Sustrato. Entradas (compras) · Consumos (de los partes aprobados de Impresión) · Saldo actual · Conteo físico mensual de ajuste.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
+
+        <div class="section-head">
+          <h3>Stock por categoría</h3>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="section-hint" id="tnt-hint"></span>
+            <button type="button" class="btn-cargar-parte" onclick="abrirModalRecepcionTintas()">+ Cargar Recepción</button>
+            <button type="button" class="btn-imprimir" onclick="imprimirStockTintas()">🖨️ Imprimir / PDF</button>
+          </div>
+        </div>
+        <div id="tnt-grupos">
+          <div class="empty-block">Cargando stock…</div>
+        </div>
       </div>
 
       <!-- SUBTAB STOCK VARIOS (WIP) -->
@@ -1938,6 +2046,109 @@
         </div>
       </form>
       <div id="imp-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cerrar OF en Sector — confirma cierre de OF en Impresión y escribe fila en "Cierres de OF por Sector" -->
+<div class="modal-overlay" id="imp-modal-cierre" style="display:none">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-head">
+      <h3>🏁 Cerrar OF en Impresión — <span id="imp-cierre-of">OF</span></h3>
+      <button class="modal-close" onclick="cerrarModalCierre()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="conv-padre-card" style="margin-bottom:14px">
+        <div class="padre-info-grid">
+          <div class="item"><small>Cliente</small><strong id="imp-cierre-cli">—</strong></div>
+          <div class="item"><small>Nombre Bolsa</small><strong id="imp-cierre-bolsa">—</strong></div>
+          <div class="item"><small>Cantidad pedida</small><strong id="imp-cierre-cant">—</strong></div>
+          <div class="item"><small>% Excedente</small><strong id="imp-cierre-exc">—</strong></div>
+          <div class="item"><small>Objetivo total</small><strong id="imp-cierre-obj">—</strong></div>
+          <div class="item"><small>Bolsas hechas (aprobadas)</small><strong id="imp-cierre-hechas">—</strong></div>
+          <div class="item"><small>% Cumplido</small><strong id="imp-cierre-pct">—</strong></div>
+          <div class="item"><small>Estado</small><strong id="imp-cierre-estado">—</strong></div>
+        </div>
+      </div>
+
+      <form id="form-imp-cierre" class="form-grid">
+        <!-- Aviso si no cumple objetivo -->
+        <div class="field-2" id="imp-cierre-aviso-noof" style="display:none; padding:12px 14px; background:rgba(245,166,35,0.08); border:1px solid var(--warn,#f5a623); border-radius:8px; color:var(--warn,#f5a623); font-size:13px;">
+          ⚠️ <strong>Esta OF no cumple el objetivo.</strong> Para cerrarla igual, indicá el motivo (queda registrado).
+        </div>
+
+        <label class="field field-2" id="imp-cierre-motivo-wrap" style="display:none">
+          <span>Motivo (obligatorio)</span>
+          <input type="text" name="motivo" placeholder="Ej: cliente canceló parte del pedido, máquina rota, etc." maxlength="200">
+        </label>
+
+        <label class="field field-2">
+          <span>Legajo del que cierra</span>
+          <input type="text" name="legajo_cierre" required placeholder="Ej: 499">
+        </label>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalCierre()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="imp-cierre-submit">Confirmar cierre</button>
+        </div>
+      </form>
+      <div id="imp-cierre-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cargar Recepción de Tintas -->
+<div class="modal-overlay" id="tnt-modal-recep" style="display:none">
+  <div class="modal-card" style="max-width:680px">
+    <div class="modal-head">
+      <h3>📥 Cargar Recepción de Tintas</h3>
+      <button class="modal-close" onclick="cerrarModalRecepcionTintas()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-sub">Una recepción cubre <strong>1 sola categoría</strong>. Si recibiste tintas de Papel y Tubo en la misma compra, hacé 2 recepciones separadas.</p>
+      <form id="form-tnt-recep" class="form-grid">
+        <label class="field">
+          <span>Fecha</span>
+          <input type="date" name="fecha" required>
+        </label>
+        <label class="field">
+          <span>Categoría</span>
+          <select name="categoria" id="tnt-recep-cat" required>
+            <option value="">— Elegir —</option>
+            <option value="Papel">📄 Papel</option>
+            <option value="Tubo">🧵 Tubo (Rafia)</option>
+            <option value="BioPP">🌿 BioPP</option>
+          </select>
+        </label>
+        <p class="form-sub field-2" style="margin:-8px 0 8px;color:var(--text-3);font-size:11px">
+          💡 <strong>Tip:</strong> doble-click en Color o Pantone los limpia para ver todas las opciones del catálogo.
+        </p>
+
+        <!-- Lista dinámica de Pantones recibidos -->
+        <div class="conv-block field-2">
+          <div class="conv-block-title">🎨 Pantones recibidos</div>
+          <p class="form-sub" style="margin:0 0 10px">Cargá cada Pantone con sus kg. Usá <strong>+ Sumar pantone</strong> para agregar más.</p>
+          <div id="tnt-recep-list">
+            <!-- filas dinámicas -->
+          </div>
+          <button type="button" class="btn-secondary" id="tnt-recep-add" style="margin-top:8px">+ Sumar pantone</button>
+        </div>
+
+        <label class="field">
+          <span>Nº Remito</span>
+          <input type="text" name="remito" placeholder="Ej: 0001-00012345">
+        </label>
+        <label class="field">
+          <span>Legajo del que recibe</span>
+          <input type="text" name="legajo" required placeholder="Ej: 499">
+        </label>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalRecepcionTintas()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="tnt-recep-submit">Confirmar recepción</button>
+        </div>
+      </form>
+      <div id="tnt-recep-msg" class="form-msg"></div>
     </div>
   </div>
 </div>
@@ -2643,12 +2854,38 @@ document.querySelectorAll('.subtab-btn').forEach(btn => {
   });
 });
 
+// Caches para Stock Tintas
+let tintasCatalogoCache = [];   // pestaña "Tintas Catálogo" — todos los Pantones × Categoría
+let entradasTintasCache = [];   // pestaña "Entradas Tintas" — compras
+let tintasConsumosCache = [];   // pestaña "Tintas de Impresión" — consumos por parte
+let ofsParaTintasCache = [];    // pestaña "OF" — para cruzar consumos con Tipo Bolsa
+
+// Helper: lee 'Categoría' o 'Categoria' del cache (tolerancia tilde)
+function getCategoria(row) {
+  return String(row['Categoría'] || row['Categoria'] || '').trim();
+}
+
 async function cargarBobinasStock() {
   try {
-    [bobinasCache, materialesCache] = await Promise.all([
+    [bobinasCache, materialesCache, tintasCatalogoCache, entradasTintasCache, tintasConsumosCache, ofsParaTintasCache] = await Promise.all([
       leerPestana('Bobinas').catch(() => []),
       leerPestana('Materiales').catch(() => []),
+      leerPestana('Tintas Catálogo').catch(() => []),
+      leerPestana('Entradas Tintas').catch(() => []),
+      leerPestana('Tintas de Impresión').catch(() => []),
+      leerPestana('OF').catch(() => []),
     ]);
+    // Normalizar headers de Tintas Catálogo y Entradas Tintas (puede ser "Categoría" o "Categoria")
+    tintasCatalogoCache = (tintasCatalogoCache || []).map(c => ({
+      ...c,
+      'Categoría': getCategoria(c),
+      'Categoria': getCategoria(c),
+    }));
+    entradasTintasCache = (entradasTintasCache || []).map(e => ({
+      ...e,
+      'Categoría': getCategoria(e),
+      'Categoria': getCategoria(e),
+    }));
   } catch (err) {
     console.error('Error cargando Bobinas/Materiales:', err);
     document.getElementById('stk-grupos').innerHTML = `<div class="empty-block">Error: ${err.message}</div>`;
@@ -2657,6 +2894,7 @@ async function cargarBobinasStock() {
   poblarFormCodificar();
   renderStockGrupos();
   renderTablaBobinas();
+  renderStockTintas();
 }
 
 function renderStockGrupos() {
@@ -2834,13 +3072,496 @@ function imprimirStockBobinas() {
   _abrirVentanaPrint('Stock de Bobinas', html);
 }
 
+// ============================================================
+// STOCK TINTAS — vista jerárquica (Total / Categoría / Pantone)
+// ============================================================
+// Map de Tipo Bolsa → Categoría de tinta
+function tipoBolsaACategoriaTinta(tipo) {
+  const t = String(tipo||'').toLowerCase().trim();
+  if (t === 'papel' || t === 'polipapel') return 'Papel';
+  if (t === 'rafia_conv' || t === 'rafia_lam' || t === 'rafia conv' || t === 'rafia lam' || t === 'rafia') return 'Tubo';
+  if (t === 'biopp' || t === 'bio pp' || t === 'bio_pp') return 'BioPP';
+  return ''; // desconocido
+}
+
+// Parser para consumos viejos guardados como "AMARILLO 108" en una sola columna Pantone.
+// Devuelve { color, pantone }. Ej: "AMARILLO 108" → { color: "AMARILLO", pantone: "108" }
+//                                     "MAGENTA FOTO" → { color: "MAGENTA", pantone: "FOTO" }
+//                                     "VERDE ALEA 70%" → { color: "VERDE", pantone: "ALEA 70%" }
+//                                     "210" → { color: "", pantone: "210" } (solo código, formato muy viejo)
+function splitPantoneViejo(str) {
+  const s = String(str||'').trim();
+  if (!s) return { color: '', pantone: '' };
+  const m = s.match(/^(\S+)\s+(.+)$/);
+  if (m) return { color: m[1].toUpperCase(), pantone: m[2].trim() };
+  // Si solo hay un token, asumimos que es el código del pantone (sin color)
+  return { color: '', pantone: s };
+}
+
+// Devuelve mapa { 'COLOR|Pantone|Categoría': kgEnStock }
+function calcularStockTintas() {
+  // 1. Sumar entradas (compras) por Color+Pantone+Categoría
+  const map = {};
+  (entradasTintasCache || []).forEach(e => {
+    const color = String(e['Color']||'').trim().toUpperCase();
+    const pant = String(e['Pantone']||'').trim();
+    const cat = getCategoria(e);
+    const kg = Number(e['Kg']) || 0;
+    if (!color || !pant || !cat) return;
+    const k = `${color}|${pant}|${cat}`;
+    map[k] = (map[k] || 0) + kg;
+  });
+  // 2. Restar consumos. Tintas de Impresión guarda el Pantone como "AMARILLO 108"
+  //    en UNA sola columna — lo splitamos al vuelo. Solo cuenta si el parte está APROBADO.
+  const aprobadosSet = new Set(
+    (impPartesCache || [])
+      .filter(p => String(p['Aprobado Supervisor']||'').toUpperCase() === 'SI')
+      .map(p => `${p['Fecha']}|${p['Nº OF']}|${p['Nº Impresora']}`)
+  );
+  (tintasConsumosCache || []).forEach(t => {
+    const claveT = `${t['Fecha']}|${t['Nº OF']}|${t['Nº Impresora']}`;
+    if (!aprobadosSet.has(claveT)) return;
+    // Color: leer columna directa (formato nuevo). Fallback silencioso al split del Pantone
+    // por si quedan filas viejas (no debería).
+    let color = String(t['Color']||'').trim().toUpperCase();
+    let pantone = String(t['Pantone']||'').trim();
+    if (!color && pantone) {
+      const sp = splitPantoneViejo(pantone);
+      color = sp.color;
+      pantone = sp.pantone;
+    }
+    const numOF = t['Nº OF'];
+    const of = (ofsParaTintasCache || []).find(o => o['Nº OF'] === numOF);
+    const cat = of ? tipoBolsaACategoriaTinta(of['Tipo Bolsa']) : '';
+    const kg = Number(t['Kg Consumidos']) || 0;
+    if (!color || !pantone || !cat) return; // sin color no se contabiliza
+    const k = `${color}|${pantone}|${cat}`;
+    map[k] = (map[k] || 0) - kg;
+  });
+  return map;
+}
+
+function renderStockTintas() {
+  const cont = document.getElementById('tnt-grupos');
+  if (!cont) return;
+
+  // Construir lista combinando catálogo + cálculo de stock
+  const stockMap = calcularStockTintas();
+
+  // Agrupar por categoría
+  const cats = ['Papel', 'Tubo', 'BioPP'];
+  const porCat = { 'Papel': [], 'Tubo': [], 'BioPP': [] };
+
+  // Recorrer catálogo (es la fuente de Color+Pantone disponibles)
+  (tintasCatalogoCache || []).forEach(c => {
+    const color = String(c['Color']||'').trim().toUpperCase();
+    const pant = String(c['Pantone']||'').trim();
+    const cat = getCategoria(c);
+    if (!color || !pant || !cats.includes(cat)) return;
+    const kg = stockMap[`${color}|${pant}|${cat}`] || 0;
+    porCat[cat].push({ color, pantone: pant, nombre: `${color} ${pant}`, kg });
+  });
+  // Sumar también combos con movimiento que no estén en el catálogo (raro, pero por las dudas)
+  Object.keys(stockMap).forEach(k => {
+    const [color, pantone, cat] = k.split('|');
+    if (!cats.includes(cat) || !color || !pantone) return;
+    if (!porCat[cat].some(x => x.color === color && x.pantone === pantone)) {
+      porCat[cat].push({ color, pantone, nombre: `${color} ${pantone}`, kg: stockMap[k] });
+    }
+  });
+
+  // Totales por categoría
+  const totCat = {};
+  cats.forEach(c => {
+    totCat[c] = porCat[c].reduce((s, x) => s + (Number(x.kg)||0), 0);
+  });
+  const totalGeneral = totCat.Papel + totCat.Tubo + totCat.BioPP;
+
+  // Contar pantones con stock vs agotados
+  let conStock = 0, agotados = 0;
+  cats.forEach(c => {
+    porCat[c].forEach(x => {
+      if (x.kg > 0) conStock++;
+      else agotados++;
+    });
+  });
+
+  // KPIs
+  document.getElementById('tnt-kpi-total').textContent = fmtNum(Math.round(totalGeneral * 10) / 10) + ' kg';
+  document.getElementById('tnt-kpi-total-sub').textContent = totalGeneral > 0 ? 'Papel + Tubo + BioPP' : 'sin tintas en stock';
+  document.getElementById('tnt-kpi-pantones').textContent = conStock;
+  document.getElementById('tnt-kpi-agot').textContent = agotados;
+  document.getElementById('tnt-hint').textContent = `${conStock} con stock · ${agotados} agotados`;
+
+  // Render cards expandibles (1 por categoría)
+  // Solo mostramos pantones con MOVIMIENTO (entradas o consumos != 0). Los del catálogo en 0
+  // los omitimos de la vista para no saturar (el catálogo tiene 100+ entradas por categoría).
+  cont.innerHTML = cats.map(cat => {
+    const items = porCat[cat]
+      .filter(x => x.kg !== 0)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const total = totCat[cat];
+    const negativos = items.filter(x => x.kg < 0).length;
+    const itemsHTML = items.length ? items.map(it => {
+      const estado = clasificarStockTinta(it.kg);
+      return `<div class="tnt-pant-row row-${estado.cls}">
+        <span class="tnt-pant-nombre">${it.nombre}</span>
+        <span class="tnt-pant-kg">${fmtNum(Math.round(it.kg * 10) / 10)} kg</span>
+        <span class="tnt-pant-badge tnt-stock-${estado.cls}">${estado.label}</span>
+      </div>`;
+    }).join('') : '<div class="empty-block" style="padding:18px">Sin movimientos en esta categoría todavía.</div>';
+    const totalCls = total < 0 ? 'color:var(--danger);font-weight:700' : '';
+    const alertaNeg = negativos ? ` · <span style="color:var(--danger)">⚠️ ${negativos} negativo(s)</span>` : '';
+    return `
+      <div class="grupo-card" data-cat="${cat}">
+        <div class="grupo-head" onclick="this.parentElement.classList.toggle('open')">
+          <div class="grupo-titulo">
+            <span class="caret">▸</span>
+            <span>${cat === 'Papel' ? '📄 Papel' : cat === 'Tubo' ? '🧵 Tubo (Rafia)' : '🌿 BioPP'}</span>
+          </div>
+          <div class="grupo-meta">
+            <span style="${totalCls}"><strong>${fmtNum(Math.round(total * 10) / 10)}</strong> kg</span>
+            <span><strong>${items.length}</strong> con movimiento${alertaNeg}</span>
+          </div>
+        </div>
+        <div class="grupo-detalle"><div class="tnt-pant-list">${itemsHTML}</div></div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Clasifica un kg de stock en uno de los 5 estados con label y clase CSS
+function clasificarStockTinta(kg) {
+  if (kg < 0)   return { cls: 'negativo', label: '⚠️ NEGATIVO' };
+  if (kg === 0) return { cls: 'agotado',  label: 'Agotado' };
+  if (kg < 25)  return { cls: 'bajo',     label: 'Stock Bajo' };
+  if (kg < 60)  return { cls: 'medio',    label: 'Stock Medio' };
+  return                 { cls: 'seguro',  label: 'Stock OK' };
+}
+
 function imprimirStockTintas() {
-  alert('🚧 Stock de Tintas todavía está en construcción.\n\nCuando se implemente el catálogo de tintas, este botón va a generar el PDF.');
+  if (!tintasCatalogoCache || !tintasCatalogoCache.length) {
+    alert('No hay catálogo de tintas cargado todavía.');
+    return;
+  }
+  const stockMap = calcularStockTintas();
+  const cats = ['Papel', 'Tubo', 'BioPP'];
+  const porCat = { 'Papel': [], 'Tubo': [], 'BioPP': [] };
+  (tintasCatalogoCache || []).forEach(c => {
+    const color = String(c['Color']||'').trim().toUpperCase();
+    const pant = String(c['Pantone']||'').trim();
+    const cat = getCategoria(c);
+    if (!color || !pant || !cats.includes(cat)) return;
+    const kg = stockMap[`${color}|${pant}|${cat}`] || 0;
+    porCat[cat].push({ color, pantone: pant, kg });
+  });
+  // Sumar combos con movimiento que no estén en catálogo
+  Object.keys(stockMap).forEach(k => {
+    const [color, pantone, cat] = k.split('|');
+    if (!cats.includes(cat)) return;
+    if (!porCat[cat].some(x => x.color === color && x.pantone === pantone)) {
+      porCat[cat].push({ color, pantone, kg: stockMap[k] });
+    }
+  });
+  let totalGeneral = 0;
+  cats.forEach(c => { totalGeneral += porCat[c].reduce((s, x) => s + (Number(x.kg)||0), 0); });
+  let html = `<p><strong>Total general:</strong> ${fmtNum(Math.round(totalGeneral * 10) / 10)} kg</p>`;
+  for (const cat of cats) {
+    const items = porCat[cat]
+      .filter(x => x.kg !== 0)
+      .sort((a, b) => (a.color + a.pantone).localeCompare(b.color + b.pantone));
+    const total = items.reduce((s, x) => s + (Number(x.kg)||0), 0);
+    html += `<h2>${cat} — ${fmtNum(Math.round(total * 10) / 10)} kg · ${items.length} con movimiento</h2>`;
+    if (!items.length) { html += '<p><em>Sin movimientos.</em></p>'; continue; }
+    html += `<table><thead><tr><th>Color</th><th>Pantone</th><th class="num">Kg</th></tr></thead><tbody>`;
+    for (const it of items) {
+      html += `<tr><td>${it.color}</td><td>${it.pantone}</td><td class="num">${fmtNum(Math.round(it.kg * 10) / 10)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+  _abrirVentanaPrint('Stock de Tintas', html);
 }
 
 function imprimirStockVarios() {
   alert('🚧 Stock Varios todavía está en construcción.\n\nCuando se implemente el catálogo de insumos, este botón va a generar el PDF.');
 }
+
+// ============================================================
+// MODAL — Cargar Recepción de Tintas
+// ============================================================
+let tntRecepIdx = 0;
+
+function abrirModalRecepcionTintas() {
+  if (!tintasCatalogoCache || !tintasCatalogoCache.length) {
+    alert('No hay catálogo de tintas cargado. Verificá la pestaña "Tintas Catálogo" del Sheet.');
+    return;
+  }
+  const form = document.getElementById('form-tnt-recep');
+  form.reset();
+  delete form.dataset.guardando;
+  // Fecha hoy por defecto
+  form.fecha.value = new Date().toISOString().slice(0,10);
+  // Reset lista de pantones — arranca con 1 fila vacía
+  document.getElementById('tnt-recep-list').innerHTML = '';
+  tntRecepIdx = 0;
+  agregarFilaPantoneRecep();
+  // Reset msg + botón
+  const msg = document.getElementById('tnt-recep-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  const btn = document.getElementById('tnt-recep-submit');
+  btn.disabled = false;
+  btn.textContent = 'Confirmar recepción';
+  document.getElementById('tnt-modal-recep').style.display = 'flex';
+}
+
+function cerrarModalRecepcionTintas() {
+  document.getElementById('tnt-modal-recep').style.display = 'none';
+}
+
+// Click fuera del card cierra
+document.getElementById('tnt-modal-recep').addEventListener('click', (e) => {
+  if (e.target.id === 'tnt-modal-recep') cerrarModalRecepcionTintas();
+});
+
+// Re-poblar datalists de TODAS las filas cuando cambia la categoría + refrescar hints
+document.getElementById('tnt-recep-cat').addEventListener('change', () => {
+  document.querySelectorAll('#tnt-recep-list .tnt-recep-row').forEach(r => {
+    poblarColoresEnRow(r);
+    actualizarPantonesPorColor(r);
+    actualizarHintPantone(r);
+  });
+});
+
+function agregarFilaPantoneRecep() {
+  const cont = document.getElementById('tnt-recep-list');
+  tntRecepIdx++;
+  const idx = tntRecepIdx;
+  const div = document.createElement('div');
+  div.className = 'tnt-recep-row';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <label class="field" style="margin-bottom:0">
+      <span>Color</span>
+      <input type="text" name="color" list="tnt-colores-list-${idx}" required placeholder="Tipear o elegir…" autocomplete="off">
+      <datalist id="tnt-colores-list-${idx}"></datalist>
+    </label>
+    <label class="field" style="margin-bottom:0">
+      <span>Pantone</span>
+      <input type="text" name="pantone" list="tnt-pantones-list-${idx}" required placeholder="Código del pantone" autocomplete="off">
+      <datalist id="tnt-pantones-list-${idx}"></datalist>
+    </label>
+    <label class="field" style="margin-bottom:0">
+      <span>Kg</span>
+      <input type="number" name="kg" step="0.1" min="0" required placeholder="Ej: 20">
+    </label>
+    <button type="button" class="btn-tinta-del tnt-recep-del" title="Quitar">✕</button>
+    <small class="hint pantone-hint" style="grid-column:1/-1;font-size:11px;margin-top:-2px"></small>
+  `;
+  div.querySelector('.tnt-recep-del').addEventListener('click', () => {
+    if (cont.querySelectorAll('.tnt-recep-row').length <= 1) return;
+    div.remove();
+  });
+  // Listeners en vivo
+  const inpColor = div.querySelector('input[name="color"]');
+  const inpPant  = div.querySelector('input[name="pantone"]');
+  inpColor.addEventListener('input', () => {
+    actualizarPantonesPorColor(div);
+    actualizarHintPantone(div);
+  });
+  inpPant.addEventListener('input', () => actualizarHintPantone(div));
+  // Doble-click vacía el campo y abre el dropdown completo (workaround para que
+  // el datalist muestre todas las opciones cuando ya hay un valor cargado).
+  inpColor.title = 'Doble-click para limpiar y ver todos';
+  inpPant.title = 'Doble-click para limpiar y ver todos';
+  inpColor.addEventListener('dblclick', () => {
+    inpColor.value = '';
+    inpColor.dispatchEvent(new Event('input', { bubbles: true }));
+    inpColor.focus();
+  });
+  inpPant.addEventListener('dblclick', () => {
+    inpPant.value = '';
+    inpPant.dispatchEvent(new Event('input', { bubbles: true }));
+    inpPant.focus();
+  });
+  cont.appendChild(div);
+  poblarColoresEnRow(div);
+  actualizarPantonesPorColor(div);
+}
+
+// Llena el datalist de Colores únicos disponibles en la categoría elegida
+function poblarColoresEnRow(row) {
+  const datalist = row.querySelector('datalist[id^="tnt-colores-list-"]');
+  const inp = row.querySelector('input[name="color"]');
+  const cat = document.getElementById('tnt-recep-cat').value;
+  if (!cat) {
+    datalist.innerHTML = '';
+    inp.placeholder = 'Elegí primero la categoría';
+    inp.disabled = true;
+    return;
+  }
+  inp.disabled = false;
+  inp.placeholder = 'Tipear o elegir color';
+  const colores = [...new Set(
+    (tintasCatalogoCache || [])
+      .filter(c => getCategoria(c) === cat)
+      .map(c => String(c['Color']||'').trim())
+      .filter(Boolean)
+  )].sort();
+  datalist.innerHTML = colores.map(c => `<option value="${c}">`).join('');
+}
+
+// Llena el datalist de Pantones según el color tipeado y la categoría
+function actualizarPantonesPorColor(row) {
+  const datalist = row.querySelector('datalist[id^="tnt-pantones-list-"]');
+  const inp = row.querySelector('input[name="pantone"]');
+  const cat = document.getElementById('tnt-recep-cat').value;
+  const color = String(row.querySelector('input[name="color"]').value||'').trim().toUpperCase();
+  if (!cat || !color) {
+    datalist.innerHTML = '';
+    inp.placeholder = color ? 'Código del pantone' : 'Cargá el color primero';
+    return;
+  }
+  const pantones = (tintasCatalogoCache || [])
+    .filter(c => getCategoria(c) === cat && String(c['Color']||'').trim().toUpperCase() === color)
+    .map(c => String(c['Pantone']||'').trim())
+    .filter(Boolean)
+    .sort();
+  datalist.innerHTML = pantones.map(p => `<option value="${p}">`).join('');
+  inp.placeholder = pantones.length ? `${pantones.length} disponibles` : 'Sin pantones — se va a agregar como nuevo';
+}
+
+function actualizarHintPantone(row) {
+  const hint = row.querySelector('.pantone-hint');
+  const color = String(row.querySelector('input[name="color"]').value||'').trim();
+  const pant = String(row.querySelector('input[name="pantone"]').value||'').trim();
+  const cat = document.getElementById('tnt-recep-cat').value;
+  if (!color || !pant || !cat) { hint.textContent = ''; return; }
+  const existe = (tintasCatalogoCache || []).some(c =>
+    String(c['Color']||'').trim().toUpperCase() === color.toUpperCase() &&
+    String(c['Pantone']||'').trim().toUpperCase() === pant.toUpperCase() &&
+    getCategoria(c) === cat
+  );
+  if (existe) {
+    hint.textContent = `✓ ${color} ${pant} en catálogo de ${cat}`;
+    hint.style.color = 'var(--ok)';
+  } else {
+    hint.textContent = `⚠️ "${color} ${pant}" no está en catálogo de ${cat} — al confirmar te pregunto si querés agregarlo`;
+    hint.style.color = 'var(--warn, #f5a623)';
+  }
+}
+
+document.getElementById('tnt-recep-add').addEventListener('click', agregarFilaPantoneRecep);
+
+// SUBMIT — crea N filas en "Entradas Tintas" (1 por pantone)
+document.getElementById('form-tnt-recep').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+
+  const fecha = f.fecha.value;
+  const cat = f.categoria.value;
+  const remito = f.remito.value.trim();
+  const legajo = f.legajo.value.trim();
+
+  if (!fecha || !cat || !legajo) {
+    showFormMsg('tnt-recep-msg', '✗ Completá Fecha, Categoría y Legajo.', false);
+    return;
+  }
+
+  // Recolectar filas válidas (Color + Pantone + Kg)
+  const filas = Array.from(document.querySelectorAll('#tnt-recep-list .tnt-recep-row'));
+  const items = [];
+  for (const r of filas) {
+    const color = String(r.querySelector('input[name="color"]').value||'').trim().toUpperCase();
+    const pant = String(r.querySelector('input[name="pantone"]').value||'').trim();
+    const kg = Number(r.querySelector('input[name="kg"]').value) || 0;
+    if (color && pant && kg > 0) items.push({ color, pant, kg });
+  }
+  if (!items.length) {
+    showFormMsg('tnt-recep-msg', '✗ Cargá al menos 1 fila con Color + Pantone + Kg > 0.', false);
+    return;
+  }
+  // Validar que no haya combos duplicados (Color+Pantone case-insensitive) en la misma carga
+  const uniq = new Set(items.map(i => `${i.color}|${i.pant.toUpperCase()}`));
+  if (uniq.size !== items.length) {
+    showFormMsg('tnt-recep-msg', '✗ Hay Color+Pantone repetidos en la lista. Sumá los kg en una sola fila.', false);
+    return;
+  }
+
+  // Detectar combos Color+Pantone que NO están en el catálogo de esta categoría
+  const nuevos = items.filter(it => {
+    return !(tintasCatalogoCache || []).some(c =>
+      String(c['Color']||'').trim().toUpperCase() === it.color &&
+      String(c['Pantone']||'').trim().toUpperCase() === it.pant.toUpperCase() &&
+      getCategoria(c) === cat
+    );
+  });
+
+  // Si hay nuevos, pedir confirmación al usuario antes de proceder
+  if (nuevos.length) {
+    const lista = nuevos.map(p => `   • ${p.color} ${p.pant}  (${p.kg} kg)`).join('\n');
+    const ok = confirm(
+      `Los siguientes NO están en el catálogo de "${cat}":\n\n${lista}\n\n` +
+      `¿Agregarlos al catálogo y continuar con la recepción?\n\n` +
+      `(Cancelar = corregí los nombres y volvé a intentar)`
+    );
+    if (!ok) return;
+  }
+
+  // Lock
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('tnt-recep-submit');
+  const txtOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  try {
+    // 1. Si hay nuevos, agregarlos al catálogo PRIMERO (4 cols: Color, Pantone, Categoría, Notas)
+    for (const p of nuevos) {
+      await appendFila('Tintas Catálogo', [p.color, p.pant, cat, '']);
+      tintasCatalogoCache.push({
+        'Color': p.color, 'Pantone': p.pant, 'Categoría': cat, 'Categoria': cat, 'Notas': ''
+      });
+    }
+    // 2. Headers de "Entradas Tintas" (7 cols): Fecha · Color · Pantone · Categoría · Kg · Nº Remito · Legajo
+    for (const it of items) {
+      await appendFila('Entradas Tintas', [fecha, it.color, it.pant, cat, it.kg, remito, legajo]);
+      entradasTintasCache.push({
+        'Fecha': fecha,
+        'Color': it.color,
+        'Pantone': it.pant,
+        'Categoría': cat,
+        'Categoria': cat,
+        'Kg': it.kg,
+        'Nº Remito': remito,
+        'Legajo': legajo,
+      });
+    }
+    // Re-render Stock Tintas inmediato
+    renderStockTintas();
+    const totalKg = items.reduce((s,i)=>s+i.kg,0);
+    const nuevosTxt = nuevos.length ? ` · ${nuevos.length} nuevo(s) en catálogo` : '';
+    showFormMsg('tnt-recep-msg', `✓ Recepción registrada · ${items.length} pantone(s) de ${cat} · ${totalKg} kg${nuevosTxt}`, true);
+    setTimeout(() => {
+      cerrarModalRecepcionTintas();
+      delete f.dataset.guardando;
+      btn.disabled = false;
+      btn.textContent = txtOriginal;
+    }, 1200);
+  } catch (err) {
+    showFormMsg('tnt-recep-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false;
+    btn.textContent = txtOriginal;
+  }
+});
+
+// Esc cierra el modal de recepción tintas
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const m = document.getElementById('tnt-modal-recep');
+  if (m && m.style.display === 'flex') cerrarModalRecepcionTintas();
+});
 
 function renderTablaBobinas() {
   if (!document.getElementById('bob-body')) return; // no estamos en el panel
@@ -3713,6 +4434,7 @@ let impOFsCache = [];
 let impMaquinasCache = [];
 let impTintasCatCache = [];
 let impVista = 'pendiente';
+let colaVista = 'activas'; // 'activas' | 'terminadas'
 
 // Sub-tabs internos
 document.querySelectorAll('.subtab-btn[data-imp-tab]').forEach(btn => {
@@ -3735,6 +4457,16 @@ document.querySelectorAll('.imp-toggle').forEach(btn => {
   });
 });
 
+// Toggles vista de la cola (Activas / Terminadas en Impresión)
+document.querySelectorAll('.cola-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    colaVista = btn.dataset.colaVista;
+    document.querySelectorAll('.cola-toggle').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderColaImpresion();
+  });
+});
+
 // Caché de eventos de TODOS los sectores (para validar flujo de cadena)
 let eventosPorSectorCache = {};
 // Caché de cierres de OF por sector (pestaña "Cierres de OF por Sector")
@@ -3754,6 +4486,14 @@ async function cargarImpresion() {
     ];
     const res = await Promise.all(promesas);
     [impTintasCache, impOFsCache, impMaquinasCache, impTintasCatCache, cierresPorSectorCache] = res.slice(0, 5);
+    // Normalizar headers de Cierres: el Sheet puede tener "N° OF" (degree, U+00B0) o
+    // "Nº OF" (ordinal, U+00BA). Son caracteres unicode distintos pero visualmente iguales.
+    // Aseguramos ambas claves para que el resto del código funcione sin importar cuál usó el usuario.
+    cierresPorSectorCache = (cierresPorSectorCache || []).map(c => ({
+      ...c,
+      'Nº OF': c['Nº OF'] || c['N° OF'] || '',
+      'N° OF': c['N° OF'] || c['Nº OF'] || '',
+    }));
     // Mapear cada sector a sus eventos
     eventosPorSectorCache = {};
     sectoresParaFlujo.forEach((s, i) => { eventosPorSectorCache[s] = res[5 + i]; });
@@ -3825,25 +4565,29 @@ function precargarInfoOFModal(numOF) {
   document.getElementById('imp-of-bolsas').textContent = fmtNum(of['Cant Bolsas']);
   document.getElementById('imp-of-cols').textContent = of['Cant Colores'] || '—';
   document.getElementById('imp-of-largo').textContent = (of['Largo (cm)'] || '—') + ' cm';
-  // Pantones desde Pantone 1..6
-  const pantonesArr = [];
+  // Pantones desde Color X + Pantone X (1..6) — pares Color/Pantone
+  const pantonesObjs = [];
   for (let i = 1; i <= 6; i++) {
-    const v = String(of['Pantone '+i]||'').trim();
-    if (v) pantonesArr.push(v);
+    const color = String(of['Color '+i]||'').trim().toUpperCase();
+    const pantone = String(of['Pantone '+i]||'').trim();
+    if (pantone) {
+      const label = color ? `${color} ${pantone}` : pantone;
+      pantonesObjs.push({ color, pantone, label });
+    }
   }
   // Pantones uno abajo del otro (visualmente más legible que separados por coma)
   const pantonesEl = document.getElementById('imp-of-pantones');
-  if (pantonesArr.length) {
-    pantonesEl.innerHTML = pantonesArr
-      .map(p => p.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+  if (pantonesObjs.length) {
+    pantonesEl.innerHTML = pantonesObjs
+      .map(p => p.label.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
       .join('<br>');
   } else {
     pantonesEl.textContent = '—';
   }
-  // Guardar pantones en data del form (lo usa el submit)
-  document.getElementById('form-imp').dataset.pantones = pantonesArr.join(', ');
+  // Guardar pantones en data del form (lo usa el submit) — JSON con objetos {color, pantone, label}
+  document.getElementById('form-imp').dataset.pantones = JSON.stringify(pantonesObjs);
   // Render auto de inputs de tinta (1 por Pantone)
-  renderTintasModal(pantonesArr);
+  renderTintasModal(pantonesObjs);
   // Reset lista de bobinas → arranca con 1 input vacío
   resetBobinasList();
   // Fecha auto = hoy
@@ -4040,16 +4784,20 @@ function recalcImpKPIs() {
 // ============================================================
 // TINTAS — auto-render según Pantones de la OF (sólo input Kg)
 // ============================================================
-function renderTintasModal(pantonesArr) {
+function renderTintasModal(pantonesObjs) {
   const cont = document.getElementById('imp-tintas-list');
-  if (!pantonesArr || !pantonesArr.length) {
+  if (!pantonesObjs || !pantonesObjs.length) {
     cont.innerHTML = '<div class="tinta-empty">La OF no tiene Pantones cargados.</div>';
     return;
   }
-  cont.innerHTML = pantonesArr.map((p, i) => `
-    <div class="tinta-row" data-pantone="${p.replace(/"/g, '&quot;')}">
+  // Cada item: {color, pantone, label}. Guardamos color y pantone en dataset para el submit.
+  cont.innerHTML = pantonesObjs.map((p, i) => `
+    <div class="tinta-row"
+         data-color="${(p.color||'').replace(/"/g, '&quot;')}"
+         data-pantone="${(p.pantone||'').replace(/"/g, '&quot;')}"
+         data-label="${(p.label||'').replace(/"/g, '&quot;')}">
       <label class="field" style="margin-bottom:0">
-        <span>${p}</span>
+        <span>${p.label}</span>
         <input type="number" name="t-kg-${i}" step="0.1" min="0" placeholder="Kg consumidos">
       </label>
     </div>
@@ -4335,20 +5083,28 @@ function renderTintasHistorico() {
   const tbody = document.getElementById('tnt-body');
   if (!lista.length) {
     tbody.innerHTML = !impTintasCache.length
-      ? `<tr><td colspan="9" class="empty">Sin consumos de tinta cargados.</td></tr>`
-      : `<tr><td colspan="9" class="empty">No hay consumos de tinta de partes aprobados todavía. Aprobá un parte y van a aparecer acá.</td></tr>`;
+      ? `<tr><td colspan="10" class="empty">Sin consumos de tinta cargados.</td></tr>`
+      : `<tr><td colspan="10" class="empty">No hay consumos de tinta de partes aprobados todavía. Aprobá un parte y van a aparecer acá.</td></tr>`;
     return;
   }
   tbody.innerHTML = lista.map(t => {
     const f = excelDateToJs(t['Fecha']);
     const ofObj = (impOFsCache || []).find(o => o['Nº OF'] === t['Nº OF']);
     const nombreBolsa = ofObj ? (ofObj['Nombre Bolsa'] || '—') : '—';
+    // Color: si la fila tiene la columna Color usar esa; sino splittear el Pantone (formato viejo)
+    let color = String(t['Color']||'').trim().toUpperCase();
+    let pantone = String(t['Pantone']||'').trim();
+    if (!color && pantone) {
+      const sp = splitPantoneViejo(pantone);
+      if (sp.color) { color = sp.color; pantone = sp.pantone; }
+    }
     return `
       <tr>
         <td>${f ? fmtFechaCorta(f) : '—'}</td>
         <td><span class="of-num">${t['Nº OF']||'—'}</span></td>
         <td>${nombreBolsa}</td>
-        <td>${t['Pantone']||'—'}</td>
+        <td>${color || '—'}</td>
+        <td>${pantone || '—'}</td>
         <td>${t['Sustrato']||'—'}</td>
         <td class="num">${fmtNum(t['Kg Consumidos'])}</td>
         <td>${t['Legajo']||'—'}</td>
@@ -4385,6 +5141,8 @@ async function aprobarParteImp(rowIndex, numOf) {
 document.getElementById('form-imp').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target;
+  // Bloqueo anti doble-click: si ya hay un guardado en curso, no procesamos otro
+  if (f.dataset.guardando === '1') return;
   const fecha = document.getElementById('imp-form-fecha').value || new Date().toISOString().slice(0,10);
   const impresora = f.impresora.value;
   const horaIn = f.hora_in.value;
@@ -4472,10 +5230,11 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
   const legajos = legajoAy ? `${legajoOp} / ${legajoAy}` : legajoOp;
   const sustrato = ultima.dataset.producto || '';
 
-  // Tintas: las que tengan kg > 0
+  // Tintas: las que tengan kg > 0 (cada fila tiene Color + Pantone separados desde dataset)
   const tintaRows = Array.from(document.querySelectorAll('#imp-tintas-list .tinta-row'));
   const tintas = tintaRows.map(r => ({
-    pantone: r.dataset.pantone,
+    color: r.dataset.color || '',
+    pantone: r.dataset.pantone || '',
     kg: Number(r.querySelector('input').value) || 0,
   })).filter(t => t.kg > 0);
 
@@ -4487,6 +5246,15 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
     showFormMsg('imp-msg', '✗ Cambió la cantidad de bobinas. En edición no se puede agregar/quitar — rechazá el parte y cargalo de nuevo.', false);
     scrollMsg();
     return;
+  }
+
+  // Marcar como guardando + deshabilitar botón submit del modal
+  f.dataset.guardando = '1';
+  const btnSubmitParte = f.querySelector('button[type="submit"]');
+  const txtOriginalParte = btnSubmitParte ? btnSubmitParte.textContent : '';
+  if (btnSubmitParte) {
+    btnSubmitParte.disabled = true;
+    btnSubmitParte.textContent = editMode ? 'Guardando cambios…' : 'Guardando parte…';
   }
 
   try {
@@ -4544,28 +5312,26 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
     }
 
     // 2. Tintas: APPEND (alta) o UPDATE (edición — buscar por dataset.tintaRowIndex en cada fila)
+    // Headers de "Tintas de Impresión" (9 cols): Fecha · Nº OF · Color · Pantone · Sustrato · Kg Consumidos · Legajo · Nº Impresora · Observaciones
     if (editMode) {
-      // Loop sobre todas las filas de tinta del modal — algunas pueden tener rowIndex (existían), otras no (nuevas).
       const todasTintasModal = Array.from(document.querySelectorAll('#imp-tintas-list .tinta-row'));
       for (const r of todasTintasModal) {
-        const pantone = r.dataset.pantone;
+        const color = r.dataset.color || '';
+        const pantone = r.dataset.pantone || '';
         const kg = Number(r.querySelector('input').value) || 0;
         const rowIdx = Number(r.dataset.tintaRowIndex || 0);
         if (rowIdx) {
-          // Tinta ya existía: UPDATE Kg + Legajo (puede haber cambiado el ayudante)
           await actualizarCeldaEnFila('Tintas de Impresión', rowIdx, 'Kg Consumidos', kg);
           await actualizarCeldaEnFila('Tintas de Impresión', rowIdx, 'Legajo', legajos);
           await actualizarCeldaEnFila('Tintas de Impresión', rowIdx, 'Sustrato', sustrato);
+          await actualizarCeldaEnFila('Tintas de Impresión', rowIdx, 'Color', color);
         } else if (kg > 0) {
-          // Tinta nueva (no estaba antes pero ahora tiene kg): APPEND
-          await appendFila('Tintas de Impresión', [fecha, numOf, pantone, sustrato, kg, legajos, impresora, '']);
+          await appendFila('Tintas de Impresión', [fecha, numOf, color, pantone, sustrato, kg, legajos, impresora, '']);
         }
-        // Si kg = 0 y no existía → nada que hacer.
       }
     } else {
-      // Alta: append solo las que tienen kg > 0
       for (const t of tintas) {
-        await appendFila('Tintas de Impresión', [fecha, numOf, t.pantone, sustrato, t.kg, legajos, impresora, '']);
+        await appendFila('Tintas de Impresión', [fecha, numOf, t.color, t.pantone, sustrato, t.kg, legajos, impresora, '']);
       }
     }
 
@@ -4583,9 +5349,21 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
       f.reset();
       poblarFormImpresion();
       cargarImpresion();
+      // Liberar flag DESPUÉS de cerrar — así si vuelve a abrir queda fresco
+      delete f.dataset.guardando;
+      if (btnSubmitParte) {
+        btnSubmitParte.disabled = false;
+        btnSubmitParte.textContent = txtOriginalParte;
+      }
     }, 1300);
   } catch (err) {
     showFormMsg('imp-msg', '✗ Error: ' + err.message, false);
+    // Liberar flag para permitir reintentar
+    delete f.dataset.guardando;
+    if (btnSubmitParte) {
+      btnSubmitParte.disabled = false;
+      btnSubmitParte.textContent = txtOriginalParte;
+    }
   }
 });
 
@@ -4615,6 +5393,185 @@ function excelTimeToHHMM(v) {
 // (Workaround: el HTML actual guarda "Bolsas: NN" dentro de Observaciones — lo parseamos
 //  con regex. Cuando agreguemos la columna "Bolsas Producidas" al Sheet, simplificamos.)
 // Los partes pendientes de aprobación NO suman hasta que el supervisor los OK.
+// Calcula el objetivo total de bolsas que la OF debe alcanzar para cerrarse en un sector productivo:
+//   objetivo = Cant Bolsas × (1 + % Excedente)
+// El % Excedente vive en la columna "% Excedente" de la OF (puede estar vacío → 0).
+function objetivoBolsasOF(of) {
+  const cant = Number(of['Cant Bolsas']) || 0;
+  // El excedente puede venir como número (2) o como porcentaje (0.02). Normalizamos.
+  let exc = Number(of['% Excedente']) || 0;
+  if (exc > 1) exc = exc / 100; // si vino "2" lo interpretamos como 2%
+  return Math.round(cant * (1 + exc));
+}
+
+// Devuelve true si las bolsas hechas (aprobadas) >= objetivo
+function puedeCerrarseOF(numOF) {
+  const of = (impOFsCache || []).find(o => o['Nº OF'] === numOF);
+  if (!of) return false;
+  const objetivo = objetivoBolsasOF(of);
+  const hechas = bolsasHechasPorOF(numOF);
+  return objetivo > 0 && hechas >= objetivo;
+}
+
+// ============================================================
+// CERRAR OF EN SECTOR (Impresión) — modal con resumen + cierre
+// ============================================================
+function abrirModalCierreOF(numOF) {
+  const of = (impOFsCache || []).find(o => o['Nº OF'] === numOF);
+  if (!of) { alert('No encontré la OF.'); return; }
+  const cant = Number(of['Cant Bolsas']) || 0;
+  let exc = Number(of['% Excedente']) || 0;
+  if (exc > 1) exc = exc / 100;
+  const objetivo = objetivoBolsasOF(of);
+  const hechas = bolsasHechasPorOF(numOF);
+  const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+  const cumple = objetivo > 0 && hechas >= objetivo;
+
+  // Pre-poblar header
+  document.getElementById('imp-cierre-of').textContent = numOF;
+  document.getElementById('imp-cierre-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('imp-cierre-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('imp-cierre-cant').textContent = fmtNum(cant);
+  document.getElementById('imp-cierre-exc').textContent = (exc * 100).toFixed(1).replace(/\.0$/, '') + '%';
+  document.getElementById('imp-cierre-obj').textContent = fmtNum(objetivo);
+  document.getElementById('imp-cierre-hechas').textContent = fmtNum(hechas);
+  document.getElementById('imp-cierre-pct').textContent = pct + '%';
+  const estadoEl = document.getElementById('imp-cierre-estado');
+  if (cumple) {
+    estadoEl.textContent = '✅ Cumple objetivo';
+    estadoEl.style.color = 'var(--ok)';
+  } else {
+    estadoEl.textContent = `⚠️ Faltan ${fmtNum(objetivo - hechas)} bolsas`;
+    estadoEl.style.color = 'var(--warn, #f5a623)';
+  }
+
+  // Mostrar/ocultar motivo según cumpla o no
+  const wrapMotivo = document.getElementById('imp-cierre-motivo-wrap');
+  const aviso = document.getElementById('imp-cierre-aviso-noof');
+  const motivoInput = wrapMotivo.querySelector('input[name="motivo"]');
+  if (cumple) {
+    wrapMotivo.style.display = 'none';
+    aviso.style.display = 'none';
+    motivoInput.required = false;
+    motivoInput.value = '';
+  } else {
+    wrapMotivo.style.display = '';
+    aviso.style.display = '';
+    motivoInput.required = true;
+  }
+
+  // Reset legajo + msg
+  document.getElementById('form-imp-cierre').querySelector('[name="legajo_cierre"]').value = '';
+  const msg = document.getElementById('imp-cierre-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+
+  // Guardar datos del cierre en el form para el submit
+  const f = document.getElementById('form-imp-cierre');
+  f.dataset.numOf = numOF;
+  f.dataset.cumple = cumple ? '1' : '0';
+  f.dataset.hechas = String(hechas);
+  f.dataset.objetivo = String(objetivo);
+  f.dataset.pct = String(pct);
+
+  document.getElementById('imp-modal-cierre').style.display = 'flex';
+}
+
+function cerrarModalCierre() {
+  document.getElementById('imp-modal-cierre').style.display = 'none';
+}
+
+// Click fuera del card cierra el modal
+document.getElementById('imp-modal-cierre').addEventListener('click', (e) => {
+  if (e.target.id === 'imp-modal-cierre') cerrarModalCierre();
+});
+
+// Submit del cierre
+document.getElementById('form-imp-cierre').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  // Bloqueo anti doble-click: si ya hay un cierre en curso, no procesamos otro
+  if (f.dataset.guardando === '1') return;
+
+  const numOF = f.dataset.numOf;
+  const cumple = f.dataset.cumple === '1';
+  const hechas = Number(f.dataset.hechas) || 0;
+  const objetivo = Number(f.dataset.objetivo) || 0;
+  const pct = Number(f.dataset.pct) || 0;
+  const legajo = f.querySelector('[name="legajo_cierre"]').value.trim();
+  const motivo = f.querySelector('[name="motivo"]').value.trim();
+
+  if (!legajo) {
+    showFormMsg('imp-cierre-msg', '✗ Cargá el legajo del que cierra.', false);
+    return;
+  }
+  if (!cumple && !motivo) {
+    showFormMsg('imp-cierre-msg', '✗ Cargá el motivo (la OF no cumple el objetivo).', false);
+    return;
+  }
+
+  // Marcar como guardando + deshabilitar botón
+  f.dataset.guardando = '1';
+  const btnSubmit = document.getElementById('imp-cierre-submit');
+  const txtOriginal = btnSubmit.textContent;
+  btnSubmit.disabled = true;
+  btnSubmit.textContent = 'Guardando…';
+
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    // Headers de "Cierres de OF por Sector":
+    // Nº OF · Sector · Fecha Cierre · Bolsas Cumplidas · % Cumplido · Motivo (si no cumple) · Legajo
+    await appendFila('Cierres de OF por Sector', [
+      numOF,
+      'Impresión',
+      fecha,
+      hechas,
+      pct + '%',
+      cumple ? '' : motivo,
+      legajo,
+    ]);
+    // Optimistic update del cache local — la API de Sheets tarda unos segundos en propagar
+    // la nueva fila, así que la sumamos al cache acá para que la UI refleje el cambio YA.
+    // Cuando cargarImpresion() corra después, va a re-leer el Sheet y sincronizar.
+    cierresPorSectorCache.push({
+      'Nº OF': numOF,
+      'Sector': 'Impresión',
+      'Fecha Cierre': fecha,
+      'Bolsas Cumplidas': hechas,
+      '% Cumplido': pct + '%',
+      'Motivo (si no cumple)': cumple ? '' : motivo,
+      'Legajo': legajo,
+    });
+    // Re-render inmediato — la OF desaparece de Activas y aparece en Terminadas.
+    renderColaImpresion();
+    showFormMsg('imp-cierre-msg', `✓ OF ${numOF} cerrada en Impresión (${fmtNum(hechas)} bolsas, ${pct}%)`, true);
+    // NO hacemos cargarImpresion() acá: la API de Sheets tarda varios segundos en propagar
+    // la nueva fila, y si recargamos antes de eso el cache fresco viene SIN la fila → la OF
+    // "rebota" de Terminadas a Activas. Con el optimistic update + re-render alcanza.
+    // Cuando el usuario navegue/refresque a Impresión más tarde, cargarImpresion() trae todo
+    // sincronizado del server (ya propagado).
+    setTimeout(() => {
+      cerrarModalCierre();
+      // Liberar flag DESPUÉS de cerrar el modal — así si vuelve a abrir queda fresco
+      delete f.dataset.guardando;
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = txtOriginal;
+    }, 1100);
+  } catch (err) {
+    showFormMsg('imp-cierre-msg', '✗ Error: ' + err.message, false);
+    // Liberar flag para permitir reintentar
+    delete f.dataset.guardando;
+    btnSubmit.disabled = false;
+    btnSubmit.textContent = txtOriginal;
+  }
+});
+
+// Esc cierra el modal de cierre también
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const m = document.getElementById('imp-modal-cierre');
+  if (m && m.style.display === 'flex') cerrarModalCierre();
+});
+
 function bolsasHechasPorOF(numOF) {
   const partes = (impPartesCache || []).filter(p =>
     p['Nº OF'] === numOF &&
@@ -4632,42 +5589,93 @@ function bolsasHechasPorOF(numOF) {
 function renderColaImpresion() {
   const tbody = document.getElementById('imp-cola-body');
   if (!tbody) return;
-  // OFs en cola = activas + flujo permitido + no cerradas en Impresión
-  const ofsEnCola = (impOFsCache || []).filter(o => {
+
+  // Set de OFs CERRADAS en Impresión (cualquier fila en "Cierres de OF por Sector" con sector="Impresión")
+  const cerradasEnImpresion = new Set(
+    (cierresPorSectorCache || [])
+      .filter(c => String(c['Sector']||'').trim() === 'Impresión')
+      .map(c => String(c['Nº OF']||'').trim())
+  );
+
+  // ACTIVAS = activas + flujo permitido + no cerradas en Impresión
+  const ofsActivas = (impOFsCache || []).filter(o => {
     const e = String(o['Estado']||'').toLowerCase();
     if (!(e === 'en_proceso' || e === 'borrador' || e === 'pausada')) return false;
     return puedeTrabajarseEnSector(o, 'Impresión', eventosPorSectorCache);
   });
+  // TERMINADAS = OFs que tienen registro de cierre en Impresión
+  const ofsTerminadas = (impOFsCache || []).filter(o => cerradasEnImpresion.has(String(o['Nº OF']||'').trim()));
 
-  // KPIs
+  // Badges del toggle
+  document.getElementById('imp-cola-tg-act').textContent = ofsActivas.length;
+  document.getElementById('imp-cola-tg-ter').textContent = ofsTerminadas.length;
+
+  // KPIs (siempre basados en ACTIVAS)
   let bolsasPend = 0;
   let ofsEnProc = 0;
-  ofsEnCola.forEach(o => {
+  ofsActivas.forEach(o => {
     const cant = Number(o['Cant Bolsas']) || 0;
     const hechas = bolsasHechasPorOF(o['Nº OF']);
     bolsasPend += Math.max(0, cant - hechas);
     if (hechas > 0) ofsEnProc++;
   });
-  document.getElementById('imp-cola-kpi-cola').textContent = ofsEnCola.length;
+  document.getElementById('imp-cola-kpi-cola').textContent = ofsActivas.length;
   document.getElementById('imp-cola-kpi-proc').textContent = ofsEnProc;
   document.getElementById('imp-cola-kpi-pend').textContent = fmtNum(bolsasPend);
 
-  if (!ofsEnCola.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay OFs en cola para Impresión. Una OF aparece acá cuando Clisé carga al menos 1 evento para ella.</td></tr>';
+  // Render según la vista
+  const lista = colaVista === 'terminadas' ? ofsTerminadas : ofsActivas;
+
+  if (!lista.length) {
+    const msg = colaVista === 'terminadas'
+      ? 'No hay OFs terminadas en Impresión todavía. Cuando cierres una OF acá aparecerá.'
+      : 'No hay OFs en cola para Impresión. Una OF aparece acá cuando Clisé carga al menos 1 evento para ella.';
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">${msg}</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = ofsEnCola.map(o => {
+  tbody.innerHTML = lista.map(o => {
     const num = o['Nº OF'];
     const cant = Number(o['Cant Bolsas']) || 0;
     const hechas = bolsasHechasPorOF(num);
     const pct = cant ? Math.min(100, Math.round(hechas / cant * 100)) : 0;
     const pantonesArr = [];
     for (let i = 1; i <= 6; i++) {
-      const v = String(o['Pantone '+i]||'').trim();
-      if (v) pantonesArr.push(v);
+      const color = String(o['Color '+i]||'').trim().toUpperCase();
+      const pantone = String(o['Pantone '+i]||'').trim();
+      if (pantone) pantonesArr.push(color ? `${color} ${pantone}` : pantone);
     }
     const pantones = pantonesArr.length ? pantonesArr.join(', ') : '—';
+
+    // Acción depende de la vista
+    let accionHTML = '';
+    if (colaVista === 'terminadas') {
+      // Buscar el cierre correspondiente para mostrar info
+      const cierre = (cierresPorSectorCache || []).find(c =>
+        String(c['Nº OF']||'').trim() === String(num).trim() &&
+        String(c['Sector']||'').trim() === 'Impresión'
+      );
+      const fechaCierre = cierre ? cierre['Fecha Cierre'] : '—';
+      const motivo = cierre ? String(cierre['Motivo (si no cumple)']||'').trim() : '';
+      const fechaTxt = (typeof fechaCierre === 'string' && fechaCierre.includes('-'))
+        ? fechaCierre.split('-').reverse().slice(0,2).join('/')
+        : (fechaCierre || '—');
+      const tagMotivo = motivo ? `<span style="font-size:10px;color:var(--warn,#f5a623);display:block;margin-top:2px">⚠️ ${motivo}</span>` : '';
+      accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>${tagMotivo}`;
+    } else {
+      // Vista ACTIVAS — botones normales
+      const objetivo = objetivoBolsasOF(o);
+      const cumpleObjetivo = objetivo > 0 && hechas >= objetivo;
+      const claseCierre = cumpleObjetivo ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
+      const tituloCierre = cumpleObjetivo
+        ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
+        : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`;
+      accionHTML = `
+        <button type="button" class="btn-cargar-parte" onclick="abrirModalParte('${num.replace(/'/g, "\\'")}')">Cargar Parte</button>
+        <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreOF('${num.replace(/'/g, "\\'")}')">🏁 Cerrar OF</button>
+      `;
+    }
+
     return `<tr>
       <td><strong>${num}</strong></td>
       <td>${o['Cliente']||'—'}</td>
@@ -4677,7 +5685,7 @@ function renderColaImpresion() {
       <td>${pantones}</td>
       <td class="num">${fmtNum(hechas)}</td>
       <td class="num">${pct}%</td>
-      <td class="num"><button type="button" class="btn-cargar-parte" onclick="abrirModalParte('${num.replace(/'/g, "\\'")}')">Cargar Parte</button></td>
+      <td class="num">${accionHTML}</td>
     </tr>`;
   }).join('');
 }
