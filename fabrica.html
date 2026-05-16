@@ -6027,6 +6027,13 @@ const ORIGEN_IMPRESION_IMPRESA = 'Impresión-impresa';
 const ORIGEN_TP_REMANENTE = 'Tubera Papel-remanente';
 // Umbral en mts por debajo del cual el remanente va a DESCARTE (no se genera hija).
 // Franco 2026-05-17: bobinas con < 100 mts son inviables operativamente, mejor desperdicio.
+//
+// Sectores que aplican esta regla (recordatorio para futuros sectores):
+//   ✅ Impresión        → aprobarParteImp (hija remanente sin imprimir)
+//   ✅ Tubera Papel     → submit TP (Sin cambios y Sacada con peso)
+//   ⏳ Laminadora       → cuando se implemente
+//   ⏳ Tubera Rafia     → cuando se implemente
+//   ❌ Convertir Bobinas → NO aplica (Cortar/Siliconado/Calandreado son intencionales)
 const UMBRAL_REMANENTE_MTS = 100;
 
 // Devuelve true si las bolsas hechas (aprobadas) >= objetivo
