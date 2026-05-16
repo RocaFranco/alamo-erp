@@ -2443,12 +2443,24 @@
         <!-- Producción del parte -->
         <label class="field">
           <span>Bolsas Producidas en este parte</span>
-          <input type="number" name="bolsas" step="1" min="0" required placeholder="Total fabricado en este turno">
+          <input type="number" name="bolsas" id="tp-form-bolsas" step="1" min="0" required placeholder="Total fabricado en este turno">
         </label>
         <label class="field">
           <span>Kg Desperdicio del parte</span>
-          <input type="number" name="kg_desp" step="0.1" min="0" placeholder="Estimado o pesado">
+          <input type="number" name="kg_desp" id="tp-form-kgdesp" step="0.1" min="0" placeholder="Estimado o pesado">
         </label>
+
+        <!-- Cálculos auto (solo lectura) -->
+        <div class="conv-block field-2">
+          <div class="conv-block-title">📐 Cálculos automáticos</div>
+          <div class="padre-info-grid">
+            <div class="item"><small>Mts utilizados (bolsas × largo)</small><strong id="tp-calc-mts-util">—</strong></div>
+            <div class="item"><small>Mts desperdicio (kg → mts)</small><strong id="tp-calc-mts-desp">—</strong></div>
+            <div class="item"><small>Mts remanente última bobina</small><strong id="tp-calc-mts-rem">—</strong></div>
+            <div class="item"><small>Estado última bobina</small><strong id="tp-calc-estado-ultima">—</strong></div>
+            <div class="item"><small>KPI Bolsas/Min</small><strong id="tp-calc-bolsas-min">—</strong></div>
+          </div>
+        </div>
 
         <label class="field field-2">
           <span>Comentarios (opcional)</span>
@@ -7240,6 +7252,86 @@ function agregarBobinaInputTP() {
 
 document.getElementById('tp-bobina-add').addEventListener('click', agregarBobinaInputTP);
 document.getElementById('tp-form-of').addEventListener('change', onChangeOFTP);
+
+// Recalcula KPIs (mts utilizados / desperdicio / remanente / estado) en vivo a medida
+// que el operario carga bolsas, kg desperdicio o cambia bobinas. Mismo patrón que Impresión.
+function recalcTPKPIs() {
+  const numOF = document.getElementById('tp-form-of').value;
+  const of = numOF ? (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF) : null;
+  const largoBolsaCm = of ? Number(of['Largo (cm)']) || 0 : 0;
+  const bolsas = Number(document.getElementById('tp-form-bolsas').value) || 0;
+  const kgDesp = Number(document.getElementById('tp-form-kgdesp').value) || 0;
+
+  // Mts utilizados = bolsas × largo (cm → m)
+  const mtsUtil = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
+
+  // Bobinas con código cargado — leemos sus datos del cache
+  const bobsRows = Array.from(document.querySelectorAll('#tp-bobinas-list .tp-bob-row'));
+  const bobsConDatos = bobsRows.map(r => {
+    const cod = String(r.querySelector('[name="tp-bob-cod"]').value || '').trim().toUpperCase();
+    if (!cod) return null;
+    const bob = (bobinasCache || []).find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+    if (!bob) return null;
+    return {
+      cod,
+      mts: Number(bob['Mts Totales']) || 0,
+      ancho: Number(bob['Formato (cm)']) || 0,
+      gramaje: Number(bob['Gramaje (g/m²)']) || 0,
+    };
+  }).filter(Boolean);
+  const ultima = bobsConDatos[bobsConDatos.length - 1] || null;
+
+  // Mts desperdicio: kg × 100000 / (ancho × gramaje), usando dims de la última
+  let mtsDesp = 0;
+  if (ultima && kgDesp && ultima.ancho && ultima.gramaje) {
+    mtsDesp = kgDesp * 100000 / (ultima.ancho * ultima.gramaje);
+  }
+
+  // Mts remanente última: mtsIniUltima - (mtsUtil - sumaPrevias) - mtsDesp
+  let mtsRem = null;
+  let estadoUltima = '—';
+  if (ultima && mtsUtil) {
+    const sumaPrevias = bobsConDatos.slice(0, -1).reduce((s, b) => s + b.mts, 0);
+    const mtsUsadosUltima = Math.max(0, mtsUtil - sumaPrevias);
+    mtsRem = ultima.mts - mtsUsadosUltima - mtsDesp;
+    if (mtsRem > 0) {
+      estadoUltima = '🟢 Queda remanente';
+    } else if (mtsRem >= -50) {
+      estadoUltima = '🔴 Consumida (cuadra)';
+    } else {
+      estadoUltima = '⚠️ Faltan mts (revisar bolsas o desperdicio)';
+    }
+  }
+
+  document.getElementById('tp-calc-mts-util').textContent = mtsUtil ? fmtNum(Math.round(mtsUtil)) + ' m' : '—';
+  document.getElementById('tp-calc-mts-desp').textContent = mtsDesp ? fmtNum(Math.round(mtsDesp)) + ' m' : '—';
+  document.getElementById('tp-calc-mts-rem').textContent = (mtsRem !== null) ? fmtNum(Math.round(mtsRem)) + ' m' : '—';
+  document.getElementById('tp-calc-estado-ultima').textContent = estadoUltima;
+
+  // Bolsas/Min (más útil que mts/min en Tubera Papel, donde se cuentan bolsas)
+  const hi = document.querySelector('#form-tp input[name="hora_in"]').value;
+  const hf = document.querySelector('#form-tp input[name="hora_fin"]').value;
+  if (bolsas && hi && hf) {
+    const [h1,m1] = hi.split(':').map(Number);
+    const [h2,m2] = hf.split(':').map(Number);
+    let mins = (h2*60+m2) - (h1*60+m1);
+    if (mins < 0) mins += 24*60;
+    document.getElementById('tp-calc-bolsas-min').textContent = mins ? (Math.round(bolsas / mins * 10)/10) + ' bolsas/min' : '—';
+  } else {
+    document.getElementById('tp-calc-bolsas-min').textContent = '—';
+  }
+}
+
+// Listeners para recalcular en vivo
+['tp-form-bolsas','tp-form-kgdesp'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', recalcTPKPIs);
+});
+document.querySelectorAll('#form-tp input[name="hora_in"], #form-tp input[name="hora_fin"]').forEach(el => {
+  el.addEventListener('change', recalcTPKPIs);
+});
+// También recalcular cuando cambian bobinas (delegation)
+document.getElementById('tp-bobinas-list').addEventListener('change', recalcTPKPIs);
 
 // abrirModalParteTP(numOF?) — si recibe numOF, pre-selecciona y deshabilita el dropdown
 function abrirModalParteTP(numOF) {
