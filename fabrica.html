@@ -5523,7 +5523,7 @@ async function aprobarParteImp(rowIndex, numOf) {
         cod: codHija, fecha: h['Fecha'], producto: nombreBolsa,
         ancho, kg: kgHija, gramaje, mts: mtsBob, padre: cod,
         origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: 'Tubera Papel',
-        obs: `Impresa en ${h['Nº Impresora']} (parte ${h['Fecha']})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
+        obs: `Impresa en ${h['Nº Impresora']} (parte ${fmtFechaCorta(excelDateToJs(h['Fecha']))})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
         ofAsignada: ofAsignadaParaHija,
       });
       await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
@@ -5540,6 +5540,7 @@ async function aprobarParteImp(rowIndex, numOf) {
       const ancho = Number(bobUlt['Formato (cm)']) || 0;
       const gramaje = Number(bobUlt['Gramaje (g/m²)']) || 0;
       const fechaUlt = ultima['Fecha'];
+      const fechaUltTxt = fmtFechaCorta(excelDateToJs(fechaUlt)); // legible: "16/05"
 
       // 3a. Hija IMPRESA con los mts realmente impresos
       if (mtsImpresos > 0) {
@@ -5549,7 +5550,7 @@ async function aprobarParteImp(rowIndex, numOf) {
           cod: codHijaImp, fecha: fechaUlt, producto: nombreBolsa,
           ancho, kg: kgImp, gramaje, mts: mtsImpresos, padre: codUlt,
           origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: 'Tubera Papel',
-          obs: `Impresa en ${ultima['Nº Impresora']} (parte ${fechaUlt})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
+          obs: `Impresa en ${ultima['Nº Impresora']} (parte ${fechaUltTxt})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
           ofAsignada: ofAsignadaParaHija,
         });
         hijasGeneradas.push(codHijaImp);
@@ -5563,7 +5564,7 @@ async function aprobarParteImp(rowIndex, numOf) {
           cod: codHijaRem, fecha: fechaUlt, producto: bobUlt['Producto'] || '',
           ancho, kg: kgRem, gramaje, mts: mtsRem, padre: codUlt,
           origen: 'Impresión-remanente', sectorActual: '',
-          obs: `Remanente sin imprimir de ${codUlt} (parte ${ultima['Nº Impresora']} ${fechaUlt})`,
+          obs: `Remanente sin imprimir de ${codUlt} (parte ${ultima['Nº Impresora']} ${fechaUltTxt})`,
           ofAsignada: '', // SIN OF — vuelve a stock libre
         });
         hijasGeneradas.push(codHijaRem);
