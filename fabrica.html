@@ -1684,9 +1684,8 @@
       <div class="page-head">
         <div>
           <h2 class="page-title">📜 Tubera Papel</h2>
-          <p class="page-sub">Parte de turno multi-OF · bobinas heredadas turno a turno · sin aprobación · cierre por OF</p>
+          <p class="page-sub">Flujo continuo desde Impresión · 1 OF por parte · sin aprobación · cierre por OF</p>
         </div>
-        <button type="button" class="btn-primary" id="tp-btn-nuevo-parte" style="margin-left:auto">+ Cargar parte de turno</button>
       </div>
 
       <div class="subtabs">
@@ -7011,11 +7010,14 @@ function renderColaTP() {
     } else {
       const objetivo = objetivoBolsasOF(o);
       const cumple = objetivo > 0 && hechas >= objetivo;
-      const clase = cumple ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
-      const titulo = cumple
+      const claseCierre = cumple ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
+      const tituloCierre = cumple
         ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
         : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`;
-      accionHTML = `<button type="button" class="${clase}" title="${titulo}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">🏁 Cerrar OF</button>`;
+      accionHTML = `
+        <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTP('${num.replace(/'/g,"\\'")}')">Cargar Parte</button>
+        <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">🏁 Cerrar OF</button>
+      `;
     }
 
     return `<tr>
@@ -7238,7 +7240,8 @@ function agregarBobinaInputTP() {
 document.getElementById('tp-bobina-add').addEventListener('click', agregarBobinaInputTP);
 document.getElementById('tp-form-of').addEventListener('change', onChangeOFTP);
 
-function abrirModalParteTP() {
+// abrirModalParteTP(numOF?) — si recibe numOF, pre-selecciona y deshabilita el dropdown
+function abrirModalParteTP(numOF) {
   const form = document.getElementById('form-tp');
   form.reset();
   document.getElementById('tp-bobinas-list').innerHTML = '';
@@ -7247,6 +7250,14 @@ function abrirModalParteTP() {
   document.getElementById('tp-bobinas-hint').textContent = 'Elegí la OF primero para ver las bobinas disponibles.';
   document.getElementById('tp-bobina-add').disabled = true;
   poblarFormTP();
+  const selOF = document.getElementById('tp-form-of');
+  if (numOF) {
+    selOF.value = numOF;
+    selOF.disabled = true;
+    onChangeOFTP();
+  } else {
+    selOF.disabled = false;
+  }
   const msg = document.getElementById('tp-msg');
   msg.textContent = ''; msg.className = 'form-msg';
   document.getElementById('tp-modal-parte').style.display = 'flex';
@@ -7256,7 +7267,7 @@ function cerrarModalParteTP() {
   document.getElementById('tp-modal-parte').style.display = 'none';
 }
 
-document.getElementById('tp-btn-nuevo-parte').addEventListener('click', abrirModalParteTP);
+// (Botón global "+ Cargar parte" eliminado: ahora va por fila en la cola, como Impresión.)
 document.getElementById('tp-modal-parte').addEventListener('click', e => {
   if (e.target.id === 'tp-modal-parte') cerrarModalParteTP();
 });
