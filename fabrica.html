@@ -2378,28 +2378,37 @@
   </div>
 </div>
 
-<!-- Modal Cargar Parte de Turno de Tubera Papel -->
+<!-- Modal Cargar Parte de Tubera Papel (1 OF por parte, modelo flujo continuo) -->
 <div class="modal-overlay" id="tp-modal-parte" style="display:none">
   <div class="modal-card" style="max-width:820px">
     <div class="modal-head">
-      <h3>📜 Cargar parte de turno — Tubera Papel</h3>
+      <h3>📜 Cargar parte — Tubera Papel</h3>
       <button class="modal-close" onclick="cerrarModalParteTP()" title="Cerrar">×</button>
     </div>
     <div class="modal-body">
       <form id="form-tp" class="form-grid">
-        <!-- Header del turno -->
+        <!-- Selección de OF (1 sola) — siempre arriba para que primero se elija la OF y después se filtren las bobinas -->
+        <label class="field field-2">
+          <span>OF a trabajar</span>
+          <select name="of" id="tp-form-of" required>
+            <option value="">— Elegir OF —</option>
+          </select>
+        </label>
+
+        <!-- Info pre-cargada de la OF -->
+        <div class="conv-padre-card field-2" id="tp-of-info" style="margin-bottom:8px; display:none">
+          <div class="padre-info-grid">
+            <div class="item"><small>Cliente</small><strong id="tp-of-cli">—</strong></div>
+            <div class="item"><small>Nombre Bolsa</small><strong id="tp-of-bolsa">—</strong></div>
+            <div class="item"><small>Cant pedida</small><strong id="tp-of-cant">—</strong></div>
+            <div class="item"><small>¿Imprime?</small><strong id="tp-of-imp">—</strong></div>
+          </div>
+        </div>
+
+        <!-- Header del parte -->
         <label class="field">
           <span>Fecha</span>
           <input type="date" name="fecha" id="tp-form-fecha" required>
-        </label>
-        <label class="field">
-          <span>Turno</span>
-          <select name="turno" required>
-            <option value="">— Elegir —</option>
-            <option value="manana">Mañana</option>
-            <option value="tarde">Tarde</option>
-            <option value="noche">Noche</option>
-          </select>
         </label>
         <label class="field">
           <span>Nº Tubera</span>
@@ -2413,7 +2422,6 @@
           <span>Legajo Ayudante</span>
           <input type="text" name="legajo_ay" placeholder="Opcional">
         </label>
-        <label class="field"><span></span></label>
         <label class="field">
           <span>Hora Inicio</span>
           <input type="time" name="hora_in" required>
@@ -2423,32 +2431,25 @@
           <input type="time" name="hora_fin" required>
         </label>
 
-        <!-- Bobinas en máquina del turno -->
+        <!-- Bobinas usadas en el parte -->
         <div class="conv-block field-2">
-          <div class="conv-block-title">🧵 Bobinas en uso este turno</div>
-          <p class="form-sub" style="margin:0 0 10px">Cargá las bobinas que estuvieron en la máquina durante este turno. Si terminaste el turno con alguna bobina sacada, marcá la opción y poné el peso.</p>
+          <div class="conv-block-title">🧵 Bobinas usadas en este parte</div>
+          <p class="form-sub" style="margin:0 0 10px" id="tp-bobinas-hint">Elegí la OF primero para ver las bobinas disponibles.</p>
           <div id="tp-bobinas-list">
             <!-- filas dinámicas -->
           </div>
-          <button type="button" class="btn-secondary" id="tp-bobina-add" style="margin-top:8px">+ Sumar bobina</button>
+          <button type="button" class="btn-secondary" id="tp-bobina-add" style="margin-top:8px" disabled>+ Sumar bobina</button>
         </div>
 
-        <!-- OFs trabajadas en el turno -->
-        <div class="conv-block field-2">
-          <div class="conv-block-title">📋 OFs trabajadas este turno</div>
-          <p class="form-sub" style="margin:0 0 10px">Un mismo turno puede cubrir varias OFs si se programan en serie por formato. Cargá una línea por cada OF con sus bolsas producidas.</p>
-          <div id="tp-ofs-list">
-            <!-- filas dinámicas -->
-          </div>
-          <button type="button" class="btn-secondary" id="tp-of-add" style="margin-top:8px">+ Sumar OF</button>
-        </div>
-
-        <!-- Kg desperdicio del turno -->
+        <!-- Producción del parte -->
         <label class="field">
-          <span>Kg Desperdicio del turno</span>
+          <span>Bolsas Producidas en este parte</span>
+          <input type="number" name="bolsas" step="1" min="0" required placeholder="Total fabricado en este turno">
+        </label>
+        <label class="field">
+          <span>Kg Desperdicio del parte</span>
           <input type="number" name="kg_desp" step="0.1" min="0" placeholder="Estimado o pesado">
         </label>
-        <label class="field"><span></span></label>
 
         <label class="field field-2">
           <span>Comentarios (opcional)</span>
@@ -4971,22 +4972,55 @@ async function cargarImpresion() {
   renderTintasHistorico();
 }
 
-// Decide si una OF puede trabajarse HOY en un sector dado, según el flujo de la cadena.
-// Regla (refinada 2026-05-17 para integración con Clisé):
+// Decide si una OF puede trabajarse HOY en un sector dado.
+// Reglas (refinadas 2026-05-17 — modelo de flujo continuo):
 //  - Sector debe estar en la cadena de la OF.
-//  - Todos los sectores ANTERIORES deben estar CERRADOS para esta OF (cierre explícito
-//    en pestaña "Cierres de OF por Sector"). El cierre es el gate — no alcanza con que
-//    haya al menos 1 evento. Esto evita que Impresión arranque antes de que Clisé termine.
 //  - Este sector NO debe estar CERRADO para esta OF.
-//  - YA NO se exige que sectores posteriores estén vacíos: una OF grande puede trabajarse
-//    en varios sectores en paralelo mientras no esté cerrada en este sector.
+//  - Para sectores ANTERIORES: depende del sector destino.
+//    * Clisé: no depende de nada anterior (es el primero cuando imprime).
+//    * Impresión: Clisé debe estar CERRADO (el clisé es 1 evento único, no continuo).
+//    * Tubera Papel / Tubera Rafia / Laminadora: flujo CONTINUO basado en bobinas.
+//        - Si OF imprime → hay ≥1 bobina con Origen=Impresión-impresa + Nº OF Asignada
+//          + Estado=disponible (no necesita esperar que Impresión cierre).
+//        - Si OF NO imprime → aparece directo (Tubera decide qué arrancar).
+//    * Embutido / Costura: por ahora regla de "anterior cerrado" (V2: continuo por bolsas).
 function puedeTrabajarseEnSector(of, sector, eventosPorSector) {
   const cadena = String(of['Cadena Sectores']||'').split('→').map(s => s.trim()).filter(Boolean);
   const idx = cadena.indexOf(sector);
-  if (idx === -1) return false; // sector no está en su cadena
+  if (idx === -1) return false;
   const numOF = String(of['Nº OF']||'').trim();
   const cierres = cierresPorSectorCache || [];
-  // Sectores anteriores: TODOS deben estar CERRADOS para esta OF
+  // Este sector NO debe estar cerrado
+  const cerradoAqui = cierres.some(c =>
+    String(c['Nº OF']||'').trim() === numOF &&
+    String(c['Sector']||'').trim() === sector
+  );
+  if (cerradoAqui) return false;
+
+  // Reglas por sector
+  if (sector === 'Clisé') {
+    return true; // primer sector si imprime
+  }
+  if (sector === 'Impresión') {
+    // Necesita Clisé cerrado
+    return cierres.some(c =>
+      String(c['Nº OF']||'').trim() === numOF &&
+      String(c['Sector']||'').trim() === 'Clisé'
+    );
+  }
+  if (sector === 'Tubera Papel') {
+    // Si la OF imprime → hay ≥1 bobina impresa disponible asignada
+    // Si NO imprime → aparece directo
+    const imprime = cadena.includes('Impresión');
+    if (!imprime) return true;
+    return (bobinasCache || []).some(b =>
+      getOFAsignada(b) === numOF &&
+      String(b['Origen']||'').trim() === ORIGEN_IMPRESION_IMPRESA &&
+      String(b['Estado']||'').trim().toLowerCase() === 'disponible'
+    );
+  }
+  // Por defecto (Tubera Rafia / Laminadora / Embutido / Costura): regla antigua
+  // de "anterior cerrado". Cuando refinemos esos sectores, los movemos a su propia rama.
   for (let i = 0; i < idx; i++) {
     const sec = cadena[i];
     const cerradoAnt = cierres.some(c =>
@@ -4995,12 +5029,6 @@ function puedeTrabajarseEnSector(of, sector, eventosPorSector) {
     );
     if (!cerradoAnt) return false;
   }
-  // Este sector NO debe estar cerrado para esta OF
-  const cerrado = cierres.some(c =>
-    String(c['Nº OF']||'').trim() === numOF &&
-    String(c['Sector']||'').trim() === sector
-  );
-  if (cerrado) return false;
   return true;
 }
 
@@ -5432,50 +5460,121 @@ async function aprobarParteImp(rowIndex, numOf) {
   const hermanas = filasHermanasDeParte(p);
   const ultima = hermanas.find(h => bolsasDeFila(h) > 0) || hermanas[hermanas.length - 1];
   const previas = hermanas.filter(h => h !== ultima);
-  if (!confirm(`¿Aprobar parte de la OF ${numOf}?\n\n· ${hermanas.length} bobina(s) en el turno\n· Bolsas: ${bolsasDeFila(ultima)}\n· Esto va a actualizar el stock de bobinas (consumir/generar hija).`)) return;
+  if (!confirm(`¿Aprobar parte de la OF ${numOf}?\n\n· ${hermanas.length} bobina(s) madre en el turno\n· Bolsas impresas: ${bolsasDeFila(ultima)}\n· Esto va a generar bobinas hijas IMPRESAS asignadas a la OF, listas para Tubera Papel.`)) return;
 
   try {
+    // ¿La OF está cerrada en Tubera Papel? Si sí, las hijas NO se asignan a la OF
+    // (van a stock con Nombre Bolsa del cliente, sin Nº OF — Franco 2026-05-17).
+    const tpCerrado = (cierresPorSectorCache || []).some(c =>
+      String(c['Nº OF']||'').trim() === String(numOf).trim() &&
+      String(c['Sector']||'').trim() === 'Tubera Papel'
+    );
+    const ofObj = (impOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOf).trim());
+    const nombreBolsa = ofObj ? (ofObj['Nombre Bolsa'] || `OF ${numOf}`) : `OF ${numOf}`;
+    const ofAsignadaParaHija = tpCerrado ? '' : numOf;
+
     // 1. Marcar Aprobado=SI en TODAS las filas hermanas
     for (const h of hermanas) {
       await actualizarCeldaEnFila('Impresión', h._rowIndex, 'Aprobado Supervisor', 'SI');
     }
-    // 2. Procesar bobinas previas (consumidas completas)
+
+    // Helper: generar próximo código BOB-YYYY-XXXXX consultando + actualizando cache local
+    const anio = new Date().getFullYear();
+    const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
+    let maxBobCounter = 0;
+    bobinasCache.forEach(b => {
+      const m = String(b['Código Bobina']||'').match(re);
+      if (m) maxBobCounter = Math.max(maxBobCounter, parseInt(m[1], 10));
+    });
+    function siguienteCodBob() {
+      maxBobCounter++;
+      return `BOB-${anio}-${String(maxBobCounter).padStart(5,'0')}`;
+    }
+
+    // Helper: crea fila en Bobinas en orden de columnas + actualiza cache local.
+    // Columnas Bobinas (16): Código · Nº OC · Proveedor · Fecha Ingreso · Producto · Formato · Kg · Gramaje · Mts · Padre 1 · Padre 2 · Origen · Estado · Sector Actual · Observaciones · N° de OF Asignada
+    async function crearBobinaFila(d) {
+      await appendFila('Bobinas', [
+        d.cod, '', '', d.fecha, d.producto, d.ancho, Math.round(d.kg*10)/10,
+        d.gramaje, d.mts, d.padre, '', d.origen, 'disponible', d.sectorActual || '',
+        d.obs, d.ofAsignada || '',
+      ]);
+      bobinasCache.push({
+        'Código Bobina': d.cod, 'Fecha Ingreso': d.fecha, 'Producto': d.producto,
+        'Formato (cm)': d.ancho, 'Kg': Math.round(d.kg*10)/10, 'Gramaje (g/m²)': d.gramaje,
+        'Mts Totales': d.mts, 'Bobina Padre 1': d.padre, 'Origen': d.origen,
+        'Estado': 'disponible', 'Sector Actual': d.sectorActual || '',
+        'Observaciones': d.obs, [HEADER_OF_ASIGNADA]: d.ofAsignada || '',
+      });
+    }
+
+    const hijasGeneradas = [];
+
+    // 2. Bobinas PREVIAS (consumidas completas → hija impresa con TODOS sus mts)
     for (const h of previas) {
       const cod = String(h['Código Bobina']||'').toUpperCase();
       const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
-      if (bob && bob._rowIndex) {
-        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
-      }
+      if (!bob || !bob._rowIndex) continue;
+      const mtsBob = Number(bob['Mts Totales']) || Number(h['Mts Iniciales']) || 0;
+      const ancho = Number(bob['Formato (cm)']) || 0;
+      const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
+      const kgHija = (ancho && gramaje) ? mtsBob * (gramaje * ancho / 100) / 1000 : 0;
+      const codHija = siguienteCodBob();
+      await crearBobinaFila({
+        cod: codHija, fecha: h['Fecha'], producto: nombreBolsa,
+        ancho, kg: kgHija, gramaje, mts: mtsBob, padre: cod,
+        origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: 'Tubera Papel',
+        obs: `Impresa en ${h['Nº Impresora']} (parte ${h['Fecha']})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
+        ofAsignada: ofAsignadaParaHija,
+      });
+      await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
+      hijasGeneradas.push(codHija);
     }
-    // 3. Procesar la última bobina
+
+    // 3. ÚLTIMA bobina: genera hija impresa + (si hubo remanente) hija sin imprimir
     const codUlt = String(ultima['Código Bobina']||'').toUpperCase();
     const bobUlt = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === codUlt);
-    const mtsRem = Number(ultima['Mts Finales']) || 0;
-    let msgHija = '';
     if (bobUlt && bobUlt._rowIndex) {
-      if (mtsRem > 0) {
-        // Crear hija con remanente
-        const fecha = ultima['Fecha'];
-        const anio = new Date().getFullYear();
-        const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
-        let max = 0;
-        bobinasCache.forEach(b => {
-          const m = String(b['Código Bobina']||'').match(re);
-          if (m) max = Math.max(max, parseInt(m[1], 10));
+      const mtsRem = Number(ultima['Mts Finales']) || 0;
+      const mtsIni = Number(ultima['Mts Iniciales']) || Number(bobUlt['Mts Totales']) || 0;
+      const mtsImpresos = Math.max(0, mtsIni - mtsRem);
+      const ancho = Number(bobUlt['Formato (cm)']) || 0;
+      const gramaje = Number(bobUlt['Gramaje (g/m²)']) || 0;
+      const fechaUlt = ultima['Fecha'];
+
+      // 3a. Hija IMPRESA con los mts realmente impresos
+      if (mtsImpresos > 0) {
+        const kgImp = (ancho && gramaje) ? mtsImpresos * (gramaje * ancho / 100) / 1000 : 0;
+        const codHijaImp = siguienteCodBob();
+        await crearBobinaFila({
+          cod: codHijaImp, fecha: fechaUlt, producto: nombreBolsa,
+          ancho, kg: kgImp, gramaje, mts: mtsImpresos, padre: codUlt,
+          origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: 'Tubera Papel',
+          obs: `Impresa en ${ultima['Nº Impresora']} (parte ${fechaUlt})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
+          ofAsignada: ofAsignadaParaHija,
         });
-        const codHija = `BOB-${anio}-${String(max+1).padStart(5,'0')}`;
-        const ancho = Number(bobUlt['Formato (cm)']) || 0;
-        const gramaje = Number(bobUlt['Gramaje (g/m²)']) || 0;
-        const kgHija = (ancho && gramaje) ? mtsRem * (gramaje * ancho / 100) / 1000 : 0;
-        const filaBob = [codHija, '', '', fecha, bobUlt['Producto'], ancho, Math.round(kgHija*10)/10, gramaje, mtsRem, codUlt, '', 'Impresión-remanente', 'disponible', '', `Remanente del parte de ${codUlt} en ${ultima['Nº Impresora']}`];
-        await appendFila('Bobinas', filaBob);
-        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', 'transformada');
-        msgHija = ` · hija ${codHija} con ${fmtNum(mtsRem)} m`;
-      } else {
-        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', 'consumida');
+        hijasGeneradas.push(codHijaImp);
       }
+
+      // 3b. Hija REMANENTE sin imprimir (papel kraft normal, vuelve a stock libre)
+      if (mtsRem > 0) {
+        const kgRem = (ancho && gramaje) ? mtsRem * (gramaje * ancho / 100) / 1000 : 0;
+        const codHijaRem = siguienteCodBob();
+        await crearBobinaFila({
+          cod: codHijaRem, fecha: fechaUlt, producto: bobUlt['Producto'] || '',
+          ancho, kg: kgRem, gramaje, mts: mtsRem, padre: codUlt,
+          origen: 'Impresión-remanente', sectorActual: '',
+          obs: `Remanente sin imprimir de ${codUlt} (parte ${ultima['Nº Impresora']} ${fechaUlt})`,
+          ofAsignada: '', // SIN OF — vuelve a stock libre
+        });
+        hijasGeneradas.push(codHijaRem);
+      }
+
+      // 3c. Marcar madre última como transformada
+      await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', 'transformada');
     }
-    alert(`✓ Parte aprobado · ${hermanas.length} bobina(s)${msgHija}`);
+
+    alert(`✓ Parte aprobado · ${hermanas.length} madre(s) transformada(s) · ${hijasGeneradas.length} hija(s) generada(s)${tpCerrado ? '\n\n⚠️ OF cerrada en Tubera Papel — bobinas impresas quedaron en stock del cliente.' : ''}`);
     cargarImpresion();
   } catch (err) {
     alert('Error al aprobar: ' + err.message);
@@ -5891,6 +5990,24 @@ function objetivoBolsasOF(of) {
   if (exc > 1) exc = exc / 100; // si vino "2" lo interpretamos como 2%
   return Math.round(cant * (1 + exc));
 }
+
+// Header EXACTO de la columna en el Sheet (lo que Franco escribió el 2026-05-17).
+// Si en algún momento el header cambia, modificamos esta constante.
+const HEADER_OF_ASIGNADA = 'N° de OF Asignada';
+// Lectura tolerante a variantes (degree vs ordinal, con/sin "de", capitalización).
+// Devuelve el string trimeado o "" si no está.
+function getOFAsignada(bob) {
+  if (!bob) return '';
+  return String(
+    bob['N° de OF Asignada'] || bob['Nº de OF Asignada'] ||
+    bob['N° OF Asignada']    || bob['Nº OF Asignada']    || ''
+  ).trim();
+}
+
+// Origen marker para bobinas impresas generadas en Impresión
+const ORIGEN_IMPRESION_IMPRESA = 'Impresión-impresa';
+// Origen marker para remanente impreso (queda asignado a OF mientras esté activa)
+const ORIGEN_TP_REMANENTE = 'Tubera Papel-remanente';
 
 // Devuelve true si las bolsas hechas (aprobadas) >= objetivo
 function puedeCerrarseOF(numOF) {
@@ -6801,7 +6918,6 @@ async function cargarTuberaPapel() {
       'Nº OF': c['Nº OF'] || c['N° OF'] || '',
       'N° OF': c['N° OF'] || c['Nº OF'] || '',
     }));
-    // También cargar eventos de Clisé/Impresión para la regla puedeTrabajarseEnSector
     if (!eventosPorSectorCache['Clisé'])     eventosPorSectorCache['Clisé']     = await leerPestana('Clisé').catch(() => []);
     if (!eventosPorSectorCache['Impresión']) eventosPorSectorCache['Impresión'] = await leerPestana('Impresión').catch(() => []);
     eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
@@ -6813,6 +6929,20 @@ async function cargarTuberaPapel() {
   renderColaTP();
   renderPartesTP();
   renderBobinasMaquinaTP();
+}
+
+// Devuelve bobinas IMPRESAS disponibles asignadas a esta OF
+function bobinasImpresasDeOF(numOF) {
+  return (bobinasCache || []).filter(b =>
+    getOFAsignada(b) === String(numOF||'').trim() &&
+    String(b['Origen']||'').trim() === ORIGEN_IMPRESION_IMPRESA &&
+    String(b['Estado']||'').trim().toLowerCase() === 'disponible'
+  );
+}
+
+// ¿La OF imprime? (cadena incluye Impresión)
+function ofImprime(of) {
+  return String(of['Cadena Sectores']||'').includes('Impresión');
 }
 
 function bolsasHechasEnTPporOF(numOF) {
@@ -6976,11 +7106,12 @@ function renderBobinasMaquinaTP() {
 }
 
 // ============================================================
-// MODAL CARGAR PARTE DE TURNO (Tubera Papel)
+// MODAL CARGAR PARTE (Tubera Papel) — 1 OF por parte, flujo continuo
 // ============================================================
 function poblarFormTP() {
   const f = document.getElementById('tp-form-fecha');
   if (f) f.value = new Date().toISOString().slice(0,10);
+  // Tuberas
   const sel = document.getElementById('tp-form-tubera');
   const tuberas = (tpMaquinasCache || []).filter(m =>
     m['Sector'] === 'Tubera Papel' && String(m['Activa']||'SI').toUpperCase() === 'SI'
@@ -6988,19 +7119,104 @@ function poblarFormTP() {
   sel.innerHTML = '<option value="">— Elegir —</option>' + tuberas.map(m =>
     `<option value="${m['Código Máquina']}">${m['Código Máquina']}</option>`
   ).join('');
+  // OFs en cola (con detalle de bobinas disponibles — Opción A acordada con Franco)
+  const ofsCola = (tpOFsCache || []).filter(o => {
+    const estado = String(o['Estado']||'').toLowerCase();
+    if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
+    return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache);
+  });
+  const selOF = document.getElementById('tp-form-of');
+  selOF.innerHTML = '<option value="">— Elegir OF —</option>' + ofsCola.map(o => {
+    const cli = o['Cliente'] || '—';
+    const bolsa = o['Nombre Bolsa'] || '—';
+    let tag;
+    if (ofImprime(o)) {
+      const n = bobinasImpresasDeOF(o['Nº OF']).length;
+      tag = `(${n} bobina${n === 1 ? '' : 's'} impresa${n === 1 ? '' : 's'})`;
+    } else {
+      tag = '(sin imprimir — papel kraft)';
+    }
+    return `<option value="${o['Nº OF']}">${o['Nº OF']} · ${cli} · ${bolsa}  ${tag}</option>`;
+  }).join('');
+  // Si hay una sola OF, pre-seleccionarla
+  if (ofsCola.length === 1) {
+    selOF.value = ofsCola[0]['Nº OF'];
+    onChangeOFTP();
+  }
+}
+
+// Cuando cambia la OF elegida, refrescar info + bobinas
+function onChangeOFTP() {
+  const numOF = document.getElementById('tp-form-of').value;
+  const info = document.getElementById('tp-of-info');
+  const hint = document.getElementById('tp-bobinas-hint');
+  const list = document.getElementById('tp-bobinas-list');
+  const btnAdd = document.getElementById('tp-bobina-add');
+  list.innerHTML = '';
+  tpBobIdx = 0;
+  if (!numOF) {
+    info.style.display = 'none';
+    hint.textContent = 'Elegí la OF primero para ver las bobinas disponibles.';
+    btnAdd.disabled = true;
+    return;
+  }
+  const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
+  if (!of) return;
+  // Info
+  document.getElementById('tp-of-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('tp-of-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('tp-of-cant').textContent = fmtNum(of['Cant Bolsas']);
+  const imprime = ofImprime(of);
+  document.getElementById('tp-of-imp').textContent = imprime ? 'Sí (bobinas impresas)' : 'No (papel kraft)';
+  info.style.display = '';
+  // Modo de bobinas: si imprime → dropdown filtrado; si no → input manual
+  if (imprime) {
+    const disp = bobinasImpresasDeOF(numOF);
+    if (!disp.length) {
+      hint.innerHTML = '⚠️ <strong>No hay bobinas impresas disponibles para esta OF.</strong> Esperá a que Impresión apruebe algún parte.';
+      btnAdd.disabled = true;
+      return;
+    }
+    hint.textContent = `Hay ${disp.length} bobina${disp.length === 1 ? '' : 's'} impresa${disp.length === 1 ? '' : 's'} disponible${disp.length === 1 ? '' : 's'}. Elegí cuáles usaste en este parte.`;
+    btnAdd.disabled = false;
+    // Arrancar con 1 fila
+    agregarBobinaInputTP();
+  } else {
+    hint.textContent = 'OF sin impresión: cargá manualmente el código de la bobina de papel kraft que usaste.';
+    btnAdd.disabled = false;
+    agregarBobinaInputTP();
+  }
 }
 
 function agregarBobinaInputTP() {
+  const numOF = document.getElementById('tp-form-of').value;
+  if (!numOF) return;
+  const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
+  if (!of) return;
+  const imprime = ofImprime(of);
   tpBobIdx++;
   const cont = document.getElementById('tp-bobinas-list');
   const row = document.createElement('div');
   row.className = 'tp-bob-row';
   row.style.cssText = 'display:grid;grid-template-columns:1fr 150px 100px 30px;gap:8px;align-items:end;margin-bottom:10px;padding:10px;background:var(--bg-2);border-radius:6px';
+
+  let codField;
+  if (imprime) {
+    // Dropdown filtrado a bobinas impresas de la OF (que no estén ya seleccionadas en otra fila)
+    const disp = bobinasImpresasDeOF(numOF);
+    const yaCargadas = Array.from(document.querySelectorAll('#tp-bobinas-list select[name="tp-bob-cod"]'))
+      .map(s => s.value).filter(Boolean);
+    const opts = disp
+      .filter(b => !yaCargadas.includes(b['Código Bobina']))
+      .map(b => `<option value="${b['Código Bobina']}">${b['Código Bobina']} · ${fmtNum(b['Mts Totales'])} m disp.</option>`).join('');
+    codField = `<select name="tp-bob-cod" required><option value="">— Elegir —</option>${opts}</select>`;
+  } else {
+    codField = `<input type="text" name="tp-bob-cod" placeholder="Ej: BOB-2026-00001" required>`;
+  }
+
   row.innerHTML = `
-    <label class="field" style="margin:0"><span>Código bobina</span>
-      <input type="text" name="tp-bob-cod" placeholder="Ej: BOB-2026-00001">
-    </label>
-    <label class="field" style="margin:0"><span>Acción al cerrar turno</span>
+    <label class="field" style="margin:0"><span>Código bobina</span>${codField}</label>
+    <label class="field" style="margin:0"><span>Acción al cerrar parte</span>
       <select name="tp-bob-accion">
         <option value="sin_cambios">🟢 Sin cambios</option>
         <option value="sacada">🔴 Sacada con peso</option>
@@ -7011,7 +7227,6 @@ function agregarBobinaInputTP() {
     </label>
     <button type="button" class="bob-del" title="Quitar" onclick="this.parentElement.remove()" style="height:36px;background:none;border:1px solid var(--bg-3);color:var(--text-3);border-radius:4px;cursor:pointer">✕</button>
   `;
-  // Habilitar/deshabilitar kg final según acción
   row.querySelector('[name="tp-bob-accion"]').addEventListener('change', e => {
     const kgInput = row.querySelector('[name="tp-bob-kgfin"]');
     kgInput.disabled = e.target.value !== 'sacada';
@@ -7020,47 +7235,18 @@ function agregarBobinaInputTP() {
   cont.appendChild(row);
 }
 
-function agregarOFInputTP() {
-  tpOfIdx++;
-  const cont = document.getElementById('tp-ofs-list');
-  const row = document.createElement('div');
-  row.className = 'tp-of-row';
-  row.style.cssText = 'display:grid;grid-template-columns:1fr 140px 30px;gap:8px;align-items:end;margin-bottom:10px;padding:10px;background:var(--bg-2);border-radius:6px';
-  // Lista de OFs en cola
-  const cerradasEnTP = new Set((cierresPorSectorCache||[]).filter(c => c['Sector']==='Tubera Papel').map(c => c['Nº OF']));
-  const ofsCola = (tpOFsCache||[]).filter(o => {
-    const estado = String(o['Estado']||'').toLowerCase();
-    if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
-    return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache) && !cerradasEnTP.has(o['Nº OF']);
-  });
-  const opts = ofsCola.map(o => `<option value="${o['Nº OF']}">${o['Nº OF']} · ${o['Cliente']||''} · ${o['Nombre Bolsa']||''}</option>`).join('');
-  row.innerHTML = `
-    <label class="field" style="margin:0"><span>OF trabajada</span>
-      <select name="tp-of-num" required>
-        <option value="">— Elegir —</option>${opts}
-      </select>
-    </label>
-    <label class="field" style="margin:0"><span>Bolsas producidas</span>
-      <input type="number" name="tp-of-bolsas" step="1" min="0" required>
-    </label>
-    <button type="button" class="bob-del" title="Quitar" onclick="this.parentElement.remove()" style="height:36px;background:none;border:1px solid var(--bg-3);color:var(--text-3);border-radius:4px;cursor:pointer">✕</button>
-  `;
-  cont.appendChild(row);
-}
-
 document.getElementById('tp-bobina-add').addEventListener('click', agregarBobinaInputTP);
-document.getElementById('tp-of-add').addEventListener('click', agregarOFInputTP);
+document.getElementById('tp-form-of').addEventListener('change', onChangeOFTP);
 
 function abrirModalParteTP() {
   const form = document.getElementById('form-tp');
   form.reset();
   document.getElementById('tp-bobinas-list').innerHTML = '';
-  document.getElementById('tp-ofs-list').innerHTML = '';
-  tpBobIdx = 0; tpOfIdx = 0;
+  tpBobIdx = 0;
+  document.getElementById('tp-of-info').style.display = 'none';
+  document.getElementById('tp-bobinas-hint').textContent = 'Elegí la OF primero para ver las bobinas disponibles.';
+  document.getElementById('tp-bobina-add').disabled = true;
   poblarFormTP();
-  // Arrancar con 1 bobina y 1 OF
-  agregarBobinaInputTP();
-  agregarOFInputTP();
   const msg = document.getElementById('tp-msg');
   msg.textContent = ''; msg.className = 'form-msg';
   document.getElementById('tp-modal-parte').style.display = 'flex';
@@ -7075,23 +7261,24 @@ document.getElementById('tp-modal-parte').addEventListener('click', e => {
   if (e.target.id === 'tp-modal-parte') cerrarModalParteTP();
 });
 
-// Submit parte de turno
+// Submit parte (1 OF por parte, flujo continuo)
 document.getElementById('form-tp').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target;
   if (f.dataset.guardando === '1') return;
 
+  const numOF = f.of.value;
   const fecha = f.fecha.value;
-  const turno = f.turno.value;
   const tubera = f.tubera.value;
   const legOp = f.legajo_op.value.trim();
   const legAy = f.legajo_ay.value.trim();
   const horaIn = f.hora_in.value;
   const horaFin = f.hora_fin.value;
+  const bolsas = Number(f.bolsas.value) || 0;
   const kgDesp = Number(f.kg_desp.value) || 0;
   const com = f.comentarios.value.trim();
 
-  if (!fecha || !turno || !tubera || !legOp || !horaIn || !horaFin) {
+  if (!numOF || !fecha || !tubera || !legOp || !horaIn || !horaFin) {
     showFormMsg('tp-msg', '✗ Faltan campos obligatorios.', false);
     return;
   }
@@ -7099,16 +7286,23 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     showFormMsg('tp-msg', '✗ La hora fin tiene que ser mayor a la de inicio.', false);
     return;
   }
+  if (bolsas <= 0) {
+    showFormMsg('tp-msg', '✗ Cargá la cantidad de bolsas producidas.', false);
+    return;
+  }
   const legajos = legAy ? `${legOp} / ${legAy}` : legOp;
 
   // Recolectar bobinas
   const bobRows = Array.from(document.querySelectorAll('#tp-bobinas-list .tp-bob-row'));
   const bobinas = bobRows.map(r => ({
-    cod: r.querySelector('[name="tp-bob-cod"]').value.trim().toUpperCase(),
+    cod: String(r.querySelector('[name="tp-bob-cod"]').value || '').trim().toUpperCase(),
     accion: r.querySelector('[name="tp-bob-accion"]').value,
     kgFin: Number(r.querySelector('[name="tp-bob-kgfin"]').value) || 0,
   })).filter(b => b.cod);
-  // Validar bobinas sacadas: necesitan kg
+  if (!bobinas.length) {
+    showFormMsg('tp-msg', '✗ Cargá al menos 1 bobina usada.', false);
+    return;
+  }
   for (const b of bobinas) {
     if (b.accion === 'sacada' && b.kgFin <= 0) {
       showFormMsg('tp-msg', `✗ Bobina ${b.cod} marcada como "Sacada" necesita Kg final.`, false);
@@ -7116,19 +7310,9 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     }
   }
   const bobsEnUso = bobinas.map(b => b.cod).join(', ');
-  const bobsSacadas = bobinas.filter(b => b.accion === 'sacada').map(b => b.cod).join(', ');
-  const kgSacadasTotal = bobinas.filter(b => b.accion === 'sacada').reduce((s, b) => s + b.kgFin, 0);
-
-  // Recolectar OFs trabajadas
-  const ofRows = Array.from(document.querySelectorAll('#tp-ofs-list .tp-of-row'));
-  const ofsTrabajadas = ofRows.map(r => ({
-    num: r.querySelector('[name="tp-of-num"]').value.trim(),
-    bolsas: Number(r.querySelector('[name="tp-of-bolsas"]').value) || 0,
-  })).filter(x => x.num);
-  if (!ofsTrabajadas.length) {
-    showFormMsg('tp-msg', '✗ Cargá al menos 1 OF trabajada.', false);
-    return;
-  }
+  const sacadas = bobinas.filter(b => b.accion === 'sacada');
+  const bobsSacadas = sacadas.map(b => b.cod).join(', ');
+  const kgSacadasTotal = sacadas.reduce((s, b) => s + b.kgFin, 0);
 
   f.dataset.guardando = '1';
   const btn = document.getElementById('tp-parte-submit');
@@ -7136,70 +7320,80 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = 'Guardando…';
 
   try {
-    // 1. Append 1 fila por OF trabajada (todas comparten claveDeParteTP)
+    // 1 fila en Tubera Papel para este parte (1 OF por parte)
     // Headers: Fecha · Tipo Evento · Turno · Nº Tubera · Legajos · Bobinas en Uso · Nº OF
     //          · Bolsas Producidas · Bobinas Sacadas · Kg Bobinas Sacadas · Kg Desperdicio
     //          · Hora Inicio · Hora Fin · Observaciones
-    for (let i = 0; i < ofsTrabajadas.length; i++) {
-      const o = ofsTrabajadas[i];
-      const esPrimera = (i === 0);
-      await appendFila('Tubera Papel', [
-        fecha, 'Parte de Turno', turno, tubera, legajos,
-        bobsEnUso, o.num, o.bolsas,
-        esPrimera ? bobsSacadas : '',     // Bobinas Sacadas solo en la primera fila
-        esPrimera ? kgSacadasTotal : '',  // Idem
-        esPrimera ? kgDesp : '',          // Idem
-        horaIn, horaFin, esPrimera ? com : '',
-      ]);
-      tpEventosCache.push({
-        'Fecha': fecha, 'Tipo Evento': 'Parte de Turno', 'Turno': turno,
-        'Nº Tubera': tubera, 'Legajos': legajos, 'Bobinas en Uso': bobsEnUso,
-        'Nº OF': o.num, 'Bolsas Producidas': o.bolsas,
-        'Bobinas Sacadas': esPrimera ? bobsSacadas : '',
-        'Kg Bobinas Sacadas': esPrimera ? kgSacadasTotal : '',
-        'Kg Desperdicio': esPrimera ? kgDesp : '',
-        'Hora Inicio': horaIn, 'Hora Fin': horaFin,
-        'Observaciones': esPrimera ? com : '',
-      });
-    }
+    // (Columna Turno la dejamos vacía — ahora medimos por Hr Inicio/Fin.)
+    await appendFila('Tubera Papel', [
+      fecha, 'Parte de Turno', '', tubera, legajos,
+      bobsEnUso, numOF, bolsas,
+      bobsSacadas, kgSacadasTotal || '', kgDesp || '',
+      horaIn, horaFin, com,
+    ]);
+    tpEventosCache.push({
+      'Fecha': fecha, 'Tipo Evento': 'Parte de Turno', 'Turno': '',
+      'Nº Tubera': tubera, 'Legajos': legajos, 'Bobinas en Uso': bobsEnUso,
+      'Nº OF': numOF, 'Bolsas Producidas': bolsas,
+      'Bobinas Sacadas': bobsSacadas,
+      'Kg Bobinas Sacadas': kgSacadasTotal || '',
+      'Kg Desperdicio': kgDesp || '',
+      'Hora Inicio': horaIn, 'Hora Fin': horaFin,
+      'Observaciones': com,
+    });
 
-    // 2. Procesar bobinas SACADAS: marcar transformada + generar hija con remanente
-    //    (Para v1 usamos kgFin directamente; la conversión mts ↔ kg depende del producto.)
+    // Procesar bobinas: las usadas que NO se sacan → consumidas (se usaron enteras).
+    //                    Las sacadas → transformadas + hija con remanente impreso asignado a la OF.
+    const anio = new Date().getFullYear();
+    const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
+    let maxCounter = 0;
+    bobinasCache.forEach(x => {
+      const m = String(x['Código Bobina']||'').match(re);
+      if (m) maxCounter = Math.max(maxCounter, parseInt(m[1], 10));
+    });
+
     for (const b of bobinas) {
-      if (b.accion !== 'sacada') continue;
       const bob = (bobinasCache || []).find(x => String(x['Código Bobina']||'').toUpperCase() === b.cod);
       if (!bob || !bob._rowIndex) continue;
-      // Generar hija con kgFin
-      const anio = new Date().getFullYear();
-      const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
-      let max = 0;
-      bobinasCache.forEach(x => {
-        const m = String(x['Código Bobina']||'').match(re);
-        if (m) max = Math.max(max, parseInt(m[1], 10));
-      });
-      const codHija = `BOB-${anio}-${String(max+1).padStart(5,'0')}`;
-      const ancho = Number(bob['Formato (cm)']) || 0;
-      const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
-      const mtsHija = (ancho && gramaje) ? Math.round(b.kgFin * 1000 / (gramaje * ancho / 100)) : 0;
-      // Headers Bobinas: Código · Nº OC · Proveedor · Fecha Ingreso · Producto · Formato · Kg · Gramaje · Mts · Padre 1 · Padre 2 · Origen · Estado · Sector Actual · Observaciones
-      await appendFila('Bobinas', [
-        codHija, '', '', fecha, bob['Producto'], ancho, b.kgFin, gramaje, mtsHija,
-        b.cod, '', 'Tubera Papel-remanente', 'disponible', '', `Remanente del parte de turno en ${tubera} (${fecha})`,
-      ]);
-      await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
-      // Sumar al cache
-      bobinasCache.push({
-        'Código Bobina': codHija, 'Fecha Ingreso': fecha, 'Producto': bob['Producto'],
-        'Formato (cm)': ancho, 'Kg': b.kgFin, 'Gramaje (g/m²)': gramaje, 'Mts Totales': mtsHija,
-        'Bobina Padre 1': b.cod, 'Origen': 'Tubera Papel-remanente', 'Estado': 'disponible',
-      });
+
+      if (b.accion === 'sin_cambios') {
+        // La bobina se usó completa en este parte
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+        const idx = bobinasCache.indexOf(bob);
+        if (idx >= 0) bobinasCache[idx]['Estado'] = 'consumida';
+      } else if (b.accion === 'sacada') {
+        // Generar hija con remanente impreso (mantiene Nº OF Asignada de la madre)
+        const ancho = Number(bob['Formato (cm)']) || 0;
+        const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
+        const mtsHija = (ancho && gramaje) ? Math.round(b.kgFin * 1000 / (gramaje * ancho / 100)) : 0;
+        maxCounter++;
+        const codHija = `BOB-${anio}-${String(maxCounter).padStart(5,'0')}`;
+        // Mantenemos el Producto de la madre (Nombre Bolsa) y la OF asignada
+        const ofMadre = getOFAsignada(bob);
+        await appendFila('Bobinas', [
+          codHija, '', '', fecha, bob['Producto'], ancho, b.kgFin, gramaje, mtsHija,
+          b.cod, '', ORIGEN_TP_REMANENTE, 'disponible', 'Tubera Papel',
+          `Remanente impreso del parte en ${tubera} (${fecha})`,
+          ofMadre, // mantiene OF asignada
+        ]);
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
+        const idx = bobinasCache.indexOf(bob);
+        if (idx >= 0) bobinasCache[idx]['Estado'] = 'transformada';
+        bobinasCache.push({
+          'Código Bobina': codHija, 'Fecha Ingreso': fecha, 'Producto': bob['Producto'],
+          'Formato (cm)': ancho, 'Kg': b.kgFin, 'Gramaje (g/m²)': gramaje, 'Mts Totales': mtsHija,
+          'Bobina Padre 1': b.cod, 'Origen': ORIGEN_TP_REMANENTE,
+          'Estado': 'disponible', 'Sector Actual': 'Tubera Papel',
+          [HEADER_OF_ASIGNADA]: ofMadre,
+        });
+      }
     }
 
     eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
     renderColaTP();
     renderPartesTP();
     renderBobinasMaquinaTP();
-    showFormMsg('tp-msg', `✓ Parte guardado: ${ofsTrabajadas.length} OF(s)${bobsSacadas ? ' · hijas generadas' : ''}.`, true);
+    showFormMsg('tp-msg', `✓ Parte guardado · ${bolsas} bolsas · ${bobinas.length} bobina(s)${sacadas.length ? ` · ${sacadas.length} sacada(s) con remanente impreso` : ''}.`, true);
     setTimeout(() => {
       cerrarModalParteTP();
       delete f.dataset.guardando;
@@ -7281,6 +7475,7 @@ document.getElementById('form-tp-cierre').addEventListener('submit', async (e) =
   btn.disabled = true; btn.textContent = 'Guardando…';
   try {
     const fecha = new Date().toISOString().slice(0,10);
+    // 1. Escribir cierre
     await appendFila('Cierres de OF por Sector', [
       numOF, 'Tubera Papel', fecha, hechas, pct + '%', cumple ? '' : motivo, legajo,
     ]);
@@ -7290,8 +7485,24 @@ document.getElementById('form-tp-cierre').addEventListener('submit', async (e) =
       'Bolsas Cumplidas': hechas, '% Cumplido': pct + '%',
       'Motivo (si no cumple)': cumple ? '' : motivo, 'Legajo': legajo,
     });
+    // 2. DES-ASIGNAR las bobinas impresas que aún queden disponibles asignadas a esta OF.
+    //    Pasan a stock con Producto = Nombre Bolsa (ya lo tienen) sin Nº OF Asignada.
+    //    Si Impresión sigue generando hijas después del cierre, también irán sin Nº OF (manejado en aprobarParteImp).
+    const bobsRestantes = (bobinasCache || []).filter(b =>
+      getOFAsignada(b) === String(numOF).trim() &&
+      String(b['Estado']||'').trim().toLowerCase() === 'disponible'
+    );
+    for (const b of bobsRestantes) {
+      if (!b._rowIndex) continue;
+      await actualizarCeldaEnFila('Bobinas', b._rowIndex, HEADER_OF_ASIGNADA, '');
+      b[HEADER_OF_ASIGNADA] = ''; b['Nº OF Asignada'] = ''; b['N° OF Asignada'] = '';
+    }
+
     renderColaTP();
-    showFormMsg('tp-cierre-msg', `✓ OF ${numOF} cerrada en Tubera Papel.`, true);
+    const msgExtra = bobsRestantes.length
+      ? ` · ${bobsRestantes.length} bobina(s) impresa(s) restante(s) pasaron a stock del cliente.`
+      : '';
+    showFormMsg('tp-cierre-msg', `✓ OF ${numOF} cerrada en Tubera Papel.${msgExtra}`, true);
     setTimeout(() => {
       cerrarModalCierreTP();
       delete f.dataset.guardando;
