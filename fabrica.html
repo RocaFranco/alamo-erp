@@ -1747,13 +1747,12 @@
             <thead>
               <tr>
                 <th>Fecha</th>
-                <th>Turno</th>
                 <th>Nº Tubera</th>
                 <th>Legajos</th>
                 <th>Hr In</th>
                 <th>Hr Fin</th>
-                <th>OFs trabajadas</th>
-                <th class="num">Bolsas total</th>
+                <th>Nº OF</th>
+                <th class="num">Bolsas</th>
                 <th class="num">Kg desperd.</th>
                 <th>Bobinas sacadas</th>
               </tr>
@@ -5569,7 +5568,9 @@ async function aprobarParteImp(rowIndex, numOf) {
       }
 
       // 3b. Hija REMANENTE sin imprimir (papel kraft normal, vuelve a stock libre)
-      if (mtsRem > 0) {
+      // Regla umbral (Franco 2026-05-17): si remanente < 100 mts → descarte, no se genera hija.
+      let huboHijaRemanente = false;
+      if (mtsRem >= UMBRAL_REMANENTE_MTS) {
         const kgRem = (ancho && gramaje) ? mtsRem * (gramaje * ancho / 100) / 1000 : 0;
         const codHijaRem = siguienteCodBob();
         await crearBobinaFila({
@@ -5580,10 +5581,14 @@ async function aprobarParteImp(rowIndex, numOf) {
           ofAsignada: '', // SIN OF — vuelve a stock libre
         });
         hijasGeneradas.push(codHijaRem);
+        huboHijaRemanente = true;
       }
 
-      // 3c. Marcar madre última como transformada
-      await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', 'transformada');
+      // 3c. Estado madre: transformada si generó hija(s), consumida si no.
+      // mtsImpresos > 0 ya generó hija impresa arriba → siempre va a ser transformada salvo
+      // el caso edge mtsImpresos=0 y mtsRem<umbral (madre quedó vacía y descarte).
+      const generóHijas = (mtsImpresos > 0) || huboHijaRemanente;
+      await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', generóHijas ? 'transformada' : 'consumida');
     }
 
     alert(`✓ Parte aprobado · ${hermanas.length} madre(s) transformada(s) · ${hijasGeneradas.length} hija(s) generada(s)${tpCerrado ? '\n\n⚠️ OF cerrada en Tubera Papel — bobinas impresas quedaron en stock del cliente.' : ''}`);
@@ -6020,6 +6025,9 @@ function getOFAsignada(bob) {
 const ORIGEN_IMPRESION_IMPRESA = 'Impresión-impresa';
 // Origen marker para remanente impreso (queda asignado a OF mientras esté activa)
 const ORIGEN_TP_REMANENTE = 'Tubera Papel-remanente';
+// Umbral en mts por debajo del cual el remanente va a DESCARTE (no se genera hija).
+// Franco 2026-05-17: bobinas con < 100 mts son inviables operativamente, mejor desperdicio.
+const UMBRAL_REMANENTE_MTS = 100;
 
 // Devuelve true si las bolsas hechas (aprobadas) >= objetivo
 function puedeCerrarseOF(numOF) {
@@ -7062,24 +7070,23 @@ function renderPartesTP() {
     return fb - fa;
   });
   if (!partes.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty">Sin partes cargados todavía. Tocá "+ Cargar parte de turno" arriba.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">Sin partes cargados todavía. Cargá uno desde la cola con el botón "Cargar Parte".</td></tr>';
     return;
   }
   tbody.innerHTML = partes.map(hermanas => {
     const p = hermanas[0];
     const f = excelDateToJs(p['Fecha']);
-    const ofsTxt = hermanas.map(h => h['Nº OF']).filter(Boolean).join(' / ');
+    const numOF = p['Nº OF'] || '—';
     const bolsasTotal = hermanas.reduce((s, h) => s + (Number(h['Bolsas Producidas'])||0), 0);
-    const kgDesp = hermanas[0]['Kg Desperdicio'] || 0; // se guarda solo en la primera fila
+    const kgDesp = hermanas[0]['Kg Desperdicio'] || 0;
     const bobsSacadas = hermanas[0]['Bobinas Sacadas'] || '';
     return `<tr>
       <td>${f ? fmtFechaCorta(f) : '—'}</td>
-      <td>${p['Turno']||'—'}</td>
       <td><span class="of-num">${p['Nº Tubera']||'—'}</span></td>
       <td>${p['Legajos']||'—'}</td>
       <td>${excelTimeToHHMM(p['Hora Inicio'])||'—'}</td>
       <td>${excelTimeToHHMM(p['Hora Fin'])||'—'}</td>
-      <td>${ofsTxt}</td>
+      <td><span class="of-num">${numOF}</span></td>
       <td class="num">${fmtNum(bolsasTotal)}</td>
       <td class="num">${fmtNum(kgDesp)}</td>
       <td>${bobsSacadas||'—'}</td>
@@ -7446,8 +7453,13 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
       'Observaciones': com,
     });
 
-    // Procesar bobinas: las usadas que NO se sacan → consumidas (se usaron enteras).
-    //                    Las sacadas → transformadas + hija con remanente impreso asignado a la OF.
+    // Procesar bobinas con dos reglas (Franco 2026-05-17):
+    //  - 🟢 Sin cambios (Opción A): la misma bobina sigue existiendo, solo se le
+    //    descuentan los mts consumidos en este parte. Si quedan < 100 mts → descarte.
+    //    Las "previas" (todas menos la última) se asumen consumidas completas.
+    //    La "última" recibe el remanente (mts iniciales − mts usados − desperdicio).
+    //  - 🔴 Sacada con peso: kg final → mts. Si mts < 100 → descarte (madre consumida).
+    //    Si mts ≥ 100 → madre transformada + hija con remanente impreso, mantiene OF.
     const anio = new Date().getFullYear();
     const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
     let maxCounter = 0;
@@ -7456,40 +7468,86 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
       if (m) maxCounter = Math.max(maxCounter, parseInt(m[1], 10));
     });
 
-    for (const b of bobinas) {
+    // Datos para distribuir consumo entre bobinas "Sin cambios"
+    const ofObj = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
+    const largoBolsaCm = ofObj ? Number(ofObj['Largo (cm)']) || 0 : 0;
+    const mtsUtilParte = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
+
+    // Buscar bobinas en cache (en orden)
+    const bobsConData = bobinas.map(b => {
       const bob = (bobinasCache || []).find(x => String(x['Código Bobina']||'').toUpperCase() === b.cod);
+      return { ...b, bob };
+    });
+    // Suma de mts iniciales de bobinas "sin cambios" previas (para repartir consumo)
+    const idxUlt = bobsConData.length - 1;
+
+    for (let i = 0; i < bobsConData.length; i++) {
+      const b = bobsConData[i];
+      const bob = b.bob;
       if (!bob || !bob._rowIndex) continue;
+      const ancho = Number(bob['Formato (cm)']) || 0;
+      const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
+      const mtsBob = Number(bob['Mts Totales']) || 0;
+      const idxCache = bobinasCache.indexOf(bob);
+      const esUltima = (i === idxUlt);
 
       if (b.accion === 'sin_cambios') {
-        // La bobina se usó completa en este parte
-        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
-        const idx = bobinasCache.indexOf(bob);
-        if (idx >= 0) bobinasCache[idx]['Estado'] = 'consumida';
+        if (!esUltima) {
+          // Previa: consumida completa
+          await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+          if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'consumida';
+        } else {
+          // Última: calcular mts restantes
+          const sumaPrevias = bobsConData.slice(0, i).reduce((s, x) => {
+            const m = x.bob ? (Number(x.bob['Mts Totales'])||0) : 0;
+            return s + m;
+          }, 0);
+          const mtsUsadosUlt = Math.max(0, mtsUtilParte - sumaPrevias);
+          const mtsDesp = (kgDesp && ancho && gramaje) ? Math.round(kgDesp * 100000 / (ancho * gramaje)) : 0;
+          const mtsRestantes = Math.max(0, mtsBob - mtsUsadosUlt - mtsDesp);
+
+          if (mtsRestantes < UMBRAL_REMANENTE_MTS) {
+            // Descarte
+            await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+            if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'consumida';
+          } else {
+            // Opción A: misma bobina con menos mts/kg
+            const kgRest = Math.round(mtsRestantes * (gramaje * ancho / 100) / 1000 * 10) / 10;
+            await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Mts Totales', mtsRestantes);
+            await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Kg', kgRest);
+            if (idxCache >= 0) {
+              bobinasCache[idxCache]['Mts Totales'] = mtsRestantes;
+              bobinasCache[idxCache]['Kg'] = kgRest;
+            }
+          }
+        }
       } else if (b.accion === 'sacada') {
-        // Generar hija con remanente impreso (mantiene Nº OF Asignada de la madre)
-        const ancho = Number(bob['Formato (cm)']) || 0;
-        const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
         const mtsHija = (ancho && gramaje) ? Math.round(b.kgFin * 1000 / (gramaje * ancho / 100)) : 0;
-        maxCounter++;
-        const codHija = `BOB-${anio}-${String(maxCounter).padStart(5,'0')}`;
-        // Mantenemos el Producto de la madre (Nombre Bolsa) y la OF asignada
-        const ofMadre = getOFAsignada(bob);
-        await appendFila('Bobinas', [
-          codHija, '', '', fecha, bob['Producto'], ancho, b.kgFin, gramaje, mtsHija,
-          b.cod, '', ORIGEN_TP_REMANENTE, 'disponible', 'Tubera Papel',
-          `Remanente impreso del parte en ${tubera} (${fecha})`,
-          ofMadre, // mantiene OF asignada
-        ]);
-        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
-        const idx = bobinasCache.indexOf(bob);
-        if (idx >= 0) bobinasCache[idx]['Estado'] = 'transformada';
-        bobinasCache.push({
-          'Código Bobina': codHija, 'Fecha Ingreso': fecha, 'Producto': bob['Producto'],
-          'Formato (cm)': ancho, 'Kg': b.kgFin, 'Gramaje (g/m²)': gramaje, 'Mts Totales': mtsHija,
-          'Bobina Padre 1': b.cod, 'Origen': ORIGEN_TP_REMANENTE,
-          'Estado': 'disponible', 'Sector Actual': 'Tubera Papel',
-          [HEADER_OF_ASIGNADA]: ofMadre,
-        });
+        if (mtsHija < UMBRAL_REMANENTE_MTS) {
+          // Descarte: madre consumida, sin hija
+          await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+          if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'consumida';
+        } else {
+          // Madre transformada + hija con remanente impreso, mantiene OF
+          maxCounter++;
+          const codHija = `BOB-${anio}-${String(maxCounter).padStart(5,'0')}`;
+          const ofMadre = getOFAsignada(bob);
+          await appendFila('Bobinas', [
+            codHija, '', '', fecha, bob['Producto'], ancho, b.kgFin, gramaje, mtsHija,
+            b.cod, '', ORIGEN_TP_REMANENTE, 'disponible', 'Tubera Papel',
+            `Remanente impreso del parte en ${tubera} (${fmtFechaCorta(excelDateToJs(fecha))})`,
+            ofMadre,
+          ]);
+          await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
+          if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'transformada';
+          bobinasCache.push({
+            'Código Bobina': codHija, 'Fecha Ingreso': fecha, 'Producto': bob['Producto'],
+            'Formato (cm)': ancho, 'Kg': b.kgFin, 'Gramaje (g/m²)': gramaje, 'Mts Totales': mtsHija,
+            'Bobina Padre 1': b.cod, 'Origen': ORIGEN_TP_REMANENTE,
+            'Estado': 'disponible', 'Sector Actual': 'Tubera Papel',
+            [HEADER_OF_ASIGNADA]: ofMadre,
+          });
+        }
       }
     }
 
