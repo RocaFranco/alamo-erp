@@ -2415,13 +2415,17 @@
         <input type="hidden" name="of" id="tp-form-of">
         <input type="hidden" name="tubera" id="tp-form-tubera">
 
-        <label class="field">
+        <label class="field field-2">
           <span>Fecha</span>
           <input type="date" name="fecha" id="tp-form-fecha" required>
         </label>
         <label class="field">
           <span>Legajo Operario</span>
           <input type="text" name="legajo_op" required placeholder="Ej: 499">
+        </label>
+        <label class="field">
+          <span>Legajo Ayudante</span>
+          <input type="text" name="legajo_ay" placeholder="Opcional">
         </label>
         <label class="field">
           <span>Hora Inicio</span>
@@ -2431,11 +2435,6 @@
           <span>Hora Fin</span>
           <input type="time" name="hora_fin" required>
         </label>
-        <label class="field">
-          <span>Legajo Ayudante</span>
-          <input type="text" name="legajo_ay" placeholder="Opcional">
-        </label>
-        <label class="field"><span></span></label>
 
         <label class="field">
           <span>Bolsas Producidas en este parte</span>
@@ -7146,11 +7145,16 @@ function renderMaquinaTP(maqCod) {
           <button type="button" class="btn-cerrar-of-pend" title="Bobina se acabó físicamente (marca consumida, no vuelve a stock)" onclick="terminarBobinaSlotTP('${maqCod}','${bob['Código Bobina']}')">⚫ Terminada</button>
         </div>`;
     } else {
+      // Si no hay OF activa, deshabilitar [Nueva+]: sin OF el sistema no sabe qué ancho/Nombre Bolsa validar
+      const sinOF = !ofActual;
+      const btnHtml = sinOF
+        ? `<button type="button" class="btn-cargar-parte" disabled title="Elegí una OF primero (arriba) para poder cargar bobinas a los slots">🟢 Nueva+</button>`
+        : `<button type="button" class="btn-cargar-parte" onclick="abrirModalCargarBobTP('${maqCod}',${slotN})">🟢 Nueva+</button>`;
       slotsHTML += `
         <div style="display:flex;align-items:center;gap:14px;padding:14px;background:rgba(255,255,255,0.02);border:1px dashed var(--bg-3);border-radius:8px;margin-bottom:8px">
           <div style="font-size:11px;color:var(--text-3);min-width:60px">Slot ${slotN}</div>
-          <div style="flex:1;color:var(--text-3);font-style:italic">Vacío</div>
-          <button type="button" class="btn-cargar-parte" onclick="abrirModalCargarBobTP('${maqCod}',${slotN})">🟢 Nueva+</button>
+          <div style="flex:1;color:var(--text-3);font-style:italic">${sinOF ? 'Elegí una OF arriba para empezar a cargar' : 'Vacío'}</div>
+          ${btnHtml}
         </div>`;
     }
   }
@@ -7948,9 +7952,16 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     });
 
     eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
+    showFormMsg('tp-msg', `✓ Parte cargado como Pendiente · ${bolsas} bolsas. Aprobálo desde "Partes cargados" para descontar mts.`, true);
+    // Recargar cache del Sheet para que el parte nuevo tenga _rowIndex correcto.
+    // Sin esto, los botones Aprobar/Rechazar no funcionan (no encuentran la fila).
+    try {
+      const eventosFresh = await leerPestana('Tubera Papel').catch(() => []);
+      tpEventosCache = eventosFresh || tpEventosCache;
+      eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
+    } catch (e) { console.warn('No se pudo recargar Tubera Papel cache:', e); }
     renderColaTP();
     renderPartesTP();
-    showFormMsg('tp-msg', `✓ Parte cargado como Pendiente · ${bolsas} bolsas. El supervisor tiene que aprobarlo para que se descuenten los mts.`, true);
     setTimeout(() => {
       cerrarModalParteTP();
       delete f.dataset.guardando;
