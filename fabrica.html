@@ -7100,7 +7100,8 @@ function renderMaquinaTP(maqCod) {
             <div style="font-family:'DM Mono',monospace;color:var(--accent);font-weight:700">${bob['Código Bobina']}</div>
             <div style="font-size:12px;color:var(--text-2);margin-top:2px">${bob['Producto']||'—'} · ${bob['Formato (cm)']||'?'} cm · ${fmtNum(bob['Mts Totales'])} m disp.</div>
           </div>
-          <button type="button" class="btn-rechazar" onclick="vaciarBobinaSlotTP('${maqCod}','${bob['Código Bobina']}')">🔴 Vaciar</button>
+          <button type="button" class="btn-rechazar" title="Sacar bobina con sus mts restantes (vuelve a stock)" onclick="vaciarBobinaSlotTP('${maqCod}','${bob['Código Bobina']}')">🔴 Vaciar</button>
+          <button type="button" class="btn-cerrar-of-pend" title="Bobina se acabó físicamente (marca consumida, no vuelve a stock)" onclick="terminarBobinaSlotTP('${maqCod}','${bob['Código Bobina']}')">⚫ Terminada</button>
         </div>`;
     } else {
       slotsHTML += `
@@ -7297,6 +7298,29 @@ async function vaciarBobinaSlotTP(maqCod, codBob) {
   if (!confirm(`¿Sacar la bobina ${codBob} del slot?\n\nLa bobina vuelve a stock con sus ${fmtNum(bob['Mts Totales'])} m disponibles.`)) return;
   try {
     await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
+    bob['Sector Actual'] = '';
+    renderMaquinaTP(maqCod);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+// Terminada: la bobina se acabó físicamente. Marca consumida + sale del slot.
+// A diferencia de Vaciar, NO vuelve a stock — los mts que figuraban se pierden
+// (porque físicamente no hay más bobina, aunque el sistema todavía mostrara mts).
+async function terminarBobinaSlotTP(maqCod, codBob) {
+  const bob = (bobinasCache || []).find(b => String(b['Código Bobina']||'').toUpperCase() === String(codBob).toUpperCase());
+  if (!bob || !bob._rowIndex) { alert('Bobina no encontrada en cache.'); return; }
+  const mtsRest = Number(bob['Mts Totales']) || 0;
+  let confirmMsg = `¿Marcar la bobina ${codBob} como TERMINADA?\n\nQueda como 'consumida' (estado final). Sale del slot.`;
+  if (mtsRest > 0) {
+    confirmMsg += `\n\n⚠️ El sistema decía que tenía ${fmtNum(mtsRest)} m disponibles. Confirmá solo si físicamente NO HAY más bobina (los mts del sistema se pierden).`;
+  }
+  if (!confirm(confirmMsg)) return;
+  try {
+    await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+    await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
+    bob['Estado'] = 'consumida';
     bob['Sector Actual'] = '';
     renderMaquinaTP(maqCod);
   } catch (err) {
