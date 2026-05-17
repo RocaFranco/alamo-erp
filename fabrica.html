@@ -2480,11 +2480,17 @@
       <button class="modal-close" onclick="cerrarModalCargarBobTP()" title="Cerrar">×</button>
     </div>
     <div class="modal-body">
-      <p class="form-sub" id="tp-cb-hint">Tipeá el código de la bobina que estás cargando en este slot.</p>
+      <p class="form-sub" id="tp-cb-hint">Elegí la bobina que vas a cargar en este slot.</p>
       <form id="form-tp-cargar-bob" class="form-grid">
         <label class="field field-2">
-          <span>Código de bobina</span>
-          <input type="text" name="cod" id="tp-cb-cod" required placeholder="Ej: BOB-2026-00007">
+          <span>Bobina</span>
+          <select name="cod" id="tp-cb-cod" required>
+            <option value="">— Elegir bobina —</option>
+          </select>
+        </label>
+        <label class="field field-2" style="margin:0">
+          <span>Buscar por código (opcional)</span>
+          <input type="text" id="tp-cb-buscar" placeholder="Filtrá el dropdown tipeando parte del código…">
         </label>
         <div id="tp-cb-info" class="form-sub field-2" style="margin:-4px 0 0">—</div>
         <div class="form-actions">
@@ -5296,8 +5302,10 @@ function recalcImpKPIs() {
     const mtsUltimaIni = Number(ultima.dataset.mts) || 0;
     const mtsUsadosUltima = Math.max(0, mtsUtil - sumaPrevias);
     mtsRem = mtsUltimaIni - mtsUsadosUltima - mtsDesp;
-    if (mtsRem > 0) {
-      estadoUltima = `🟢 Queda remanente → genera bobina hija`;
+    if (mtsRem >= UMBRAL_REMANENTE_MTS) {
+      estadoUltima = `🟢 Queda remanente ≥ ${UMBRAL_REMANENTE_MTS}m → genera bobina hija kraft`;
+    } else if (mtsRem > 0) {
+      estadoUltima = `⚫ Remanente < ${UMBRAL_REMANENTE_MTS}m → descarte (no se guarda hija)`;
     } else if (mtsRem >= -50) {
       estadoUltima = `🔴 Bobina consumida (cuadra)`;
     } else {
@@ -5554,7 +5562,7 @@ async function aprobarParteImp(rowIndex, numOf) {
       await crearBobinaFila({
         cod: codHija, fecha: h['Fecha'], producto: nombreBolsa,
         ancho, kg: kgHija, gramaje, mts: mtsBob, padre: cod,
-        origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: 'Tubera Papel',
+        origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: '',
         obs: `Impresa en ${h['Nº Impresora']} (parte ${fmtFechaCorta(excelDateToJs(h['Fecha']))})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
         ofAsignada: ofAsignadaParaHija,
       });
@@ -5581,7 +5589,7 @@ async function aprobarParteImp(rowIndex, numOf) {
         await crearBobinaFila({
           cod: codHijaImp, fecha: fechaUlt, producto: nombreBolsa,
           ancho, kg: kgImp, gramaje, mts: mtsImpresos, padre: codUlt,
-          origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: 'Tubera Papel',
+          origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: '',
           obs: `Impresa en ${ultima['Nº Impresora']} (parte ${fechaUltTxt})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
           ofAsignada: ofAsignadaParaHija,
         });
@@ -7190,9 +7198,60 @@ function abrirModalCargarBobTP(maqCod, slotN) {
   } else {
     hint.innerHTML = 'Slot ' + slotN + ': bobina <strong>KRAFT</strong> (capa de refuerzo). Solo valida que el ancho sea compatible.';
   }
+  poblarDropdownBobinasTP(maqCod, slotN, '');
   const msg = document.getElementById('tp-cb-msg'); msg.textContent = ''; msg.className = 'form-msg';
   document.getElementById('tp-modal-cargar-bob').style.display = 'flex';
-  setTimeout(() => document.getElementById('tp-cb-cod').focus(), 100);
+  setTimeout(() => document.getElementById('tp-cb-buscar').focus(), 100);
+}
+
+// Pobla el dropdown con bobinas disponibles compatibles + filtro de búsqueda opcional
+function poblarDropdownBobinasTP(maqCod, slotN, filtroTxt) {
+  const sel = document.getElementById('tp-cb-cod');
+  if (!sel) return;
+  const ofActual = ofActualEnMaquinaTP(maqCod);
+  const of = ofActual ? (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === ofActual) : null;
+  const anchoOF = of ? Number(of['Ancho (cm)']) || 0 : 0;
+  const ofImp = of ? ofImprime(of) : false;
+  const nombreBolsa = of ? String(of['Nombre Bolsa']||'').trim() : '';
+  const fNorm = String(filtroTxt||'').trim().toUpperCase();
+
+  // Candidatas: disponibles, sin Sector Actual (en stock libre), ancho ≥ OF si hay OF
+  let candidatas = (bobinasCache || []).filter(b => {
+    if (String(b['Estado']||'').toLowerCase() !== 'disponible') return false;
+    const sa = String(b['Sector Actual']||'').trim();
+    if (sa && sa !== maqCod) return false; // no debe estar en otra máquina
+    if (anchoOF) {
+      const aB = Number(b['Formato (cm)']) || 0;
+      if (aB < anchoOF) return false; // bobina más chica → bloquea
+    }
+    if (fNorm && !String(b['Código Bobina']||'').toUpperCase().includes(fNorm)) return false;
+    return true;
+  });
+
+  // Prioridad: si es slot 1 y la OF imprime, mostrar primero las impresas del Nombre Bolsa correcto
+  if (slotN === 1 && ofImp && nombreBolsa) {
+    candidatas.sort((a, b) => {
+      const aMatch = String(a['Origen']||'').includes('Impresión-impresa') && String(a['Producto']||'').trim() === nombreBolsa ? 0 : 1;
+      const bMatch = String(b['Origen']||'').includes('Impresión-impresa') && String(b['Producto']||'').trim() === nombreBolsa ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+      return (b._rowIndex||0) - (a._rowIndex||0); // las más nuevas primero
+    });
+  } else {
+    candidatas.sort((a, b) => (b._rowIndex||0) - (a._rowIndex||0));
+  }
+
+  const opts = candidatas.slice(0, 200).map(b => {
+    const cod = b['Código Bobina'];
+    const prod = b['Producto']||'—';
+    const ancho = b['Formato (cm)']||'?';
+    const mts = fmtNum(b['Mts Totales']||0);
+    const tagImp = String(b['Origen']||'').includes('Impresión-impresa') ? ' · 🖨️ IMPRESA' : '';
+    return `<option value="${cod}">${cod} · ${prod} · ${ancho} cm · ${mts} m${tagImp}</option>`;
+  }).join('');
+  sel.innerHTML = '<option value="">— Elegir bobina —</option>' + opts;
+  if (!candidatas.length) {
+    sel.innerHTML = '<option value="">— No hay bobinas compatibles disponibles —</option>';
+  }
 }
 
 function cerrarModalCargarBobTP() {
@@ -7202,8 +7261,14 @@ document.getElementById('tp-modal-cargar-bob').addEventListener('click', e => {
   if (e.target.id === 'tp-modal-cargar-bob') cerrarModalCargarBobTP();
 });
 
-// Valida el código tipeado: existe + disponible + ancho compatible + (si slot 1) Nombre Bolsa coincide
-document.getElementById('tp-cb-cod').addEventListener('input', () => {
+// Buscar dentro del dropdown (filtro de texto)
+document.getElementById('tp-cb-buscar').addEventListener('input', () => {
+  const f = document.getElementById('form-tp-cargar-bob');
+  poblarDropdownBobinasTP(f.dataset.maq, Number(f.dataset.slot), document.getElementById('tp-cb-buscar').value);
+});
+
+// Valida la bobina seleccionada del dropdown
+document.getElementById('tp-cb-cod').addEventListener('change', () => {
   const cod = String(document.getElementById('tp-cb-cod').value || '').trim().toUpperCase();
   const info = document.getElementById('tp-cb-info');
   const btn = document.getElementById('tp-cb-submit');
