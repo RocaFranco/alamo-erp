@@ -1744,6 +1744,11 @@
 
       <!-- PARTES CARGADOS -->
       <div class="subpanel" id="tp-panel-partes">
+        <!-- Toggle Pendientes / Aprobados -->
+        <div class="mnt-toggles">
+          <button type="button" class="cola-toggle active" data-tp-vista-partes="pendientes">🟡 Pendientes <span class="badge-num" id="tp-tg-pend">0</span></button>
+          <button type="button" class="cola-toggle" data-tp-vista-partes="aprobados">✓ Aprobados <span class="badge-num" id="tp-tg-apr">0</span></button>
+        </div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
@@ -1756,11 +1761,11 @@
                 <th>Nº OF</th>
                 <th class="num">Bolsas</th>
                 <th class="num">Kg desperd.</th>
-                <th>Bobinas sacadas</th>
+                <th class="num">Acciones</th>
               </tr>
             </thead>
             <tbody id="tp-partes-body">
-              <tr><td colspan="10" class="empty">Sin partes cargados todavía.</td></tr>
+              <tr><td colspan="9" class="empty">Sin partes cargados todavía.</td></tr>
             </tbody>
           </table>
         </div>
@@ -6912,7 +6917,9 @@ document.addEventListener('keydown', (e) => {
 let tpEventosCache = [];
 let tpOFsCache = [];
 let tpMaquinasCache = [];
+let tpEstadoMaqCache = []; // pestaña "Estado Maquinas": {Máquina, OF Actual, Fecha Inicio, Legajo}
 let tpVista = 'activas';
+let tpVistaPartes = 'pendientes'; // toggle Pendientes/Aprobados en sub-tab Partes cargados
 let tpSubTab = 'cola';
 let tpBobIdx = 0;
 let tpOfIdx = 0;
@@ -6963,9 +6970,18 @@ function bobinasEnMaquinaTP(maqCod) {
   });
 }
 
-// OF actualmente "activa" en una máquina: si hay bobina impresa en slot 1,
-// la OF es la asignada o (si no tiene OF asignada) el operario tendrá que elegir.
+// OF actualmente "activa" en una máquina.
+// Primero busca en pestaña Estado Maquinas (fuente de verdad si el operario eligió OF).
+// Fallback: si hay bobina impresa en slot 1, se infiere de su Nº OF Asignada.
 function ofActualEnMaquinaTP(maqCod) {
+  // 1. Buscar en Estado Maquinas
+  const fila = (tpEstadoMaqCache || []).find(e =>
+    String(e['Máquina']||'').trim().toUpperCase() === String(maqCod).trim().toUpperCase()
+  );
+  if (fila && String(fila['OF Actual']||'').trim()) {
+    return String(fila['OF Actual']).trim();
+  }
+  // 2. Fallback: inferir de bobina impresa en slot 1
   const bobs = bobinasEnMaquinaTP(maqCod);
   if (!bobs.length) return null;
   const impresa = bobs.find(b => String(b['Origen']||'').includes('Impresión-impresa'));
@@ -6976,6 +6992,30 @@ function ofActualEnMaquinaTP(maqCod) {
   return null;
 }
 
+// Setea la OF actual de una máquina en el Sheet (Estado Maquinas).
+// Si ya hay fila para esa máquina → actualiza. Si no → append nueva.
+async function setOFActualEnMaquinaTP(maqCod, numOF, legajo) {
+  const fila = (tpEstadoMaqCache || []).find(e =>
+    String(e['Máquina']||'').trim().toUpperCase() === maqCod.toUpperCase()
+  );
+  const fecha = new Date().toISOString().slice(0,10);
+  if (fila && fila._rowIndex) {
+    await actualizarCeldaEnFila('Estado Maquinas', fila._rowIndex, 'OF Actual', numOF || '');
+    await actualizarCeldaEnFila('Estado Maquinas', fila._rowIndex, 'Fecha Inicio', numOF ? fecha : '');
+    await actualizarCeldaEnFila('Estado Maquinas', fila._rowIndex, 'Legajo', numOF ? legajo : '');
+    fila['OF Actual'] = numOF || '';
+    fila['Fecha Inicio'] = numOF ? fecha : '';
+    fila['Legajo'] = numOF ? legajo : '';
+  } else {
+    // Append nueva fila
+    await appendFila('Estado Maquinas', [maqCod, numOF || '', numOF ? fecha : '', numOF ? legajo : '']);
+    tpEstadoMaqCache.push({
+      'Máquina': maqCod, 'OF Actual': numOF || '',
+      'Fecha Inicio': numOF ? fecha : '', 'Legajo': numOF ? legajo : '',
+    });
+  }
+}
+
 // Renderiza el contenido del tab de una máquina específica (los 5 slots con sus bobinas)
 function renderMaquinaTP(maqCod) {
   const cont = document.querySelector(`.maq-tp-cont[data-maq="${maqCod}"]`);
@@ -6984,7 +7024,7 @@ function renderMaquinaTP(maqCod) {
   const ofActual = ofActualEnMaquinaTP(maqCod);
   const ofObj = ofActual ? (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === ofActual) : null;
 
-  // Header con info OF actual
+  // Header con info OF actual o dropdown para arrancar OF
   let headerHTML;
   if (ofObj) {
     headerHTML = `
@@ -7001,11 +7041,47 @@ function renderMaquinaTP(maqCod) {
         </div>
       </div>`;
   } else {
+    // Dropdown de OFs pendientes ordenadas por Fecha Entrega ascendente
+    const cerradasEnTP = new Set(
+      (cierresPorSectorCache || [])
+        .filter(c => String(c['Sector']||'').trim() === 'Tubera Papel')
+        .map(c => String(c['Nº OF']||'').trim())
+    );
+    const ofsPend = (tpOFsCache || [])
+      .filter(o => {
+        const estado = String(o['Estado']||'').toLowerCase();
+        if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
+        if (cerradasEnTP.has(String(o['Nº OF']||'').trim())) return false;
+        // No debe estar siendo trabajada en OTRA máquina ya
+        const otrasMaq = ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'].filter(m => m !== maqCod);
+        const yaEnOtra = otrasMaq.some(m => ofActualEnMaquinaTP(m) === String(o['Nº OF']||'').trim());
+        if (yaEnOtra) return false;
+        return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache);
+      })
+      .sort((a, b) => {
+        const fa = excelDateToJs(a['Fecha Entrega']) || new Date('9999-12-31');
+        const fb = excelDateToJs(b['Fecha Entrega']) || new Date('9999-12-31');
+        return fa - fb;
+      });
+    const opts = ofsPend.map(o => {
+      const fe = excelDateToJs(o['Fecha Entrega']);
+      const venceTxt = fe ? fmtFechaCorta(fe) : '—';
+      const diasResta = fe ? Math.ceil((fe - new Date()) / (1000*60*60*24)) : '?';
+      return `<option value="${o['Nº OF']}">${o['Nº OF']} · ${o['Cliente']||'—'} · ${o['Nombre Bolsa']||'—'} · Vence ${venceTxt} (${diasResta}d)</option>`;
+    }).join('');
+    const dropdown = ofsPend.length
+      ? `<select id="tp-arrancar-of-${maqCod}" style="flex:1;min-width:280px"><option value="">— Elegir OF —</option>${opts}</select>`
+      : `<span style="color:var(--text-3);font-size:13px;flex:1">No hay OFs pendientes para esta máquina.</span>`;
     headerHTML = `
       <div class="conv-padre-card" style="margin-bottom:16px;border:1px dashed var(--bg-3)">
-        <p style="margin:0;color:var(--text-3);text-align:center;font-size:13px">
-          Sin OF activa en ${maqCod}. Cargá una bobina impresa al slot 1 para arrancar una OF, o cargá kraft en los slots para OFs sin impresión.
+        <p style="margin:0 0 12px;color:var(--text-2);font-size:13px">
+          <strong>Sin OF activa en ${maqCod}.</strong> Elegí una OF para arrancar (ordenadas por fecha de entrega).
         </p>
+        <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+          ${dropdown}
+          <input type="text" id="tp-arrancar-leg-${maqCod}" placeholder="Legajo" style="width:120px" ${ofsPend.length ? '' : 'disabled'}>
+          <button type="button" class="btn-cargar-parte" ${ofsPend.length ? '' : 'disabled'} onclick="arrancarOFEnMaquinaTP('${maqCod}')">▶️ Arrancar OF</button>
+        </div>
       </div>`;
   }
 
@@ -7037,6 +7113,28 @@ function renderMaquinaTP(maqCod) {
   }
 
   cont.innerHTML = headerHTML + slotsHTML;
+}
+
+// ============================================================
+// ARRANCAR OF en una máquina específica
+// ============================================================
+async function arrancarOFEnMaquinaTP(maqCod) {
+  const sel = document.getElementById('tp-arrancar-of-' + maqCod);
+  const inpLeg = document.getElementById('tp-arrancar-leg-' + maqCod);
+  const numOF = sel ? sel.value : '';
+  const legajo = inpLeg ? inpLeg.value.trim() : '';
+  if (!numOF) { alert('Elegí una OF para arrancar.'); return; }
+  if (!legajo) { alert('Cargá el legajo del operario que arranca.'); return; }
+  const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
+  if (!of) { alert('OF no encontrada.'); return; }
+  if (!confirm(`¿Arrancar ${numOF} en ${maqCod}?\n\nCliente: ${of['Cliente']||'—'}\nBolsa: ${of['Nombre Bolsa']||'—'}`)) return;
+  try {
+    await setOFActualEnMaquinaTP(maqCod, numOF, legajo);
+    renderMaquinaTP(maqCod);
+    renderColaTP();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
 }
 
 // ============================================================
@@ -7216,18 +7314,30 @@ document.querySelectorAll('.cola-toggle[data-tp-vista]').forEach(btn => {
   });
 });
 
+// Toggle Pendientes / Aprobados (en sub-tab Partes cargados)
+document.querySelectorAll('.cola-toggle[data-tp-vista-partes]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tpVistaPartes = btn.dataset.tpVistaPartes;
+    document.querySelectorAll('.cola-toggle[data-tp-vista-partes]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPartesTP();
+  });
+});
+
 async function cargarTuberaPapel() {
   try {
-    const [eventos, ofs, maquinas, cierres, bobinas] = await Promise.all([
+    const [eventos, ofs, maquinas, cierres, bobinas, estadoMaq] = await Promise.all([
       leerPestana('Tubera Papel').catch(() => []),
       leerPestana('OF').catch(() => []),
       leerPestana('Máquinas').catch(() => []),
       leerPestana('Cierres de OF por Sector').catch(() => []),
       leerPestana('Bobinas').catch(() => []),
+      leerPestana('Estado Maquinas').catch(() => []),
     ]);
     tpEventosCache = eventos || [];
     tpOFsCache = ofs || [];
     tpMaquinasCache = maquinas || [];
+    tpEstadoMaqCache = estadoMaq || [];
     bobinasCache = bobinas || bobinasCache;
     cierresPorSectorCache = (cierres || []).map(c => ({
       ...c,
@@ -7262,9 +7372,13 @@ function ofImprime(of) {
   return String(of['Cadena Sectores']||'').includes('Impresión');
 }
 
+// Solo cuenta bolsas de partes APROBADOS (los pendientes/rechazados no contabilizan)
 function bolsasHechasEnTPporOF(numOF) {
   return (tpEventosCache || [])
-    .filter(e => String(e['Nº OF']||'').trim() === String(numOF||'').trim())
+    .filter(e =>
+      String(e['Nº OF']||'').trim() === String(numOF||'').trim() &&
+      String(e['Aprobado Supervisor']||'').toUpperCase() === 'SI'
+    )
     .reduce((s, e) => s + (Number(e['Bolsas Producidas']) || 0), 0);
 }
 
@@ -7283,6 +7397,11 @@ function renderColaTP() {
     const estado = String(o['Estado']||'').toLowerCase();
     if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
     return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache);
+  }).sort((a, b) => {
+    // Orden de prioridad: por Fecha Entrega ascendente (la que vence antes primero)
+    const fa = excelDateToJs(a['Fecha Entrega']) || new Date('9999-12-31');
+    const fb = excelDateToJs(b['Fecha Entrega']) || new Date('9999-12-31');
+    return fa - fb;
   });
   const ofsTerminadas = (tpOFsCache || []).filter(o => cerradasEnTP.has(String(o['Nº OF']||'').trim()));
 
@@ -7326,7 +7445,7 @@ function renderColaTP() {
       const tagMotivo = motivo ? `<span style="font-size:10px;color:var(--warn,#f5a623);display:block;margin-top:2px">⚠️ ${motivo}</span>` : '';
       accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>${tagMotivo}`;
     } else {
-      // Buscar si esta OF está siendo trabajada en alguna máquina (bobina impresa en slot 1)
+      // Solo mostrar info de qué máquina la trabaja (si alguna) — la acción "trabajar" se hace desde el tab de la máquina.
       const maqsConOF = ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'].filter(m => ofActualEnMaquinaTP(m) === num);
       const objetivo = objetivoBolsasOF(o);
       const cumple = objetivo > 0 && hechas >= objetivo;
@@ -7334,15 +7453,11 @@ function renderColaTP() {
       const tituloCierre = cumple
         ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
         : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`;
-      let infoMaqHTML;
-      if (maqsConOF.length) {
-        const tabId = 'maq-' + maqsConOF[0].toLowerCase();
-        infoMaqHTML = `<button type="button" class="btn-cargar-parte" onclick="document.querySelector('[data-tp-tab=\\'${tabId}\\']').click()">🧵 Ver ${maqsConOF[0]}</button>`;
-      } else {
-        infoMaqHTML = `<span style="font-size:10px;color:var(--text-3)">Sin máquina asignada — cargá bobina impresa en algún slot 1</span>`;
-      }
+      const tagMaq = maqsConOF.length
+        ? `<span style="font-size:10px;color:var(--accent);font-weight:600">🧵 ${maqsConOF.join(', ')}</span>`
+        : `<span style="font-size:10px;color:var(--text-3)">En espera</span>`;
       accionHTML = `
-        ${infoMaqHTML}
+        ${tagMaq}
         <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">🏁 Cerrar OF</button>
       `;
     }
@@ -7362,30 +7477,61 @@ function renderColaTP() {
 function renderPartesTP() {
   const tbody = document.getElementById('tp-partes-body');
   if (!tbody) return;
-  // Agrupar por clave de parte
-  const grupos = {};
-  (tpEventosCache || []).forEach(e => {
-    if (String(e['Tipo Evento']||'').trim() !== 'Parte de Turno') return;
-    const k = claveDeParteTP(e);
-    if (!grupos[k]) grupos[k] = [];
-    grupos[k].push(e);
-  });
-  const partes = Object.values(grupos).sort((a, b) => {
-    const fa = excelDateToJs(a[0]['Fecha']) || new Date(0);
-    const fb = excelDateToJs(b[0]['Fecha']) || new Date(0);
+  // Filtrar por vista (pendientes / aprobados)
+  let partes = (tpEventosCache || []).filter(e =>
+    String(e['Tipo Evento']||'').trim() === 'Parte de Turno'
+  );
+  if (tpVistaPartes === 'pendientes') {
+    partes = partes.filter(e => {
+      const a = String(e['Aprobado Supervisor']||'').toUpperCase();
+      return a !== 'SI' && a !== 'NO'; // Pendientes = sin decisión
+    });
+  } else if (tpVistaPartes === 'aprobados') {
+    partes = partes.filter(e => String(e['Aprobado Supervisor']||'').toUpperCase() === 'SI');
+  }
+  // Ordenar por fecha desc
+  partes.sort((a, b) => {
+    const fa = excelDateToJs(a['Fecha']) || new Date(0);
+    const fb = excelDateToJs(b['Fecha']) || new Date(0);
     return fb - fa;
   });
+  // Badges
+  const totalPend = (tpEventosCache||[]).filter(e => {
+    if (String(e['Tipo Evento']||'').trim() !== 'Parte de Turno') return false;
+    const a = String(e['Aprobado Supervisor']||'').toUpperCase();
+    return a !== 'SI' && a !== 'NO';
+  }).length;
+  const totalApr = (tpEventosCache||[]).filter(e =>
+    String(e['Tipo Evento']||'').trim() === 'Parte de Turno' &&
+    String(e['Aprobado Supervisor']||'').toUpperCase() === 'SI'
+  ).length;
+  const elPend = document.getElementById('tp-tg-pend');
+  const elApr = document.getElementById('tp-tg-apr');
+  if (elPend) elPend.textContent = totalPend;
+  if (elApr) elApr.textContent = totalApr;
+
   if (!partes.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty">Sin partes cargados todavía. Cargá uno desde la cola con el botón "Cargar Parte".</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">' +
+      (tpVistaPartes === 'pendientes' ? 'No hay partes pendientes de aprobación.' : 'No hay partes aprobados todavía.') +
+      '</td></tr>';
     return;
   }
-  tbody.innerHTML = partes.map(hermanas => {
-    const p = hermanas[0];
+  tbody.innerHTML = partes.map(p => {
     const f = excelDateToJs(p['Fecha']);
     const numOF = p['Nº OF'] || '—';
-    const bolsasTotal = hermanas.reduce((s, h) => s + (Number(h['Bolsas Producidas'])||0), 0);
-    const kgDesp = hermanas[0]['Kg Desperdicio'] || 0;
-    const bobsSacadas = hermanas[0]['Bobinas Sacadas'] || '';
+    const bolsas = Number(p['Bolsas Producidas']) || 0;
+    const kgDesp = p['Kg Desperdicio'] || 0;
+    const aprobado = String(p['Aprobado Supervisor']||'').toUpperCase();
+    let accionHTML;
+    if (aprobado === 'SI') {
+      accionHTML = '<span style="color:var(--ok)">✓ Aprobado</span>';
+    } else if (aprobado === 'NO') {
+      accionHTML = '<span style="color:var(--danger)">✗ Rechazado</span>';
+    } else {
+      accionHTML = `
+        <button type="button" class="btn-rechazar" onclick="rechazarParteTP(${p._rowIndex}, '${numOF.replace(/'/g,"\\'")}')">Rechazar</button>
+        <button type="button" class="btn-aprobar" onclick="aprobarParteTP(${p._rowIndex}, '${numOF.replace(/'/g,"\\'")}')">Aprobar</button>`;
+    }
     return `<tr>
       <td>${f ? fmtFechaCorta(f) : '—'}</td>
       <td><span class="of-num">${p['Nº Tubera']||'—'}</span></td>
@@ -7393,9 +7539,9 @@ function renderPartesTP() {
       <td>${excelTimeToHHMM(p['Hora Inicio'])||'—'}</td>
       <td>${excelTimeToHHMM(p['Hora Fin'])||'—'}</td>
       <td><span class="of-num">${numOF}</span></td>
-      <td class="num">${fmtNum(bolsasTotal)}</td>
+      <td class="num">${fmtNum(bolsas)}</td>
       <td class="num">${fmtNum(kgDesp)}</td>
-      <td>${bobsSacadas||'—'}</td>
+      <td class="num">${accionHTML}</td>
     </tr>`;
   }).join('');
 }
@@ -7578,12 +7724,17 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = 'Guardando…';
 
   try {
-    // 1 fila en Tubera Papel
+    // 1 fila en Tubera Papel — queda PENDIENTE hasta que un supervisor apruebe.
+    // Las bobinas NO se tocan en el alta. El descuento de mts ocurre al APROBAR.
+    // Columnas: Fecha · Tipo Evento · Turno · Nº Tubera · Legajos · Bobinas en Uso · Nº OF
+    //   · Bolsas Producidas · Bobinas Sacadas · Kg Bobinas Sacadas · Kg Desperdicio
+    //   · Hora Inicio · Hora Fin · Observaciones · Aprobado Supervisor
     await appendFila('Tubera Papel', [
       fecha, 'Parte de Turno', '', tubera, legajos,
       bobsEnUso, numOF, bolsas,
       '', '', kgDesp || '',
       horaIn, horaFin, com,
+      'Pendiente',
     ]);
     tpEventosCache.push({
       'Fecha': fecha, 'Tipo Evento': 'Parte de Turno', 'Turno': '',
@@ -7593,11 +7744,48 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
       'Kg Desperdicio': kgDesp || '',
       'Hora Inicio': horaIn, 'Hora Fin': horaFin,
       'Observaciones': com,
+      'Aprobado Supervisor': 'Pendiente',
     });
 
-    // Descontar mts a TODAS las bobinas en máquina (todas rotan juntas).
-    // mts consumidos por cada bobina = bolsas × largo bolsa.
-    // kg desperdicio se REPARTE proporcionalmente entre las bobinas en máquina (Opción 2 acordada).
+    eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
+    renderColaTP();
+    renderPartesTP();
+    showFormMsg('tp-msg', `✓ Parte cargado como Pendiente · ${bolsas} bolsas. El supervisor tiene que aprobarlo para que se descuenten los mts.`, true);
+    setTimeout(() => {
+      cerrarModalParteTP();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 1500);
+  } catch (err) {
+    showFormMsg('tp-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
+// ============================================================
+// APROBAR / RECHAZAR parte de Tubera Papel
+// La aprobación es la que dispara el descuento de mts a las bobinas
+// (Opción A + umbral 100mts). El rechazo solo marca la fila como NO.
+// ============================================================
+async function aprobarParteTP(rowIndex, numOF) {
+  const p = (tpEventosCache || []).find(x => x._rowIndex === rowIndex);
+  if (!p) { alert('No encontré el parte.'); return; }
+  const tubera = p['Nº Tubera'];
+  const bolsas = Number(p['Bolsas Producidas']) || 0;
+  const kgDesp = Number(p['Kg Desperdicio']) || 0;
+  // Bobinas que estaban "En Uso" cuando se cargó el parte
+  const codigosEnUso = String(p['Bobinas en Uso']||'')
+    .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+  const bobsEnMaq = codigosEnUso.map(c => bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === c)).filter(Boolean);
+  if (!confirm(`¿Aprobar parte de OF ${numOF} en ${tubera}?\n\n· ${bolsas} bolsas producidas\n· ${bobsEnMaq.length} bobina(s) en uso\n· ${kgDesp} kg desperdicio\n\nAl aprobar se descuentan los mts a las bobinas. Si alguna queda < 100m → consumida.`)) return;
+
+  try {
+    // Marcar aprobado
+    await actualizarCeldaEnFila('Tubera Papel', rowIndex, 'Aprobado Supervisor', 'SI');
+    p['Aprobado Supervisor'] = 'SI';
+
+    // Descontar mts a las bobinas en uso
     const ofObj = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
     const largoBolsaCm = ofObj ? Number(ofObj['Largo (cm)']) || 0 : 0;
     const mtsConsumidos = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
@@ -7613,7 +7801,6 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
       const idxCache = bobinasCache.indexOf(bob);
 
       if (mtsRestantes < UMBRAL_REMANENTE_MTS) {
-        // Bobina consumida (descarte si quedó muy poco)
         await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
         await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
         if (idxCache >= 0) {
@@ -7621,7 +7808,6 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
           bobinasCache[idxCache]['Sector Actual'] = '';
         }
       } else {
-        // Opción A: misma bobina con menos mts/kg
         const kgRest = Math.round(mtsRestantes * (gramaje * ancho / 100) / 1000 * 10) / 10;
         await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Mts Totales', Math.round(mtsRestantes));
         await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Kg', kgRest);
@@ -7632,22 +7818,28 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
       }
     }
 
-    eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
-    renderColaTP();
     renderPartesTP();
-    renderMaquinaTP(tubera);
-    showFormMsg('tp-msg', `✓ Parte guardado · ${bolsas} bolsas · ${bobsEnMaq.length} bobina(s) en máquina actualizadas.`, true);
-    setTimeout(() => {
-      cerrarModalParteTP();
-      delete f.dataset.guardando;
-      btn.disabled = false; btn.textContent = txtOrig;
-    }, 1100);
+    renderColaTP();
+    if (tubera) renderMaquinaTP(tubera);
+    alert(`✓ Parte aprobado · ${bolsas} bolsas · ${bobsEnMaq.length} bobina(s) actualizadas en stock.`);
   } catch (err) {
-    showFormMsg('tp-msg', '✗ Error: ' + err.message, false);
-    delete f.dataset.guardando;
-    btn.disabled = false; btn.textContent = txtOrig;
+    alert('Error al aprobar: ' + err.message);
   }
-});
+}
+
+async function rechazarParteTP(rowIndex, numOF) {
+  const p = (tpEventosCache || []).find(x => x._rowIndex === rowIndex);
+  if (!p) { alert('No encontré el parte.'); return; }
+  if (!confirm(`¿Rechazar parte de OF ${numOF}?\n\nEl parte queda marcado como rechazado pero las bobinas no se tocan (no había nada que reversar).`)) return;
+  try {
+    await actualizarCeldaEnFila('Tubera Papel', rowIndex, 'Aprobado Supervisor', 'NO');
+    p['Aprobado Supervisor'] = 'NO';
+    renderPartesTP();
+    alert(`✗ Parte rechazado.`);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
 
 // ============================================================
 // MODAL CERRAR OF EN TUBERA PAPEL
@@ -7741,7 +7933,14 @@ document.getElementById('form-tp-cierre').addEventListener('submit', async (e) =
       b[HEADER_OF_ASIGNADA] = ''; b['Nº OF Asignada'] = ''; b['N° OF Asignada'] = '';
     }
 
+    // 3. Limpiar Estado Maquinas: si esta OF estaba activa en alguna máquina, sacarla.
+    const maqsConOF = ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'].filter(m => ofActualEnMaquinaTP(m) === String(numOF).trim());
+    for (const m of maqsConOF) {
+      try { await setOFActualEnMaquinaTP(m, '', ''); } catch (e) { console.warn('No se pudo limpiar Estado Maquinas:', e); }
+    }
+
     renderColaTP();
+    maqsConOF.forEach(m => renderMaquinaTP(m));
     const msgExtra = bobsRestantes.length
       ? ` · ${bobsRestantes.length} bobina(s) impresa(s) restante(s) pasaron a stock del cliente.`
       : '';
