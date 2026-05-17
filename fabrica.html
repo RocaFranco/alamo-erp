@@ -7234,11 +7234,11 @@ function poblarDropdownBobinasTP(maqCod, slotN, filtroTxt) {
   const nombreBolsa = of ? String(of['Nombre Bolsa']||'').trim() : '';
   const fNorm = String(filtroTxt||'').trim().toUpperCase();
 
-  // Candidatas: disponibles, sin Sector Actual (en stock libre), ancho ≥ OF si hay OF
+  // Candidatas: disponibles, EN STOCK LIBRE (Sector Actual vacío — sino ya están en algún slot), ancho ≥ OF
   let candidatas = (bobinasCache || []).filter(b => {
     if (String(b['Estado']||'').toLowerCase() !== 'disponible') return false;
     const sa = String(b['Sector Actual']||'').trim();
-    if (sa && sa !== maqCod) return false; // no debe estar en otra máquina
+    if (sa) return false; // si está en algún slot (de cualquier máquina), no aparece
     if (anchoOF) {
       const aB = Number(b['Formato (cm)']) || 0;
       if (aB < anchoOF) return false; // bobina más chica → bloquea
@@ -7268,8 +7268,50 @@ function poblarDropdownBobinasTP(maqCod, slotN, filtroTxt) {
     return `<option value="${cod}">${cod} · ${prod} · ${ancho} cm · ${mts} m${tagImp}</option>`;
   }).join('');
   sel.innerHTML = '<option value="">— Elegir bobina —</option>' + opts;
+
+  // Si el operario buscó por código y NO hay candidatas, mostrar mensaje claro de POR QUÉ.
+  const info = document.getElementById('tp-cb-info');
   if (!candidatas.length) {
     sel.innerHTML = '<option value="">— No hay bobinas compatibles disponibles —</option>';
+    if (fNorm) {
+      // Buscar la bobina en el cache para explicar el motivo
+      const bobBuscada = (bobinasCache || []).find(b =>
+        String(b['Código Bobina']||'').toUpperCase().includes(fNorm)
+      );
+      if (bobBuscada) {
+        const est = String(bobBuscada['Estado']||'').toLowerCase();
+        const sa = String(bobBuscada['Sector Actual']||'').trim();
+        let motivo = '';
+        if (est === 'transformada') motivo = `está \`transformada\` (ya se procesó en algún sector)`;
+        else if (est === 'consumida') motivo = `está \`consumida\` (se acabó físicamente)`;
+        else if (est === 'desperdicio') motivo = `está marcada como \`desperdicio\``;
+        else if (sa) motivo = `ya está cargada en \`${sa}\``;
+        else if (anchoOF) {
+          const aB = Number(bobBuscada['Formato (cm)']) || 0;
+          if (aB && aB < anchoOF) motivo = `tiene ancho ${aB} cm — la OF necesita ${anchoOF} cm (no se puede achicar)`;
+        }
+        if (motivo) {
+          info.innerHTML = `⚠️ <strong>${bobBuscada['Código Bobina']}</strong> existe pero ${motivo}.`;
+          info.style.color = 'var(--warn, #f5a623)';
+        } else {
+          info.innerHTML = `⚠️ <strong>${bobBuscada['Código Bobina']}</strong> no cumple los filtros (revisá ancho/estado).`;
+          info.style.color = 'var(--warn, #f5a623)';
+        }
+      } else {
+        info.textContent = `✗ No existe ninguna bobina con código "${fNorm}".`;
+        info.style.color = 'var(--danger)';
+      }
+    } else {
+      info.textContent = '—';
+      info.style.color = '';
+    }
+  } else if (fNorm) {
+    // Hay resultados pero el operario está filtrando
+    info.textContent = `${candidatas.length} bobina(s) coinciden con "${fNorm}".`;
+    info.style.color = 'var(--text-3)';
+  } else {
+    info.textContent = '—';
+    info.style.color = '';
   }
 }
 
