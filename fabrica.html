@@ -7069,19 +7069,27 @@ function renderMaquinaTP(maqCod) {
       const diasResta = fe ? Math.ceil((fe - new Date()) / (1000*60*60*24)) : '?';
       return `<option value="${o['Nº OF']}">${o['Nº OF']} · ${o['Cliente']||'—'} · ${o['Nombre Bolsa']||'—'} · Vence ${venceTxt} (${diasResta}d)</option>`;
     }).join('');
-    const dropdown = ofsPend.length
-      ? `<select id="tp-arrancar-of-${maqCod}" style="flex:1;min-width:280px"><option value="">— Elegir OF —</option>${opts}</select>`
-      : `<span style="color:var(--text-3);font-size:13px;flex:1">No hay OFs pendientes para esta máquina.</span>`;
     headerHTML = `
       <div class="conv-padre-card" style="margin-bottom:16px;border:1px dashed var(--bg-3)">
-        <p style="margin:0 0 12px;color:var(--text-2);font-size:13px">
-          <strong>Sin OF activa en ${maqCod}.</strong> Elegí una OF para arrancar (ordenadas por fecha de entrega).
+        <p style="margin:0 0 14px;color:var(--text-2);font-size:13px">
+          <strong>Sin OF activa en ${maqCod}.</strong> Elegí una OF para arrancar (ordenadas por fecha de entrega). Al arrancar, el sistema valida que tengas las bobinas necesarias en los slots.
         </p>
-        <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
-          ${dropdown}
-          <input type="text" id="tp-arrancar-leg-${maqCod}" placeholder="Legajo" style="width:120px" ${ofsPend.length ? '' : 'disabled'}>
-          <button type="button" class="btn-cargar-parte" ${ofsPend.length ? '' : 'disabled'} onclick="arrancarOFEnMaquinaTP('${maqCod}')">▶️ Arrancar OF</button>
-        </div>
+        ${ofsPend.length ? `
+          <div class="form-grid" style="margin:0">
+            <label class="field field-2" style="margin:0">
+              <span>OF a trabajar</span>
+              <select id="tp-arrancar-of-${maqCod}"><option value="">— Elegir OF —</option>${opts}</select>
+            </label>
+            <label class="field" style="margin:0">
+              <span>Legajo del operario</span>
+              <input type="text" id="tp-arrancar-leg-${maqCod}" placeholder="Ej: 499">
+            </label>
+            <div class="field" style="margin:0;justify-content:flex-end">
+              <span style="visibility:hidden">.</span>
+              <button type="button" class="btn-cargar-parte" onclick="arrancarOFEnMaquinaTP('${maqCod}')">▶️ Arrancar OF</button>
+            </div>
+          </div>
+        ` : `<p style="color:var(--text-3);font-size:13px;margin:0">No hay OFs pendientes para esta máquina.</p>`}
       </div>`;
   }
 
@@ -7128,7 +7136,32 @@ async function arrancarOFEnMaquinaTP(maqCod) {
   if (!legajo) { alert('Cargá el legajo del operario que arranca.'); return; }
   const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
   if (!of) { alert('OF no encontrada.'); return; }
-  if (!confirm(`¿Arrancar ${numOF} en ${maqCod}?\n\nCliente: ${of['Cliente']||'—'}\nBolsa: ${of['Nombre Bolsa']||'—'}`)) return;
+
+  // VALIDACIÓN DE CAPAS (Franco 2026-05-17):
+  // Capas esperadas = Cant Capas de la OF + (1 si Lleva PE = SI).
+  // La cantidad de bobinas cargadas en los slots tiene que ser EXACTAMENTE esa.
+  const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
+  const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
+  const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
+  const bobsEnMaq = bobinasEnMaquinaTP(maqCod);
+  const capasCargadas = bobsEnMaq.length;
+
+  if (!capasEsperadas) {
+    alert(`⚠️ La OF ${numOF} no tiene 'Cantidad Capas' definida en el Sheet. Cargala antes de arrancar.`);
+    return;
+  }
+  if (capasCargadas !== capasEsperadas) {
+    const detalleLleva = llevaPE ? ` (${cantCapasOF} de papel + 1 de Lámina PE)` : '';
+    alert(
+      `⚠️ No se puede arrancar: faltan bobinas en los slots.\n\n` +
+      `La OF ${numOF} necesita ${capasEsperadas} capas${detalleLleva}.\n` +
+      `Tenés ${capasCargadas} bobina(s) cargada(s) en ${maqCod}.\n\n` +
+      `Cargá las que faltan con 🟢 Nueva+ (o sacá las que sobren con 🔴 Vaciar) antes de arrancar.`
+    );
+    return;
+  }
+
+  if (!confirm(`¿Arrancar ${numOF} en ${maqCod}?\n\nCliente: ${of['Cliente']||'—'}\nBolsa: ${of['Nombre Bolsa']||'—'}\nCapas: ${capasEsperadas}${llevaPE ? ' (incluye Lámina PE)' : ''}`)) return;
   try {
     await setOFActualEnMaquinaTP(maqCod, numOF, legajo);
     renderMaquinaTP(maqCod);
