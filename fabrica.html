@@ -1691,7 +1691,9 @@
       <div class="subtabs">
         <button type="button" class="subtab-btn active" data-tp-tab="cola">📋 OFs en cola</button>
         <button type="button" class="subtab-btn" data-tp-tab="partes">📝 Partes cargados</button>
-        <button type="button" class="subtab-btn" data-tp-tab="bobinas">🧵 Bobinas en máquina</button>
+        <button type="button" class="subtab-btn" data-tp-tab="maq-tub-papel-1">🧵 TUB-PAPEL-1</button>
+        <button type="button" class="subtab-btn" data-tp-tab="maq-tub-papel-2">🧵 TUB-PAPEL-2</button>
+        <button type="button" class="subtab-btn" data-tp-tab="maq-tub-papel-3">🧵 TUB-PAPEL-3</button>
       </div>
 
       <!-- OFs EN COLA -->
@@ -1764,10 +1766,19 @@
         </div>
       </div>
 
-      <!-- BOBINAS EN MÁQUINA -->
-      <div class="subpanel" id="tp-panel-bobinas">
-        <p class="form-sub" style="margin-bottom:14px">Vista en vivo de qué bobinas estuvieron en uso en el último parte de cada tubera. Sirve de referencia para el próximo turno.</p>
-        <div id="tp-bobinas-maquinas" class="conv-block-list"></div>
+      <!-- MÁQUINA TUB-PAPEL-1 -->
+      <div class="subpanel" id="tp-panel-maq-tub-papel-1">
+        <div class="maq-tp-cont" data-maq="TUB-PAPEL-1"></div>
+      </div>
+
+      <!-- MÁQUINA TUB-PAPEL-2 -->
+      <div class="subpanel" id="tp-panel-maq-tub-papel-2">
+        <div class="maq-tp-cont" data-maq="TUB-PAPEL-2"></div>
+      </div>
+
+      <!-- MÁQUINA TUB-PAPEL-3 -->
+      <div class="subpanel" id="tp-panel-maq-tub-papel-3">
+        <div class="maq-tp-cont" data-maq="TUB-PAPEL-3"></div>
       </div>
     </section>
     <section class="panel" id="panel-sec-tubera-rafia">
@@ -2378,47 +2389,34 @@
 
 <!-- Modal Cargar Parte de Tubera Papel (1 OF por parte, modelo flujo continuo) -->
 <div class="modal-overlay" id="tp-modal-parte" style="display:none">
-  <div class="modal-card" style="max-width:820px">
+  <div class="modal-card" style="max-width:680px">
     <div class="modal-head">
-      <h3>📜 Cargar parte — Tubera Papel</h3>
+      <h3>📜 Cargar parte — <span id="tp-modal-titulo">Tubera Papel</span></h3>
       <button class="modal-close" onclick="cerrarModalParteTP()" title="Cerrar">×</button>
     </div>
     <div class="modal-body">
-      <form id="form-tp" class="form-grid">
-        <!-- Selección de OF (1 sola) — siempre arriba para que primero se elija la OF y después se filtren las bobinas -->
-        <label class="field field-2">
-          <span>OF a trabajar</span>
-          <select name="of" id="tp-form-of" required>
-            <option value="">— Elegir OF —</option>
-          </select>
-        </label>
-
-        <!-- Info pre-cargada de la OF -->
-        <div class="conv-padre-card field-2" id="tp-of-info" style="margin-bottom:8px; display:none">
-          <div class="padre-info-grid">
-            <div class="item"><small>Cliente</small><strong id="tp-of-cli">—</strong></div>
-            <div class="item"><small>Nombre Bolsa</small><strong id="tp-of-bolsa">—</strong></div>
-            <div class="item"><small>Cant pedida</small><strong id="tp-of-cant">—</strong></div>
-            <div class="item"><small>¿Imprime?</small><strong id="tp-of-imp">—</strong></div>
-          </div>
+      <!-- Info pre-cargada de la OF + máquina -->
+      <div class="conv-padre-card" id="tp-of-info" style="margin-bottom:14px">
+        <div class="padre-info-grid">
+          <div class="item"><small>Cliente</small><strong id="tp-of-cli">—</strong></div>
+          <div class="item"><small>Nombre Bolsa</small><strong id="tp-of-bolsa">—</strong></div>
+          <div class="item"><small>Cant pedida</small><strong id="tp-of-cant">—</strong></div>
+          <div class="item"><small>Máquina</small><strong id="tp-of-maq">—</strong></div>
         </div>
+        <p class="form-sub" id="tp-bobs-en-maq" style="margin:8px 0 0">—</p>
+      </div>
 
-        <!-- Header del parte -->
+      <form id="form-tp" class="form-grid">
+        <input type="hidden" name="of" id="tp-form-of">
+        <input type="hidden" name="tubera" id="tp-form-tubera">
+
         <label class="field">
           <span>Fecha</span>
           <input type="date" name="fecha" id="tp-form-fecha" required>
         </label>
         <label class="field">
-          <span>Nº Tubera</span>
-          <select name="tubera" id="tp-form-tubera" required><option value="">— Elegir —</option></select>
-        </label>
-        <label class="field">
           <span>Legajo Operario</span>
           <input type="text" name="legajo_op" required placeholder="Ej: 499">
-        </label>
-        <label class="field">
-          <span>Legajo Ayudante</span>
-          <input type="text" name="legajo_ay" placeholder="Opcional">
         </label>
         <label class="field">
           <span>Hora Inicio</span>
@@ -2428,21 +2426,15 @@
           <span>Hora Fin</span>
           <input type="time" name="hora_fin" required>
         </label>
+        <label class="field">
+          <span>Legajo Ayudante</span>
+          <input type="text" name="legajo_ay" placeholder="Opcional">
+        </label>
+        <label class="field"><span></span></label>
 
-        <!-- Bobinas usadas en el parte -->
-        <div class="conv-block field-2">
-          <div class="conv-block-title">🧵 Bobinas usadas en este parte</div>
-          <p class="form-sub" style="margin:0 0 10px" id="tp-bobinas-hint">Elegí la OF primero para ver las bobinas disponibles.</p>
-          <div id="tp-bobinas-list">
-            <!-- filas dinámicas -->
-          </div>
-          <button type="button" class="btn-secondary" id="tp-bobina-add" style="margin-top:8px" disabled>+ Sumar bobina</button>
-        </div>
-
-        <!-- Producción del parte -->
         <label class="field">
           <span>Bolsas Producidas en este parte</span>
-          <input type="number" name="bolsas" id="tp-form-bolsas" step="1" min="0" required placeholder="Total fabricado en este turno">
+          <input type="number" name="bolsas" id="tp-form-bolsas" step="1" min="0" required placeholder="Total fabricado">
         </label>
         <label class="field">
           <span>Kg Desperdicio del parte</span>
@@ -2455,10 +2447,9 @@
           <div class="padre-info-grid">
             <div class="item"><small>Mts utilizados (bolsas × largo)</small><strong id="tp-calc-mts-util">—</strong></div>
             <div class="item"><small>Mts desperdicio (kg → mts)</small><strong id="tp-calc-mts-desp">—</strong></div>
-            <div class="item"><small>Mts remanente última bobina</small><strong id="tp-calc-mts-rem">—</strong></div>
-            <div class="item"><small>Estado última bobina</small><strong id="tp-calc-estado-ultima">—</strong></div>
             <div class="item"><small>KPI Bolsas/Min</small><strong id="tp-calc-bolsas-min">—</strong></div>
           </div>
+          <p class="form-sub" style="margin:8px 0 0">Las bobinas que están en los slots de la máquina se descuentan automáticamente.</p>
         </div>
 
         <label class="field field-2">
@@ -2472,6 +2463,31 @@
         </div>
       </form>
       <div id="tp-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal [Nueva+] cargar bobina a slot -->
+<div class="modal-overlay" id="tp-modal-cargar-bob" style="display:none">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-head">
+      <h3>🟢 Cargar bobina al slot <span id="tp-cb-slot">?</span> — <span id="tp-cb-maq">?</span></h3>
+      <button class="modal-close" onclick="cerrarModalCargarBobTP()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-sub" id="tp-cb-hint">Tipeá el código de la bobina que estás cargando en este slot.</p>
+      <form id="form-tp-cargar-bob" class="form-grid">
+        <label class="field field-2">
+          <span>Código de bobina</span>
+          <input type="text" name="cod" id="tp-cb-cod" required placeholder="Ej: BOB-2026-00007">
+        </label>
+        <div id="tp-cb-info" class="form-sub field-2" style="margin:-4px 0 0">—</div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalCargarBobTP()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="tp-cb-submit" disabled>Cargar al slot</button>
+        </div>
+      </form>
+      <div id="tp-cb-msg" class="form-msg"></div>
     </div>
   </div>
 </div>
@@ -6913,9 +6929,282 @@ document.querySelectorAll('[data-tp-tab]').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('#panel-sec-tubera-papel .subpanel').forEach(p => p.classList.remove('active'));
     document.getElementById('tp-panel-' + tpSubTab).classList.add('active');
-    if (tpSubTab === 'bobinas') renderBobinasMaquinaTP();
+    // Si se cambia a un tab de máquina (maq-tub-papel-N) → renderizar slots
+    if (tpSubTab.startsWith('maq-')) {
+      const maqCod = tpSubTab.replace('maq-', '').toUpperCase(); // tub-papel-1 → TUB-PAPEL-1
+      renderMaquinaTP(maqCod);
+    }
   });
 });
+
+// ============================================================
+// MODELO MÁQUINAS CON SLOTS (Franco 2026-05-17)
+// Cada tubera tiene 5 slots. Slot 1 = bobina impresa (define la OF que
+// se trabaja). Slots 2-5 = bobinas kraft de capas (intercambiables).
+// Las bobinas viven en el Sheet con Sector Actual = "TUB-PAPEL-N".
+// La OF "activa" de una máquina se infiere de la bobina del slot 1.
+// ============================================================
+const TP_SLOTS = 5; // máximo de slots por tubera
+
+// Devuelve las bobinas actualmente en una máquina, ordenadas para los slots.
+// Slot 1 → la bobina impresa (Origen=Impresión-impresa o TP-remanente).
+// Slots 2..N → las demás (kraft, en orden de _rowIndex).
+function bobinasEnMaquinaTP(maqCod) {
+  const cargadas = (bobinasCache || []).filter(b =>
+    String(b['Sector Actual']||'').trim() === maqCod &&
+    String(b['Estado']||'').trim().toLowerCase() === 'disponible'
+  );
+  // Ordenar: las impresas primero, luego resto por _rowIndex (orden de carga)
+  return cargadas.sort((a, b) => {
+    const ai = String(a['Origen']||'').includes('Impresión-impresa') ? 0 : 1;
+    const bi = String(b['Origen']||'').includes('Impresión-impresa') ? 0 : 1;
+    if (ai !== bi) return ai - bi;
+    return (a._rowIndex||0) - (b._rowIndex||0);
+  });
+}
+
+// OF actualmente "activa" en una máquina: si hay bobina impresa en slot 1,
+// la OF es la asignada o (si no tiene OF asignada) el operario tendrá que elegir.
+function ofActualEnMaquinaTP(maqCod) {
+  const bobs = bobinasEnMaquinaTP(maqCod);
+  if (!bobs.length) return null;
+  const impresa = bobs.find(b => String(b['Origen']||'').includes('Impresión-impresa'));
+  if (impresa) {
+    const ofAsig = getOFAsignada(impresa);
+    if (ofAsig) return ofAsig;
+  }
+  return null;
+}
+
+// Renderiza el contenido del tab de una máquina específica (los 5 slots con sus bobinas)
+function renderMaquinaTP(maqCod) {
+  const cont = document.querySelector(`.maq-tp-cont[data-maq="${maqCod}"]`);
+  if (!cont) return;
+  const bobsEnMaq = bobinasEnMaquinaTP(maqCod);
+  const ofActual = ofActualEnMaquinaTP(maqCod);
+  const ofObj = ofActual ? (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === ofActual) : null;
+
+  // Header con info OF actual
+  let headerHTML;
+  if (ofObj) {
+    headerHTML = `
+      <div class="conv-padre-card" style="margin-bottom:16px">
+        <div class="padre-info-grid">
+          <div class="item"><small>OF actual</small><strong>${ofActual}</strong></div>
+          <div class="item"><small>Cliente</small><strong>${ofObj['Cliente']||'—'}</strong></div>
+          <div class="item"><small>Nombre Bolsa</small><strong>${ofObj['Nombre Bolsa']||'—'}</strong></div>
+          <div class="item"><small>Cant pedida</small><strong>${fmtNum(ofObj['Cant Bolsas'])}</strong></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTP('${ofActual}','${maqCod}')">📝 Cargar Parte</button>
+          <button type="button" class="btn-cerrar-of-ok" onclick="abrirModalCierreTP('${ofActual}')">🏁 Terminar OF</button>
+        </div>
+      </div>`;
+  } else {
+    headerHTML = `
+      <div class="conv-padre-card" style="margin-bottom:16px;border:1px dashed var(--bg-3)">
+        <p style="margin:0;color:var(--text-3);text-align:center;font-size:13px">
+          Sin OF activa en ${maqCod}. Cargá una bobina impresa al slot 1 para arrancar una OF, o cargá kraft en los slots para OFs sin impresión.
+        </p>
+      </div>`;
+  }
+
+  // Slots
+  let slotsHTML = '';
+  for (let i = 0; i < TP_SLOTS; i++) {
+    const bob = bobsEnMaq[i];
+    const slotN = i + 1;
+    if (bob) {
+      const esImpresa = String(bob['Origen']||'').includes('Impresión-impresa');
+      const tag = esImpresa ? '<span style="font-size:10px;color:var(--accent);font-weight:600;letter-spacing:0.5px;margin-left:6px">IMPRESA</span>' : '';
+      slotsHTML += `
+        <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg-2);border-radius:8px;margin-bottom:8px">
+          <div style="font-size:11px;color:var(--text-3);min-width:60px">Slot ${slotN}${tag ? '<br>' + tag : ''}</div>
+          <div style="flex:1">
+            <div style="font-family:'DM Mono',monospace;color:var(--accent);font-weight:700">${bob['Código Bobina']}</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:2px">${bob['Producto']||'—'} · ${bob['Formato (cm)']||'?'} cm · ${fmtNum(bob['Mts Totales'])} m disp.</div>
+          </div>
+          <button type="button" class="btn-rechazar" onclick="vaciarBobinaSlotTP('${maqCod}','${bob['Código Bobina']}')">🔴 Vaciar</button>
+        </div>`;
+    } else {
+      slotsHTML += `
+        <div style="display:flex;align-items:center;gap:14px;padding:14px;background:rgba(255,255,255,0.02);border:1px dashed var(--bg-3);border-radius:8px;margin-bottom:8px">
+          <div style="font-size:11px;color:var(--text-3);min-width:60px">Slot ${slotN}</div>
+          <div style="flex:1;color:var(--text-3);font-style:italic">Vacío</div>
+          <button type="button" class="btn-cargar-parte" onclick="abrirModalCargarBobTP('${maqCod}',${slotN})">🟢 Nueva+</button>
+        </div>`;
+    }
+  }
+
+  cont.innerHTML = headerHTML + slotsHTML;
+}
+
+// ============================================================
+// ACCIONES SLOT: [Nueva+] y [Vaciar]
+// ============================================================
+function abrirModalCargarBobTP(maqCod, slotN) {
+  document.getElementById('tp-cb-maq').textContent = maqCod;
+  document.getElementById('tp-cb-slot').textContent = slotN;
+  const f = document.getElementById('form-tp-cargar-bob');
+  f.reset();
+  f.dataset.maq = maqCod;
+  f.dataset.slot = String(slotN);
+  document.getElementById('tp-cb-info').innerHTML = '—';
+  document.getElementById('tp-cb-submit').disabled = true;
+  // Hint según slot
+  const hint = document.getElementById('tp-cb-hint');
+  if (slotN === 1) {
+    hint.innerHTML = 'Slot 1: bobina <strong>IMPRESA</strong> (la cara principal). El sistema valida que el Nombre Bolsa coincida con la OF que vas a trabajar.';
+  } else {
+    hint.innerHTML = 'Slot ' + slotN + ': bobina <strong>KRAFT</strong> (capa de refuerzo). Solo valida que el ancho sea compatible.';
+  }
+  const msg = document.getElementById('tp-cb-msg'); msg.textContent = ''; msg.className = 'form-msg';
+  document.getElementById('tp-modal-cargar-bob').style.display = 'flex';
+  setTimeout(() => document.getElementById('tp-cb-cod').focus(), 100);
+}
+
+function cerrarModalCargarBobTP() {
+  document.getElementById('tp-modal-cargar-bob').style.display = 'none';
+}
+document.getElementById('tp-modal-cargar-bob').addEventListener('click', e => {
+  if (e.target.id === 'tp-modal-cargar-bob') cerrarModalCargarBobTP();
+});
+
+// Valida el código tipeado: existe + disponible + ancho compatible + (si slot 1) Nombre Bolsa coincide
+document.getElementById('tp-cb-cod').addEventListener('input', () => {
+  const cod = String(document.getElementById('tp-cb-cod').value || '').trim().toUpperCase();
+  const info = document.getElementById('tp-cb-info');
+  const btn = document.getElementById('tp-cb-submit');
+  const f = document.getElementById('form-tp-cargar-bob');
+  const maqCod = f.dataset.maq;
+  const slotN = Number(f.dataset.slot);
+  btn.disabled = true;
+  delete f.dataset.motivoAncho;
+
+  if (cod.length < 5) { info.textContent = '—'; info.style.color = ''; return; }
+  const bob = (bobinasCache || []).find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+  if (!bob) { info.textContent = '✗ Bobina no encontrada'; info.style.color = 'var(--danger)'; return; }
+  const estado = String(bob['Estado']||'').toLowerCase();
+  if (estado !== 'disponible') { info.textContent = `✗ Bobina ya está ${estado}`; info.style.color = 'var(--danger)'; return; }
+  // ¿Ya está en otra máquina?
+  const sectorAct = String(bob['Sector Actual']||'').trim();
+  if (sectorAct && sectorAct !== maqCod) { info.textContent = `✗ Bobina ya está en ${sectorAct}`; info.style.color = 'var(--danger)'; return; }
+
+  // Validación slot 1: si es impresa, verificar Nombre Bolsa coincide con OF que se quiere trabajar.
+  // La OF se infiere de la bobina misma (si tiene Nº OF Asignada) o el sistema permite si Producto = Nombre Bolsa de alguna OF compatible.
+  const ofActual = ofActualEnMaquinaTP(maqCod);
+  if (slotN === 1) {
+    const esImpresa = String(bob['Origen']||'').includes('Impresión-impresa');
+    if (!esImpresa) {
+      // Slot 1 solo para impresas si la OF imprime. Pero si la OF NO imprime, slot 1 puede ser kraft.
+      // Si ya hay OF activa y esa OF imprime → exigir impresa.
+      if (ofActual) {
+        const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === ofActual);
+        if (of && ofImprime(of)) {
+          info.textContent = '✗ La OF actual imprime — el slot 1 debe llevar bobina IMPRESA';
+          info.style.color = 'var(--danger)';
+          return;
+        }
+      }
+    } else {
+      // Es impresa. Validar que el Producto (Nombre Bolsa) coincida con la OF actual (si hay).
+      if (ofActual) {
+        const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === ofActual);
+        if (of && String(bob['Producto']||'').trim() !== String(of['Nombre Bolsa']||'').trim()) {
+          info.textContent = `✗ Bobina impresa de "${bob['Producto']}" no coincide con la OF actual ("${of['Nombre Bolsa']}"). Terminá la OF actual primero.`;
+          info.style.color = 'var(--danger)';
+          return;
+        }
+      }
+    }
+  }
+
+  // Validar ancho contra OF actual si la hay
+  if (ofActual) {
+    const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === ofActual);
+    if (of) {
+      const anchoOF = Number(of['Ancho (cm)']) || 0;
+      const anchoBob = Number(bob['Formato (cm)']) || 0;
+      if (anchoOF && anchoBob && anchoBob < anchoOF) {
+        info.textContent = `✗ Bobina (${anchoBob} cm) más CHICA que la OF (${anchoOF} cm)`;
+        info.style.color = 'var(--danger)';
+        return;
+      }
+      if (anchoOF && anchoBob && anchoBob > anchoOF) {
+        info.innerHTML = `⚠️ Bobina más ANCHA (${anchoBob} > ${anchoOF} cm). Se acepta pero te vamos a pedir motivo al guardar.`;
+        info.style.color = 'var(--warn, #f5a623)';
+        f.dataset.motivoAncho = 'pending';
+        btn.disabled = false;
+        return;
+      }
+    }
+  }
+
+  info.innerHTML = `✓ ${bob['Producto']||''} · ${bob['Formato (cm)']||'?'} cm · ${fmtNum(bob['Mts Totales']||0)} m disp.`;
+  info.style.color = 'var(--ok)';
+  btn.disabled = false;
+});
+
+// Submit: cargar bobina al slot (= setear Sector Actual)
+document.getElementById('form-tp-cargar-bob').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const cod = String(f.cod.value || '').trim().toUpperCase();
+  const maqCod = f.dataset.maq;
+  const bob = (bobinasCache || []).find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+  if (!bob || !bob._rowIndex) { showFormMsg('tp-cb-msg', '✗ Bobina no encontrada.', false); return; }
+
+  // Si era bobina más ancha → pedir motivo
+  let motivoAncho = '';
+  if (f.dataset.motivoAncho === 'pending') {
+    motivoAncho = prompt('⚠️ Bobina más ancha que la OF. Indicá el motivo (queda registrado):');
+    if (!motivoAncho || !motivoAncho.trim()) {
+      showFormMsg('tp-cb-msg', '✗ Sin motivo, no se puede cargar.', false);
+      return;
+    }
+  }
+
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('tp-cb-submit');
+  const txtOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Cargando…';
+  try {
+    await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', maqCod);
+    bob['Sector Actual'] = maqCod;
+    if (motivoAncho) {
+      const obsAct = String(bob['Observaciones']||'');
+      const nueva = obsAct + (obsAct ? ' · ' : '') + `⚠️ Cargada ancha en ${maqCod}: ${motivoAncho}`;
+      await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Observaciones', nueva);
+      bob['Observaciones'] = nueva;
+    }
+    showFormMsg('tp-cb-msg', `✓ Bobina ${cod} cargada en ${maqCod}.`, true);
+    renderMaquinaTP(maqCod);
+    setTimeout(() => {
+      cerrarModalCargarBobTP();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 700);
+  } catch (err) {
+    showFormMsg('tp-cb-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
+// Vaciar slot: la bobina sale del Sector Actual (vuelve al stock con su mismo código y mts).
+async function vaciarBobinaSlotTP(maqCod, codBob) {
+  const bob = (bobinasCache || []).find(b => String(b['Código Bobina']||'').toUpperCase() === String(codBob).toUpperCase());
+  if (!bob || !bob._rowIndex) { alert('Bobina no encontrada en cache.'); return; }
+  if (!confirm(`¿Sacar la bobina ${codBob} del slot?\n\nLa bobina vuelve a stock con sus ${fmtNum(bob['Mts Totales'])} m disponibles.`)) return;
+  try {
+    await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
+    bob['Sector Actual'] = '';
+    renderMaquinaTP(maqCod);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
 
 // Toggle Activas / Terminadas
 document.querySelectorAll('.cola-toggle[data-tp-vista]').forEach(btn => {
@@ -6955,7 +7244,8 @@ async function cargarTuberaPapel() {
   }
   renderColaTP();
   renderPartesTP();
-  renderBobinasMaquinaTP();
+  // Renderizar las 3 máquinas (aunque no estén visibles, queda listo)
+  ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'].forEach(m => renderMaquinaTP(m));
 }
 
 // Devuelve bobinas IMPRESAS disponibles asignadas a esta OF
@@ -7036,14 +7326,23 @@ function renderColaTP() {
       const tagMotivo = motivo ? `<span style="font-size:10px;color:var(--warn,#f5a623);display:block;margin-top:2px">⚠️ ${motivo}</span>` : '';
       accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>${tagMotivo}`;
     } else {
+      // Buscar si esta OF está siendo trabajada en alguna máquina (bobina impresa en slot 1)
+      const maqsConOF = ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'].filter(m => ofActualEnMaquinaTP(m) === num);
       const objetivo = objetivoBolsasOF(o);
       const cumple = objetivo > 0 && hechas >= objetivo;
       const claseCierre = cumple ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
       const tituloCierre = cumple
         ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
         : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`;
+      let infoMaqHTML;
+      if (maqsConOF.length) {
+        const tabId = 'maq-' + maqsConOF[0].toLowerCase();
+        infoMaqHTML = `<button type="button" class="btn-cargar-parte" onclick="document.querySelector('[data-tp-tab=\\'${tabId}\\']').click()">🧵 Ver ${maqsConOF[0]}</button>`;
+      } else {
+        infoMaqHTML = `<span style="font-size:10px;color:var(--text-3)">Sin máquina asignada — cargá bobina impresa en algún slot 1</span>`;
+      }
       accionHTML = `
-        <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTP('${num.replace(/'/g,"\\'")}')">Cargar Parte</button>
+        ${infoMaqHTML}
         <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">🏁 Cerrar OF</button>
       `;
     }
@@ -7101,7 +7400,8 @@ function renderPartesTP() {
   }).join('');
 }
 
-function renderBobinasMaquinaTP() {
+// LEGACY: Vista vieja "Bobinas en máquina" — ya no se usa (reemplazado por tabs por máquina con slots).
+function _legacyRenderBobinasMaquinaTP_unused() {
   const cont = document.getElementById('tp-bobinas-maquinas');
   if (!cont) return;
   const tuberas = (tpMaquinasCache || []).filter(m => m['Sector'] === 'Tubera Papel');
@@ -7135,194 +7435,36 @@ function renderBobinasMaquinaTP() {
 }
 
 // ============================================================
-// MODAL CARGAR PARTE (Tubera Papel) — 1 OF por parte, flujo continuo
+// MODAL CARGAR PARTE (Tubera Papel) — modelo nuevo de slots:
+// Las bobinas YA están cargadas en los slots de la máquina (vía Sector Actual).
+// El modal solo pide bolsas, kg desperdicio, legajos y horas.
+// Al guardar, se descuentan automáticamente los mts a las bobinas en máquina.
 // ============================================================
-function poblarFormTP() {
-  const f = document.getElementById('tp-form-fecha');
-  if (f) f.value = new Date().toISOString().slice(0,10);
-  // Tuberas
-  const sel = document.getElementById('tp-form-tubera');
-  const tuberas = (tpMaquinasCache || []).filter(m =>
-    m['Sector'] === 'Tubera Papel' && String(m['Activa']||'SI').toUpperCase() === 'SI'
-  );
-  sel.innerHTML = '<option value="">— Elegir —</option>' + tuberas.map(m =>
-    `<option value="${m['Código Máquina']}">${m['Código Máquina']}</option>`
-  ).join('');
-  // OFs en cola (con detalle de bobinas disponibles — Opción A acordada con Franco)
-  const ofsCola = (tpOFsCache || []).filter(o => {
-    const estado = String(o['Estado']||'').toLowerCase();
-    if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
-    return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache);
-  });
-  const selOF = document.getElementById('tp-form-of');
-  selOF.innerHTML = '<option value="">— Elegir OF —</option>' + ofsCola.map(o => {
-    const cli = o['Cliente'] || '—';
-    const bolsa = o['Nombre Bolsa'] || '—';
-    let tag;
-    if (ofImprime(o)) {
-      const n = bobinasImpresasDeOF(o['Nº OF']).length;
-      tag = `(${n} bobina${n === 1 ? '' : 's'} impresa${n === 1 ? '' : 's'})`;
-    } else {
-      tag = '(sin imprimir — papel kraft)';
-    }
-    return `<option value="${o['Nº OF']}">${o['Nº OF']} · ${cli} · ${bolsa}  ${tag}</option>`;
-  }).join('');
-  // Si hay una sola OF, pre-seleccionarla
-  if (ofsCola.length === 1) {
-    selOF.value = ofsCola[0]['Nº OF'];
-    onChangeOFTP();
-  }
-}
 
-// Cuando cambia la OF elegida, refrescar info + bobinas
-function onChangeOFTP() {
-  const numOF = document.getElementById('tp-form-of').value;
-  const info = document.getElementById('tp-of-info');
-  const hint = document.getElementById('tp-bobinas-hint');
-  const list = document.getElementById('tp-bobinas-list');
-  const btnAdd = document.getElementById('tp-bobina-add');
-  list.innerHTML = '';
-  tpBobIdx = 0;
-  if (!numOF) {
-    info.style.display = 'none';
-    hint.textContent = 'Elegí la OF primero para ver las bobinas disponibles.';
-    btnAdd.disabled = true;
-    return;
-  }
-  const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
-  if (!of) return;
-  // Info
-  document.getElementById('tp-of-cli').textContent = of['Cliente'] || '—';
-  document.getElementById('tp-of-bolsa').textContent = of['Nombre Bolsa'] || '—';
-  document.getElementById('tp-of-cant').textContent = fmtNum(of['Cant Bolsas']);
-  const imprime = ofImprime(of);
-  document.getElementById('tp-of-imp').textContent = imprime ? 'Sí (bobinas impresas)' : 'No (papel kraft)';
-  info.style.display = '';
-  // Modo de bobinas: si imprime → dropdown filtrado; si no → input manual
-  if (imprime) {
-    const disp = bobinasImpresasDeOF(numOF);
-    if (!disp.length) {
-      hint.innerHTML = '⚠️ <strong>No hay bobinas impresas disponibles para esta OF.</strong> Esperá a que Impresión apruebe algún parte.';
-      btnAdd.disabled = true;
-      return;
-    }
-    hint.textContent = `Hay ${disp.length} bobina${disp.length === 1 ? '' : 's'} impresa${disp.length === 1 ? '' : 's'} disponible${disp.length === 1 ? '' : 's'}. Elegí cuáles usaste en este parte.`;
-    btnAdd.disabled = false;
-    // Arrancar con 1 fila
-    agregarBobinaInputTP();
-  } else {
-    hint.textContent = 'OF sin impresión: cargá manualmente el código de la bobina de papel kraft que usaste.';
-    btnAdd.disabled = false;
-    agregarBobinaInputTP();
-  }
-}
-
-function agregarBobinaInputTP() {
-  const numOF = document.getElementById('tp-form-of').value;
-  if (!numOF) return;
-  const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
-  if (!of) return;
-  const imprime = ofImprime(of);
-  tpBobIdx++;
-  const cont = document.getElementById('tp-bobinas-list');
-  const row = document.createElement('div');
-  row.className = 'tp-bob-row';
-  row.style.cssText = 'display:grid;grid-template-columns:1fr 150px 100px 30px;gap:8px;align-items:end;margin-bottom:10px;padding:10px;background:var(--bg-2);border-radius:6px';
-
-  let codField;
-  if (imprime) {
-    // Dropdown filtrado a bobinas impresas de la OF (que no estén ya seleccionadas en otra fila)
-    const disp = bobinasImpresasDeOF(numOF);
-    const yaCargadas = Array.from(document.querySelectorAll('#tp-bobinas-list select[name="tp-bob-cod"]'))
-      .map(s => s.value).filter(Boolean);
-    const opts = disp
-      .filter(b => !yaCargadas.includes(b['Código Bobina']))
-      .map(b => `<option value="${b['Código Bobina']}">${b['Código Bobina']} · ${fmtNum(b['Mts Totales'])} m disp.</option>`).join('');
-    codField = `<select name="tp-bob-cod" required><option value="">— Elegir —</option>${opts}</select>`;
-  } else {
-    codField = `<input type="text" name="tp-bob-cod" placeholder="Ej: BOB-2026-00001" required>`;
-  }
-
-  row.innerHTML = `
-    <label class="field" style="margin:0"><span>Código bobina</span>${codField}</label>
-    <label class="field" style="margin:0"><span>Acción al cerrar parte</span>
-      <select name="tp-bob-accion">
-        <option value="sin_cambios">🟢 Sin cambios</option>
-        <option value="sacada">🔴 Sacada con peso</option>
-      </select>
-    </label>
-    <label class="field" style="margin:0"><span>Kg final</span>
-      <input type="number" name="tp-bob-kgfin" step="0.1" min="0" placeholder="Solo si sacada" disabled>
-    </label>
-    <button type="button" class="bob-del" title="Quitar" onclick="this.parentElement.remove()" style="height:36px;background:none;border:1px solid var(--bg-3);color:var(--text-3);border-radius:4px;cursor:pointer">✕</button>
-  `;
-  row.querySelector('[name="tp-bob-accion"]').addEventListener('change', e => {
-    const kgInput = row.querySelector('[name="tp-bob-kgfin"]');
-    kgInput.disabled = e.target.value !== 'sacada';
-    if (kgInput.disabled) kgInput.value = '';
-  });
-  cont.appendChild(row);
-}
-
-document.getElementById('tp-bobina-add').addEventListener('click', agregarBobinaInputTP);
-document.getElementById('tp-form-of').addEventListener('change', onChangeOFTP);
-
-// Recalcula KPIs (mts utilizados / desperdicio / remanente / estado) en vivo a medida
-// que el operario carga bolsas, kg desperdicio o cambia bobinas. Mismo patrón que Impresión.
+// Recalcula KPIs en vivo (mts utilizados / mts desperdicio / bolsas/min).
+// Mts remanente ya no se muestra acá porque depende de las bobinas en máquina.
 function recalcTPKPIs() {
   const numOF = document.getElementById('tp-form-of').value;
   const of = numOF ? (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF) : null;
   const largoBolsaCm = of ? Number(of['Largo (cm)']) || 0 : 0;
   const bolsas = Number(document.getElementById('tp-form-bolsas').value) || 0;
   const kgDesp = Number(document.getElementById('tp-form-kgdesp').value) || 0;
-
-  // Mts utilizados = bolsas × largo (cm → m)
   const mtsUtil = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
 
-  // Bobinas con código cargado — leemos sus datos del cache
-  const bobsRows = Array.from(document.querySelectorAll('#tp-bobinas-list .tp-bob-row'));
-  const bobsConDatos = bobsRows.map(r => {
-    const cod = String(r.querySelector('[name="tp-bob-cod"]').value || '').trim().toUpperCase();
-    if (!cod) return null;
-    const bob = (bobinasCache || []).find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
-    if (!bob) return null;
-    return {
-      cod,
-      mts: Number(bob['Mts Totales']) || 0,
-      ancho: Number(bob['Formato (cm)']) || 0,
-      gramaje: Number(bob['Gramaje (g/m²)']) || 0,
-    };
-  }).filter(Boolean);
-  const ultima = bobsConDatos[bobsConDatos.length - 1] || null;
-
-  // Mts desperdicio: kg × 100000 / (ancho × gramaje), usando dims de la última
+  // Mts desperdicio: kg × 100000 / (ancho × gramaje), usando bobinas en la máquina del parte
+  const maqCod = document.getElementById('tp-form-tubera').value;
   let mtsDesp = 0;
-  if (ultima && kgDesp && ultima.ancho && ultima.gramaje) {
-    mtsDesp = kgDesp * 100000 / (ultima.ancho * ultima.gramaje);
-  }
-
-  // Mts remanente última: mtsIniUltima - (mtsUtil - sumaPrevias) - mtsDesp
-  let mtsRem = null;
-  let estadoUltima = '—';
-  if (ultima && mtsUtil) {
-    const sumaPrevias = bobsConDatos.slice(0, -1).reduce((s, b) => s + b.mts, 0);
-    const mtsUsadosUltima = Math.max(0, mtsUtil - sumaPrevias);
-    mtsRem = ultima.mts - mtsUsadosUltima - mtsDesp;
-    if (mtsRem > 0) {
-      estadoUltima = '🟢 Queda remanente';
-    } else if (mtsRem >= -50) {
-      estadoUltima = '🔴 Consumida (cuadra)';
-    } else {
-      estadoUltima = '⚠️ Faltan mts (revisar bolsas o desperdicio)';
-    }
+  if (maqCod && kgDesp) {
+    const bobsEnMaq = bobinasEnMaquinaTP(maqCod);
+    const promAncho = bobsEnMaq.length ? bobsEnMaq.reduce((s, b) => s + (Number(b['Formato (cm)'])||0), 0) / bobsEnMaq.length : 0;
+    const promGramaje = bobsEnMaq.length ? bobsEnMaq.reduce((s, b) => s + (Number(b['Gramaje (g/m²)'])||0), 0) / bobsEnMaq.length : 0;
+    if (promAncho && promGramaje) mtsDesp = kgDesp * 100000 / (promAncho * promGramaje);
   }
 
   document.getElementById('tp-calc-mts-util').textContent = mtsUtil ? fmtNum(Math.round(mtsUtil)) + ' m' : '—';
   document.getElementById('tp-calc-mts-desp').textContent = mtsDesp ? fmtNum(Math.round(mtsDesp)) + ' m' : '—';
-  document.getElementById('tp-calc-mts-rem').textContent = (mtsRem !== null) ? fmtNum(Math.round(mtsRem)) + ' m' : '—';
-  document.getElementById('tp-calc-estado-ultima').textContent = estadoUltima;
 
-  // Bolsas/Min (más útil que mts/min en Tubera Papel, donde se cuentan bolsas)
+  // Bolsas/Min
   const hi = document.querySelector('#form-tp input[name="hora_in"]').value;
   const hf = document.querySelector('#form-tp input[name="hora_fin"]').value;
   if (bolsas && hi && hf) {
@@ -7344,29 +7486,42 @@ function recalcTPKPIs() {
 document.querySelectorAll('#form-tp input[name="hora_in"], #form-tp input[name="hora_fin"]').forEach(el => {
   el.addEventListener('change', recalcTPKPIs);
 });
-// También recalcular cuando cambian bobinas (delegation)
-document.getElementById('tp-bobinas-list').addEventListener('change', recalcTPKPIs);
 
-// abrirModalParteTP(numOF?) — si recibe numOF, pre-selecciona y deshabilita el dropdown
-function abrirModalParteTP(numOF) {
+// abrirModalParteTP(numOF, maqCod) — siempre con OF y máquina pre-cargadas
+// (se abre desde el botón "Cargar Parte" en el tab de la máquina).
+function abrirModalParteTP(numOF, maqCod) {
   const form = document.getElementById('form-tp');
   form.reset();
-  document.getElementById('tp-bobinas-list').innerHTML = '';
-  tpBobIdx = 0;
-  document.getElementById('tp-of-info').style.display = 'none';
-  document.getElementById('tp-bobinas-hint').textContent = 'Elegí la OF primero para ver las bobinas disponibles.';
-  document.getElementById('tp-bobina-add').disabled = true;
-  poblarFormTP();
-  const selOF = document.getElementById('tp-form-of');
-  if (numOF) {
-    selOF.value = numOF;
-    selOF.disabled = true;
-    onChangeOFTP();
-  } else {
-    selOF.disabled = false;
+  const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada.'); return; }
+  if (!maqCod) {
+    // Si no se especifica, inferir de la OF actual en alguna máquina
+    const todasMaq = ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'];
+    maqCod = todasMaq.find(m => ofActualEnMaquinaTP(m) === numOF) || '';
   }
+  if (!maqCod) { alert('No se identificó la máquina para esta OF.'); return; }
+
+  document.getElementById('tp-modal-titulo').textContent = `${numOF} en ${maqCod}`;
+  document.getElementById('tp-of-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('tp-of-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('tp-of-cant').textContent = fmtNum(of['Cant Bolsas']);
+  document.getElementById('tp-of-maq').textContent = maqCod;
+  // Resumen bobinas en máquina
+  const bobsEnMaq = bobinasEnMaquinaTP(maqCod);
+  if (bobsEnMaq.length) {
+    const listado = bobsEnMaq.map(b => `${b['Código Bobina']} (${fmtNum(b['Mts Totales'])}m)`).join(' · ');
+    document.getElementById('tp-bobs-en-maq').textContent = `${bobsEnMaq.length} bobina${bobsEnMaq.length===1?'':'s'} en máquina: ${listado}`;
+  } else {
+    document.getElementById('tp-bobs-en-maq').textContent = '⚠️ Sin bobinas en máquina — cargá bobinas a los slots antes de cargar el parte.';
+  }
+
+  document.getElementById('tp-form-of').value = numOF;
+  document.getElementById('tp-form-tubera').value = maqCod;
+  document.getElementById('tp-form-fecha').value = new Date().toISOString().slice(0,10);
+
   const msg = document.getElementById('tp-msg');
   msg.textContent = ''; msg.className = 'form-msg';
+  recalcTPKPIs();
   document.getElementById('tp-modal-parte').style.display = 'flex';
 }
 
@@ -7374,7 +7529,6 @@ function cerrarModalParteTP() {
   document.getElementById('tp-modal-parte').style.display = 'none';
 }
 
-// (Botón global "+ Cargar parte" eliminado: ahora va por fila en la cola, como Impresión.)
 document.getElementById('tp-modal-parte').addEventListener('click', e => {
   if (e.target.id === 'tp-modal-parte') cerrarModalParteTP();
 });
@@ -7410,27 +7564,13 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
   }
   const legajos = legAy ? `${legOp} / ${legAy}` : legOp;
 
-  // Recolectar bobinas
-  const bobRows = Array.from(document.querySelectorAll('#tp-bobinas-list .tp-bob-row'));
-  const bobinas = bobRows.map(r => ({
-    cod: String(r.querySelector('[name="tp-bob-cod"]').value || '').trim().toUpperCase(),
-    accion: r.querySelector('[name="tp-bob-accion"]').value,
-    kgFin: Number(r.querySelector('[name="tp-bob-kgfin"]').value) || 0,
-  })).filter(b => b.cod);
-  if (!bobinas.length) {
-    showFormMsg('tp-msg', '✗ Cargá al menos 1 bobina usada.', false);
+  // Bobinas que están en máquina (Sector Actual = tubera) → se descuentan automáticamente.
+  const bobsEnMaq = bobinasEnMaquinaTP(tubera);
+  if (!bobsEnMaq.length) {
+    showFormMsg('tp-msg', '✗ No hay bobinas cargadas en los slots de esta tubera. Cargá bobinas antes de cargar el parte.', false);
     return;
   }
-  for (const b of bobinas) {
-    if (b.accion === 'sacada' && b.kgFin <= 0) {
-      showFormMsg('tp-msg', `✗ Bobina ${b.cod} marcada como "Sacada" necesita Kg final.`, false);
-      return;
-    }
-  }
-  const bobsEnUso = bobinas.map(b => b.cod).join(', ');
-  const sacadas = bobinas.filter(b => b.accion === 'sacada');
-  const bobsSacadas = sacadas.map(b => b.cod).join(', ');
-  const kgSacadasTotal = sacadas.reduce((s, b) => s + b.kgFin, 0);
+  const bobsEnUso = bobsEnMaq.map(b => b['Código Bobina']).join(', ');
 
   f.dataset.guardando = '1';
   const btn = document.getElementById('tp-parte-submit');
@@ -7438,122 +7578,56 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = 'Guardando…';
 
   try {
-    // 1 fila en Tubera Papel para este parte (1 OF por parte)
-    // Headers: Fecha · Tipo Evento · Turno · Nº Tubera · Legajos · Bobinas en Uso · Nº OF
-    //          · Bolsas Producidas · Bobinas Sacadas · Kg Bobinas Sacadas · Kg Desperdicio
-    //          · Hora Inicio · Hora Fin · Observaciones
-    // (Columna Turno la dejamos vacía — ahora medimos por Hr Inicio/Fin.)
+    // 1 fila en Tubera Papel
     await appendFila('Tubera Papel', [
       fecha, 'Parte de Turno', '', tubera, legajos,
       bobsEnUso, numOF, bolsas,
-      bobsSacadas, kgSacadasTotal || '', kgDesp || '',
+      '', '', kgDesp || '',
       horaIn, horaFin, com,
     ]);
     tpEventosCache.push({
       'Fecha': fecha, 'Tipo Evento': 'Parte de Turno', 'Turno': '',
       'Nº Tubera': tubera, 'Legajos': legajos, 'Bobinas en Uso': bobsEnUso,
       'Nº OF': numOF, 'Bolsas Producidas': bolsas,
-      'Bobinas Sacadas': bobsSacadas,
-      'Kg Bobinas Sacadas': kgSacadasTotal || '',
+      'Bobinas Sacadas': '', 'Kg Bobinas Sacadas': '',
       'Kg Desperdicio': kgDesp || '',
       'Hora Inicio': horaIn, 'Hora Fin': horaFin,
       'Observaciones': com,
     });
 
-    // Procesar bobinas con dos reglas (Franco 2026-05-17):
-    //  - 🟢 Sin cambios (Opción A): la misma bobina sigue existiendo, solo se le
-    //    descuentan los mts consumidos en este parte. Si quedan < 100 mts → descarte.
-    //    Las "previas" (todas menos la última) se asumen consumidas completas.
-    //    La "última" recibe el remanente (mts iniciales − mts usados − desperdicio).
-    //  - 🔴 Sacada con peso: kg final → mts. Si mts < 100 → descarte (madre consumida).
-    //    Si mts ≥ 100 → madre transformada + hija con remanente impreso, mantiene OF.
-    const anio = new Date().getFullYear();
-    const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
-    let maxCounter = 0;
-    bobinasCache.forEach(x => {
-      const m = String(x['Código Bobina']||'').match(re);
-      if (m) maxCounter = Math.max(maxCounter, parseInt(m[1], 10));
-    });
-
-    // Datos para distribuir consumo entre bobinas "Sin cambios"
+    // Descontar mts a TODAS las bobinas en máquina (todas rotan juntas).
+    // mts consumidos por cada bobina = bolsas × largo bolsa.
+    // kg desperdicio se REPARTE proporcionalmente entre las bobinas en máquina (Opción 2 acordada).
     const ofObj = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
     const largoBolsaCm = ofObj ? Number(ofObj['Largo (cm)']) || 0 : 0;
-    const mtsUtilParte = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
+    const mtsConsumidos = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
+    const kgDespPorBobina = bobsEnMaq.length ? kgDesp / bobsEnMaq.length : 0;
 
-    // Buscar bobinas en cache (en orden)
-    const bobsConData = bobinas.map(b => {
-      const bob = (bobinasCache || []).find(x => String(x['Código Bobina']||'').toUpperCase() === b.cod);
-      return { ...b, bob };
-    });
-    // Suma de mts iniciales de bobinas "sin cambios" previas (para repartir consumo)
-    const idxUlt = bobsConData.length - 1;
-
-    for (let i = 0; i < bobsConData.length; i++) {
-      const b = bobsConData[i];
-      const bob = b.bob;
-      if (!bob || !bob._rowIndex) continue;
+    for (const bob of bobsEnMaq) {
+      if (!bob._rowIndex) continue;
       const ancho = Number(bob['Formato (cm)']) || 0;
       const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
-      const mtsBob = Number(bob['Mts Totales']) || 0;
+      const mtsActuales = Number(bob['Mts Totales']) || 0;
+      const mtsDespBobina = (kgDespPorBobina && ancho && gramaje) ? kgDespPorBobina * 100000 / (ancho * gramaje) : 0;
+      const mtsRestantes = Math.max(0, mtsActuales - mtsConsumidos - mtsDespBobina);
       const idxCache = bobinasCache.indexOf(bob);
-      const esUltima = (i === idxUlt);
 
-      if (b.accion === 'sin_cambios') {
-        if (!esUltima) {
-          // Previa: consumida completa
-          await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
-          if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'consumida';
-        } else {
-          // Última: calcular mts restantes
-          const sumaPrevias = bobsConData.slice(0, i).reduce((s, x) => {
-            const m = x.bob ? (Number(x.bob['Mts Totales'])||0) : 0;
-            return s + m;
-          }, 0);
-          const mtsUsadosUlt = Math.max(0, mtsUtilParte - sumaPrevias);
-          const mtsDesp = (kgDesp && ancho && gramaje) ? Math.round(kgDesp * 100000 / (ancho * gramaje)) : 0;
-          const mtsRestantes = Math.max(0, mtsBob - mtsUsadosUlt - mtsDesp);
-
-          if (mtsRestantes < UMBRAL_REMANENTE_MTS) {
-            // Descarte
-            await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
-            if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'consumida';
-          } else {
-            // Opción A: misma bobina con menos mts/kg
-            const kgRest = Math.round(mtsRestantes * (gramaje * ancho / 100) / 1000 * 10) / 10;
-            await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Mts Totales', mtsRestantes);
-            await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Kg', kgRest);
-            if (idxCache >= 0) {
-              bobinasCache[idxCache]['Mts Totales'] = mtsRestantes;
-              bobinasCache[idxCache]['Kg'] = kgRest;
-            }
-          }
+      if (mtsRestantes < UMBRAL_REMANENTE_MTS) {
+        // Bobina consumida (descarte si quedó muy poco)
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
+        if (idxCache >= 0) {
+          bobinasCache[idxCache]['Estado'] = 'consumida';
+          bobinasCache[idxCache]['Sector Actual'] = '';
         }
-      } else if (b.accion === 'sacada') {
-        const mtsHija = (ancho && gramaje) ? Math.round(b.kgFin * 1000 / (gramaje * ancho / 100)) : 0;
-        if (mtsHija < UMBRAL_REMANENTE_MTS) {
-          // Descarte: madre consumida, sin hija
-          await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
-          if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'consumida';
-        } else {
-          // Madre transformada + hija con remanente impreso, mantiene OF
-          maxCounter++;
-          const codHija = `BOB-${anio}-${String(maxCounter).padStart(5,'0')}`;
-          const ofMadre = getOFAsignada(bob);
-          await appendFila('Bobinas', [
-            codHija, '', '', fecha, bob['Producto'], ancho, b.kgFin, gramaje, mtsHija,
-            b.cod, '', ORIGEN_TP_REMANENTE, 'disponible', 'Tubera Papel',
-            `Remanente impreso del parte en ${tubera} (${fmtFechaCorta(excelDateToJs(fecha))})`,
-            ofMadre,
-          ]);
-          await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
-          if (idxCache >= 0) bobinasCache[idxCache]['Estado'] = 'transformada';
-          bobinasCache.push({
-            'Código Bobina': codHija, 'Fecha Ingreso': fecha, 'Producto': bob['Producto'],
-            'Formato (cm)': ancho, 'Kg': b.kgFin, 'Gramaje (g/m²)': gramaje, 'Mts Totales': mtsHija,
-            'Bobina Padre 1': b.cod, 'Origen': ORIGEN_TP_REMANENTE,
-            'Estado': 'disponible', 'Sector Actual': 'Tubera Papel',
-            [HEADER_OF_ASIGNADA]: ofMadre,
-          });
+      } else {
+        // Opción A: misma bobina con menos mts/kg
+        const kgRest = Math.round(mtsRestantes * (gramaje * ancho / 100) / 1000 * 10) / 10;
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Mts Totales', Math.round(mtsRestantes));
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Kg', kgRest);
+        if (idxCache >= 0) {
+          bobinasCache[idxCache]['Mts Totales'] = Math.round(mtsRestantes);
+          bobinasCache[idxCache]['Kg'] = kgRest;
         }
       }
     }
@@ -7561,8 +7635,8 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
     renderColaTP();
     renderPartesTP();
-    renderBobinasMaquinaTP();
-    showFormMsg('tp-msg', `✓ Parte guardado · ${bolsas} bolsas · ${bobinas.length} bobina(s)${sacadas.length ? ` · ${sacadas.length} sacada(s) con remanente impreso` : ''}.`, true);
+    renderMaquinaTP(tubera);
+    showFormMsg('tp-msg', `✓ Parte guardado · ${bolsas} bolsas · ${bobsEnMaq.length} bobina(s) en máquina actualizadas.`, true);
     setTimeout(() => {
       cerrarModalParteTP();
       delete f.dataset.guardando;
