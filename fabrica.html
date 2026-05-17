@@ -3404,10 +3404,18 @@ function renderStockGrupos() {
   });
   // KPIs
   const totalKg = enStock.reduce((s, b) => s + (Number(b['Kg']) || 0), 0);
-  // Agrupar por Producto (el campo de la bobina ya es el tipo/familia)
+  // Agrupar por Producto.
+  // Excepción (Franco 2026-05-17): las bobinas IMPRESAS o con REMANENTE IMPRESO
+  // se agrupan todas en una sola familia "Bobinas Impresas" (no una por Nombre Bolsa).
+  // Su Producto real (ej. "Bolsa 25 kg") queda como variante dentro de esa familia.
+  const FAM_IMPRESAS = '🖨️ Bobinas Impresas';
+  const esImpresa = (b) => {
+    const o = String(b['Origen']||'').trim();
+    return o === ORIGEN_IMPRESION_IMPRESA || o === ORIGEN_TP_REMANENTE;
+  };
   const grupos = {};
   enStock.forEach(b => {
-    const fam = b['Producto'] || 'Sin Producto';
+    const fam = esImpresa(b) ? FAM_IMPRESAS : (b['Producto'] || 'Sin Producto');
     if (!grupos[fam]) grupos[fam] = { bobinas: [], kg: 0 };
     grupos[fam].bobinas.push(b);
     grupos[fam].kg += Number(b['Kg']) || 0;
@@ -3423,16 +3431,27 @@ function renderStockGrupos() {
     cont.innerHTML = `<div class="empty-block">No hay bobinas en stock todavía. Codificá la primera en <strong>Sectores → Recepción Bobinas + Convertir → + Codificar Bobina</strong>.</div>`;
     return;
   }
-  const familiasOrden = Object.keys(grupos).sort();
+  // Ordenar familias: alfabético, pero "Bobinas Impresas" SIEMPRE al final.
+  const familiasOrden = Object.keys(grupos).sort((a, b) => {
+    if (a === FAM_IMPRESAS) return 1;
+    if (b === FAM_IMPRESAS) return -1;
+    return a.localeCompare(b);
+  });
   cont.innerHTML = familiasOrden.map(fam => {
     const g = grupos[fam];
-    // Sub-agrupar por variante (Formato + Gramaje)
+    // Sub-agrupar por variante.
+    // Para kraft → Formato + Gramaje.
+    // Para impresas → Producto (Nombre Bolsa) + Formato + Gramaje (necesario porque
+    // todas comparten familia pero pueden ser de distintos clientes/bolsas).
     const variantes = {};
     g.bobinas.forEach(b => {
       const fto = b['Formato (cm)'] || '?';
       const gr  = b['Gramaje (g/m²)'] || '?';
-      const key = `${fto} cm · ${gr} g/m²`;
-      if (!variantes[key]) variantes[key] = { bobinas: [], kg: 0, gr, fto };
+      const prod = b['Producto'] || '—';
+      const key = (fam === FAM_IMPRESAS)
+        ? `${prod} · ${fto} cm · ${gr} g/m²`
+        : `${fto} cm · ${gr} g/m²`;
+      if (!variantes[key]) variantes[key] = { bobinas: [], kg: 0, gr, fto, prod };
       variantes[key].bobinas.push(b);
       variantes[key].kg += Number(b['Kg']) || 0;
     });
