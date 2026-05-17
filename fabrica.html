@@ -7047,6 +7047,13 @@ async function setOFActualEnMaquinaTP(maqCod, numOF, legajo) {
 function renderMaquinaTP(maqCod) {
   const cont = document.querySelector(`.maq-tp-cont[data-maq="${maqCod}"]`);
   if (!cont) return;
+  // Capturar valores actuales del dropdown OF + Legajo (para preservar lo que el operario
+  // ya había tipeado si solo cambian bobinas en los slots y no se arrancó OF todavía).
+  const prevOF = document.getElementById('tp-arrancar-of-' + maqCod);
+  const prevLeg = document.getElementById('tp-arrancar-leg-' + maqCod);
+  const prevValOF = prevOF ? prevOF.value : '';
+  const prevValLeg = prevLeg ? prevLeg.value : '';
+
   const bobsEnMaq = bobinasEnMaquinaTP(maqCod);
   const ofActual = ofActualEnMaquinaTP(maqCod);
   const ofObj = ofActual ? (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === ofActual) : null;
@@ -7149,6 +7156,16 @@ function renderMaquinaTP(maqCod) {
   }
 
   cont.innerHTML = headerHTML + slotsHTML;
+
+  // Restaurar valores tipeados (si los elementos vuelven a existir tras el re-render)
+  const newOF = document.getElementById('tp-arrancar-of-' + maqCod);
+  const newLeg = document.getElementById('tp-arrancar-leg-' + maqCod);
+  if (newOF && prevValOF) {
+    // Verificar que la opción sigue disponible (puede que la OF ya no esté en la lista)
+    const optExiste = Array.from(newOF.options).some(o => o.value === prevValOF);
+    if (optExiste) newOF.value = prevValOF;
+  }
+  if (newLeg && prevValLeg) newLeg.value = prevValLeg;
 }
 
 // ============================================================
