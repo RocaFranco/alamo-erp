@@ -2,7 +2,7 @@
 
 > **Cómo usar este archivo:** si arrancás una nueva conversación con Claude, pegale este archivo entero como primer mensaje (o decile "leé `Claude ERP Alamo/CONTEXTO_FABRICA_ALAMO.md`"). Con esto tiene todo el contexto que necesita para retomar sin que vos repitas cosas.
 
-> **Última actualización:** 2026-05-19 (Tubera Papel 100% completo con modelo Pendientes/Aprobados + bloqueo cierre con pendientes + distribución proporcional de kg desperdicio + validación de coherencia física + botón eliminar bobinas codificadas por error + lupa Seguimiento mostrando consumo por sector/máquina/fecha/mts. Regla explícita de "bobina entrante mantiene código + remanente, bobina saliente es nueva" documentada para replicar en TODOS los sectores con bobinas. Próximo paso: aplicar misma regla Pendientes/Aprobados + dinámica de bobinas a Laminadora, Tubera Rafia, Costura Papel/Rafia, Embutido.)
+> **Última actualización:** 2026-05-19 (Tubera Papel 100% completo con modelo Pendientes/Aprobados + bloqueo cierre con pendientes + distribución proporcional de kg desperdicio + validación de coherencia física + botón eliminar bobinas codificadas por error + lupa Seguimiento mostrando consumo por sector/máquina/fecha/mts. Regla explícita de "bobina entrante mantiene código + remanente, bobina saliente es nueva" documentada para replicar en TODOS los sectores con bobinas. **Próxima sesión arranca por: (1) Pausar OF en Tubera con/sin parte, (2) Permitir cargar bobinas sin OF activa y validar capas recién al Arrancar OF.** Después: Laminadora, Tubera Rafia, Costura Papel/Rafia, Embutido.)
 
 ---
 
@@ -1169,13 +1169,27 @@ kg_a_descontar(b) = (mts_consumidos + mts_desperdicio) × peso_por_metro(b)
 
 ### Pendientes documentados para próximas sesiones
 
-1. **Aplicar Reglas 1 + 2 a Laminadora** (probablemente sigue como Impresión: 1 fila por bobina padre + 1 por bobina hija; varias bobinas hijas posibles por parte).
-2. **Aplicar Reglas 1 + 2 a Tubera Rafia** (sigue patrón Tubera Papel).
-3. **Aplicar Regla 1 (sin Regla 2) a Costura Papel + Costura Rafia + Embutido** (manejan bolsas, no bobinas). Cargan bolsas hechas + descarte de bolsas; el descuento es de bolsas-tubo que reciben del sector anterior.
-4. **Refactor "% Avance General"** (el 25% vs 70% inconsistente en Estados OF se posterga hasta que estén todos los sectores).
-5. **Pausar OF** (con motivo + sub-tab Pausadas + reanudar) — documentado pero no implementado.
-6. **Pendientes Impresión futuros** (ver memoria `project_pendientes_impresion_futuro.md`): balanza intermedia, mts reales por bolsas, remanente bobina hija auto, tintas multi-OF por día.
-7. **Pendiente seguridad** (memoria `project_pendiente_restringir_apikey_gemini.md`): restringir "Clave de API 1" en Google Cloud cuando volvamos a tocar credenciales.
+**🔥 PRIORIDAD para próxima sesión (Franco confirmó 2026-05-19 al cerrar):**
+
+1. **Pausar OF en Tubera Papel** — botón "⏸️ Pausar OF" al lado de Terminar OF. Modal con 2 caminos:
+   - (a) **"Cargar parte antes de pausar"** → abre el modal normal de Cargar Parte (bolsas, kg desp, horarios, legajos). Al guardar como pendiente, libera la máquina y la OF vuelve a la cola con tag "⏸️ Pausada".
+   - (b) **"No hay nada que cargar (se arrancó sin querer)"** → pide motivo obligatorio, libera máquina, OF vuelve a cola con tag Pausada. No genera parte.
+   - Las bobinas en slots **se quedan donde están** (`Sector Actual` no se toca). Cuando la OF se retoma, las encuentra cargadas. Si la pausa es definitiva, Franco/Tomi vacían los slots manualmente.
+   - Replicar después en Laminadora, Tubera Rafia.
+
+2. **Permitir cargar bobinas en slots SIN OF activa + validar capas al arrancar OF** — hoy "Nueva+" está deshabilitado si no hay OF activa en la máquina. Cambiar:
+   - Dejar cargar bobinas en los slots **siempre**, independiente de si hay OF.
+   - Mover la validación de capas (`Cantidad Capas + 1 si Lleva PE = SI`) al click de "▶️ Arrancar OF". Si faltan bobinas en slots, alerta: *"Faltan X bobinas. La OF necesita N (M de papel + 1 de PE). Cargalas antes de arrancar."*
+   - Esto invierte el flujo (Bobinas→OF en lugar de OF→Bobinas) y matchea cómo trabaja el operario en planta.
+
+**Resto de la cola:**
+
+3. **Aplicar Reglas 1 + 2 a Laminadora** (probablemente sigue como Impresión: 1 fila por bobina padre + 1 por bobina hija; varias bobinas hijas posibles por parte).
+4. **Aplicar Reglas 1 + 2 a Tubera Rafia** (sigue patrón Tubera Papel).
+5. **Aplicar Regla 1 (sin Regla 2) a Costura Papel + Costura Rafia + Embutido** (manejan bolsas, no bobinas). Cargan bolsas hechas + descarte de bolsas; el descuento es de bolsas-tubo que reciben del sector anterior.
+6. **Refactor "% Avance General"** (el 25% vs 70% inconsistente en Estados OF se posterga hasta que estén todos los sectores).
+7. **Pendientes Impresión futuros** (ver memoria `project_pendientes_impresion_futuro.md`): balanza intermedia, mts reales por bolsas, remanente bobina hija auto, tintas multi-OF por día.
+8. **Pendiente seguridad** (memoria `project_pendiente_restringir_apikey_gemini.md`): restringir "Clave de API 1" en Google Cloud cuando volvamos a tocar credenciales.
 
 ---
 
@@ -1213,13 +1227,18 @@ kg_a_descontar(b) = (mts_consumidos + mts_desperdicio) × peso_por_metro(b)
 
 ✅ **Completado:** Clisé · Impresión · Tubera Papel · Stock Tintas · Stock Bobinas (con seguimiento).
 
-⏳ **Pendiente — orden sugerido:**
+🔥 **ARRANCAR LA PRÓXIMA SESIÓN POR ACÁ (Franco confirmó 2026-05-19):**
 
-1. **Laminadora** (próximo): aplicar Regla 1 (Pendientes/Aprobados + bloqueo cierre) + Regla 2 (bobina entrante mantiene código, bobina saliente es nueva). Producto saliente: bobina laminada (`Origen = Laminadora-laminada`).
-2. **Tubera Rafia**: mismo patrón que Tubera Papel — mantiene Regla 1 + Regla 2, pero el producto saliente son telas/bolsas rafia.
-3. **Costura Papel · Costura Rafia · Embutido**: aplicar **solo Regla 1**. NO se manejan bobinas, solo bolsas. Cargan bolsas hechas + descarte de bolsas; el descuento es de bolsas-tubo que reciben del sector anterior.
-4. **Stock Varios** (catálogo de insumos + retiros).
-5. **Refactor "% Avance General"** (postergado hasta tener todos los sectores).
+1. **Pausar OF en Tubera Papel** — botón ⏸️ con modal de 2 caminos (cargar parte antes / no hay nada que cargar). OF vuelve a cola con tag Pausada. Bobinas en slots se quedan. Detalle completo en sección "SESIÓN 2026-05-17/18/19 → Pendientes".
+2. **Cargar bobinas en slots SIN OF activa** — sacar el disabled del botón Nueva+. Validar capas al click de Arrancar OF, no antes. Invertir el flujo Bobinas→OF.
+
+⏳ **Después seguir con:**
+
+3. **Laminadora**: aplicar Regla 1 + Regla 2. Producto saliente: bobina laminada.
+4. **Tubera Rafia**: mismo patrón que Tubera Papel.
+5. **Costura Papel · Costura Rafia · Embutido**: solo Regla 1 (manejan bolsas).
+6. **Stock Varios** (catálogo de insumos + retiros).
+7. **Refactor "% Avance General"** (postergado hasta tener todos los sectores).
 
 Las reglas universales están documentadas en la sección "SESIÓN 2026-05-17 / 18 / 19" arriba — leer ANTES de empezar cualquier sector nuevo.
 
