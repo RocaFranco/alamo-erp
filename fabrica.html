@@ -7227,31 +7227,20 @@ async function arrancarOFEnMaquinaTP(maqCod) {
   const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
   if (!of) { alert('OF no encontrada.'); return; }
 
-  // VALIDACIÓN DE CAPAS (Franco 2026-05-17):
-  // Capas esperadas = Cant Capas de la OF + (1 si Lleva PE = SI).
-  // La cantidad de bobinas cargadas en los slots tiene que ser EXACTAMENTE esa.
+  // Arrancar OF = asociar OF a máquina. NO valida capas acá (se valida al cargar parte).
+  // Esto resuelve el chicken-and-egg: arrancar OF NO requiere bobinas, así el operario
+  // puede después cargar las bobinas con [🟢 Nueva+] tranquilo.
   const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
   const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
   const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
-  const bobsEnMaq = bobinasEnMaquinaTP(maqCod);
-  const capasCargadas = bobsEnMaq.length;
 
   if (!capasEsperadas) {
     alert(`⚠️ La OF ${numOF} no tiene 'Cantidad Capas' definida en el Sheet. Cargala antes de arrancar.`);
     return;
   }
-  if (capasCargadas !== capasEsperadas) {
-    const detalleLleva = llevaPE ? ` (${cantCapasOF} de papel + 1 de Lámina PE)` : '';
-    alert(
-      `⚠️ No se puede arrancar: faltan bobinas en los slots.\n\n` +
-      `La OF ${numOF} necesita ${capasEsperadas} capas${detalleLleva}.\n` +
-      `Tenés ${capasCargadas} bobina(s) cargada(s) en ${maqCod}.\n\n` +
-      `Cargá las que faltan con 🟢 Nueva+ (o sacá las que sobren con 🔴 Vaciar) antes de arrancar.`
-    );
-    return;
-  }
 
-  if (!confirm(`¿Arrancar ${numOF} en ${maqCod}?\n\nCliente: ${of['Cliente']||'—'}\nBolsa: ${of['Nombre Bolsa']||'—'}\nCapas: ${capasEsperadas}${llevaPE ? ' (incluye Lámina PE)' : ''}`)) return;
+  const detalleLleva = llevaPE ? ` (${cantCapasOF} de papel + 1 de Lámina PE)` : '';
+  if (!confirm(`¿Arrancar ${numOF} en ${maqCod}?\n\nCliente: ${of['Cliente']||'—'}\nBolsa: ${of['Nombre Bolsa']||'—'}\nCapas requeridas: ${capasEsperadas}${detalleLleva}\n\nDespués cargá las bobinas a los slots con 🟢 Nueva+. La validación de capas se hace al cargar el primer parte.`)) return;
   try {
     await setOFActualEnMaquinaTP(maqCod, numOF, legajo);
     renderMaquinaTP(maqCod);
