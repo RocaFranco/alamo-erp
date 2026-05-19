@@ -4742,8 +4742,8 @@ async function abrirSeguimiento(codigo) {
     }
     html += `</div>`;
 
-    // Sección 3: Procesos donde esta bobina fue padre
-    html += `<div class="traza-section"><h4>Procesos / Conversiones</h4>`;
+    // Sección 3: Procesos donde esta bobina fue padre (Convertir Bobinas)
+    html += `<div class="traza-section"><h4>Conversiones / Cortes</h4>`;
     if (comoPadre.length) {
       comoPadre.forEach(c => {
         const fEv = excelDateToJs(c['Fecha']);
@@ -4761,7 +4761,114 @@ async function abrirSeguimiento(codigo) {
         </div>`;
       });
     } else {
-      html += `<div class="traza-empty">Esta bobina no fue transformada ni consumida.</div>`;
+      html += `<div class="traza-empty">Sin cortes, crepé ni abre fácil registrados.</div>`;
+    }
+    html += `</div>`;
+
+    // ============================================================
+    // Sección 4: Consumo en producción (Impresión, Tubera Papel, …)
+    // Cada parte aprobado en cada sector descuenta mts a las bobinas que estaban en
+    // máquina. Acá listamos cada uno de esos eventos: sector · máquina · fecha · mts
+    // consumidos · OF. Solo se cuentan los APROBADOS (los pendientes/rechazados no
+    // tocan stock, así que tampoco son "consumo").
+    // ============================================================
+    html += `<div class="traza-section"><h4>Consumo en producción</h4>`;
+
+    // Asegurar caches de eventos cargadas (la lupa se puede abrir desde stock sin pasar por los sectores).
+    if (!eventosPorSectorCache) eventosPorSectorCache = {};
+    const sectoresConParte = ['Impresión','Tubera Papel','Laminadora','Tubera Rafia','Costura Papel','Costura Rafia','Embutido'];
+    await Promise.all(sectoresConParte.map(async (s) => {
+      if (!eventosPorSectorCache[s] || !eventosPorSectorCache[s].length) {
+        eventosPorSectorCache[s] = await leerPestana(s).catch(() => []);
+      }
+    }));
+    // OFs (necesario para calcular mts consumidos en TP = bolsas × largo).
+    if (!tpOFsCache || !tpOFsCache.length) {
+      try { tpOFsCache = await leerPestana('OF').catch(() => []); } catch (e) {}
+    }
+
+    const cu = String(codigo).toUpperCase();
+    const consumos = [];
+
+    // Impresión: 1 fila por bobina usada → 'Código Bobina' apunta a esta bobina.
+    (eventosPorSectorCache['Impresión'] || []).forEach(e => {
+      if (String(e['Código Bobina']||'').trim().toUpperCase() !== cu) return;
+      if (String(e['Aprobado Supervisor']||'').toUpperCase() !== 'SI') return;
+      const fEv = excelDateToJs(e['Fecha']);
+      consumos.push({
+        icono: '🖨️',
+        sector: 'Impresión',
+        maquina: e['Nº Impresora'] || '—',
+        fecha: fEv,
+        fechaTxt: fEv ? fEv.toLocaleDateString('es-AR') : (e['Fecha']||'—'),
+        mts: Number(e['Mts Reales']) || 0,
+        of: e['Nº OF'] || '—',
+        extra: '',
+      });
+    });
+
+    // Tubera Papel: 1 fila por parte → 'Bobinas en Uso' es CSV con todas las bobinas
+    // que rotaron juntas. mts_consumidos = bolsas × largo (de la OF) / 100;
+    // kg desperdicio se distribuye proporcional al peso por metro → mts_desp = kgDesp / Σ(peso/m).
+    // (Mismo cálculo que aprobarParteTP.)
+    (eventosPorSectorCache['Tubera Papel'] || []).forEach(e => {
+      if (String(e['Tipo Evento']||'').trim() !== 'Parte de Turno') return;
+      if (String(e['Aprobado Supervisor']||'').toUpperCase() !== 'SI') return;
+      const codigos = String(e['Bobinas en Uso']||'')
+        .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      if (!codigos.includes(cu)) return;
+
+      const bolsas = Number(e['Bolsas Producidas']) || 0;
+      const kgDesp = Number(e['Kg Desperdicio']) || 0;
+      const ofObj = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(e['Nº OF']||'').trim());
+      const largo = ofObj ? Number(ofObj['Largo (cm)']) || 0 : 0;
+      const mtsBolsas = (bolsas && largo) ? bolsas * largo / 100 : 0;
+
+      let mtsDesp = 0;
+      if (kgDesp) {
+        const totalPesoPorMetro = codigos.reduce((s, c) => {
+          const b = (bobinasCache || []).find(bb => String(bb['Código Bobina']||'').toUpperCase() === c);
+          if (!b) return s;
+          const a = Number(b['Formato (cm)']) || 0;
+          const g = Number(b['Gramaje (g/m²)']) || 0;
+          return s + (a * g / 100 / 1000);
+        }, 0);
+        if (totalPesoPorMetro) mtsDesp = kgDesp / totalPesoPorMetro;
+      }
+
+      const fEv = excelDateToJs(e['Fecha']);
+      consumos.push({
+        icono: '🛢️',
+        sector: 'Tubera Papel',
+        maquina: e['Nº Tubera'] || '—',
+        fecha: fEv,
+        fechaTxt: fEv ? fEv.toLocaleDateString('es-AR') : (e['Fecha']||'—'),
+        mts: Math.round(mtsBolsas + mtsDesp),
+        of: e['Nº OF'] || '—',
+        extra: (bolsas ? `${fmtNum(bolsas)} bolsas` : '') +
+               (kgDesp ? `${bolsas ? ' · ' : ''}${kgDesp} kg desp` : ''),
+      });
+    });
+
+    // Ordenar cronológicamente
+    consumos.sort((a, b) => (a.fecha || new Date(0)) - (b.fecha || new Date(0)));
+
+    if (consumos.length) {
+      const totalMts = consumos.reduce((s, c) => s + (Number(c.mts)||0), 0);
+      html += `<div class="ev-detalle" style="margin-bottom:10px;color:var(--text-3);font-size:12px">
+        Total consumido: <strong>${fmtNum(Math.round(totalMts))} m</strong> en ${consumos.length} evento(s) aprobado(s)
+      </div>`;
+      consumos.forEach(c => {
+        html += `<div class="traza-evento consumida">
+          <div class="ev-tipo">${c.icono} ${c.sector} · <strong>${c.maquina}</strong></div>
+          <div class="ev-detalle">
+            <strong>${fmtNum(Math.round(c.mts))} mts</strong> · ${c.fechaTxt} · OF <strong>${c.of}</strong>
+            ${c.extra ? '<br><span style="color:var(--text-3);font-size:11px">' + c.extra + '</span>' : ''}
+          </div>
+        </div>`;
+      });
+    } else {
+      html += `<div class="traza-empty">Esta bobina no fue consumida en ningún sector de producción.</div>`;
     }
     html += `</div>`;
 
