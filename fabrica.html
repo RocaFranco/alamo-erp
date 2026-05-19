@@ -6103,6 +6103,17 @@ const ORIGEN_TP_REMANENTE = 'Tubera Papel-remanente';
 //   ⏳ Laminadora       → cuando se implemente
 //   ⏳ Tubera Rafia     → cuando se implemente
 //   ❌ Convertir Bobinas → NO aplica (Cortar/Siliconado/Calandreado son intencionales)
+//
+// REGLA "PENDIENTES/APROBADOS + BLOQUEO CIERRE" (Franco 2026-05-18):
+// Todos los sectores que cargan PARTES tienen que tener:
+//   1. Sub-tabs Pendientes/Aprobados con badges.
+//   2. Botones Aprobar/Rechazar por parte.
+//   3. Bloqueo de "Cerrar OF" si hay pendientes (alert + label "🔒 Cerrar OF (N pend.)").
+//   4. Solo cuentan partes APROBADOS para bolsas hechas / contabilización.
+//   5. Las acciones que tocan stock (descontar mts, generar hijas) se ejecutan al APROBAR.
+// Sectores con regla aplicada: ✅ Impresión, ✅ Tubera Papel.
+// Sectores pendientes: ⏳ Laminadora, Tubera Rafia, Costura Papel, Costura Rafia, Embutido.
+// NO aplica: ❌ Clisé (no tiene aprobación — carga directo, evento único).
 const UMBRAL_REMANENTE_MTS = 100;
 
 // Devuelve true si las bolsas hechas (aprobadas) >= objetivo
