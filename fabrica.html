@@ -4132,6 +4132,20 @@ function renderBobinasFiltradas() {
   tbody.innerHTML = lista.map(b => {
     const f = excelDateToJs(b['Fecha Ingreso']);
     const cod = b['Código Bobina'] || '—';
+    // Solo mostrar botón eliminar si la bobina está "limpia":
+    // - Estado disponible (no consumida/transformada)
+    // - Sin Sector Actual (no está en alguna máquina)
+    // - No es padre de ninguna otra bobina (nadie la usa de referencia)
+    const estado = String(b['Estado']||'').toLowerCase();
+    const sectorAct = String(b['Sector Actual']||'').trim();
+    const esPadreDeAlguna = (bobinasCache||[]).some(otra =>
+      String(otra['Bobina Padre 1']||'').trim().toUpperCase() === String(cod).toUpperCase() ||
+      String(otra['Bobina Padre 2']||'').trim().toUpperCase() === String(cod).toUpperCase()
+    );
+    const sePuedeEliminar = (estado === 'disponible' || estado === '') && !sectorAct && !esPadreDeAlguna;
+    const btnElim = sePuedeEliminar
+      ? `<button class="btn-trazar" onclick="eliminarBobinaDelHistorial('${cod}')" title="Eliminar (bobina sin uso)" style="color:var(--danger)">🗑️</button>`
+      : '';
     return `
       <tr>
         <td><span class="of-num">${cod}</span></td>
@@ -4143,10 +4157,82 @@ function renderBobinasFiltradas() {
         <td>${b['Estado'] || '—'}</td>
         <td>${b['Bobina Padre 1'] || '—'}</td>
         <td>${f ? fmtFechaCorta(f) : '—'}</td>
-        <td class="num"><button class="btn-trazar" onclick="abrirSeguimiento('${cod}')" title="Seguimiento">🔍</button></td>
+        <td class="num" style="white-space:nowrap;overflow:visible">
+          <button class="btn-trazar" onclick="abrirSeguimiento('${cod}')" title="Seguimiento">🔍</button>
+          ${btnElim}
+        </td>
       </tr>
     `;
   }).join('');
+}
+
+// Eliminar bobina del historial — solo si está "limpia" (sin uso ni hijas).
+// Borra la fila del Sheet usando la API de batchUpdate (deleteDimension).
+async function eliminarBobinaDelHistorial(codBobina) {
+  const bob = (bobinasCache||[]).find(b => String(b['Código Bobina']||'').toUpperCase() === String(codBobina).toUpperCase());
+  if (!bob || !bob._rowIndex) { alert('Bobina no encontrada.'); return; }
+  // Re-validar condiciones (por seguridad — el cache puede estar desactualizado)
+  const estado = String(bob['Estado']||'').toLowerCase();
+  const sectorAct = String(bob['Sector Actual']||'').trim();
+  const esPadreDeAlguna = (bobinasCache||[]).some(otra =>
+    String(otra['Bobina Padre 1']||'').trim().toUpperCase() === String(codBobina).toUpperCase() ||
+    String(otra['Bobina Padre 2']||'').trim().toUpperCase() === String(codBobina).toUpperCase()
+  );
+  if (estado !== 'disponible' && estado !== '') {
+    alert(`No se puede eliminar: la bobina está \`${estado}\`.`);
+    return;
+  }
+  if (sectorAct) {
+    alert(`No se puede eliminar: la bobina está cargada en \`${sectorAct}\`. Sacala del slot primero.`);
+    return;
+  }
+  if (esPadreDeAlguna) {
+    alert(`No se puede eliminar: la bobina es padre de otras bobinas (hijas generadas en algún proceso).`);
+    return;
+  }
+  if (!confirm(`¿Eliminar la bobina ${codBobina} del historial?\n\nProducto: ${bob['Producto']||'—'}\nFormato: ${bob['Formato (cm)']||'?'} cm\nKg: ${bob['Kg']||'?'}\n\nEsta acción no se puede deshacer.`)) return;
+
+  try {
+    // Necesitamos el gid de la pestaña Bobinas para deleteDimension
+    const meta = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    ).then(r => r.json());
+    const sheetMeta = (meta.sheets || []).find(s => s.properties.title === 'Bobinas');
+    if (!sheetMeta) throw new Error('No se encontró la pestaña Bobinas en el Sheet.');
+    const sheetId = sheetMeta.properties.sheetId;
+
+    // batchUpdate deleteDimension (rowIndex es 0-based, _rowIndex viene 1-based con +1 por header)
+    const idx0 = bob._rowIndex - 1; // _rowIndex es 1-based para Google Sheets API
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{
+            deleteDimension: {
+              range: { sheetId, dimension: 'ROWS', startIndex: idx0, endIndex: idx0 + 1 }
+            }
+          }]
+        })
+      }
+    ).then(async r => { if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`); });
+
+    // Sacar del cache local + re-indexar los rowIndex de las bobinas posteriores
+    const i = bobinasCache.indexOf(bob);
+    if (i >= 0) {
+      bobinasCache.splice(i, 1);
+      bobinasCache.forEach(b => {
+        if (b._rowIndex > bob._rowIndex) b._rowIndex -= 1;
+      });
+    }
+    alert(`✓ Bobina ${codBobina} eliminada del historial.`);
+    renderBobinasFiltradas();
+    renderStockGrupos();
+  } catch (err) {
+    alert('Error al eliminar: ' + err.message);
+  }
 }
 
 ['bob-filt-cod','bob-filt-prod','bob-filt-origen','bob-filt-estado'].forEach(id => {
@@ -8048,26 +8134,62 @@ async function aprobarParteTP(rowIndex, numOF) {
   const codigosEnUso = String(p['Bobinas en Uso']||'')
     .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
   const bobsEnMaq = codigosEnUso.map(c => bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === c)).filter(Boolean);
-  if (!confirm(`¿Aprobar parte de OF ${numOF} en ${tubera}?\n\n· ${bolsas} bolsas producidas\n· ${bobsEnMaq.length} bobina(s) en uso\n· ${kgDesp} kg desperdicio\n\nAl aprobar se descuentan los mts a las bobinas. Si alguna queda < 100m → consumida.`)) return;
+
+  // Cálculo CORRECTO del desperdicio (Franco 2026-05-18):
+  // Las bobinas rotan juntas en la tubera → todas consumen los mismos mts.
+  // El kg desperdicio se distribuye PROPORCIONAL al peso por metro de cada bobina
+  // (gramaje × ancho). Una bobina más gruesa pierde MÁS kg pero los MISMOS mts.
+  // Resultado matemático: cada bobina pierde mts_desp = kgDesp / totalPesoPorMetro
+  const ofObj = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
+  const largoBolsaCm = ofObj ? Number(ofObj['Largo (cm)']) || 0 : 0;
+  const mtsConsumidos = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
+  // Peso por metro de cada bobina (kg/m) = ancho_cm × gramaje_g/m² / 100 / 1000
+  const totalPesoPorMetro = bobsEnMaq.reduce((s, b) => {
+    const a = Number(b['Formato (cm)']) || 0;
+    const g = Number(b['Gramaje (g/m²)']) || 0;
+    return s + (a * g / 100 / 1000);
+  }, 0);
+  const mtsDespUniforme = (kgDesp && totalPesoPorMetro) ? kgDesp / totalPesoPorMetro : 0;
+
+  // VALIDACIÓN DE COHERENCIA: cada bobina debe tener mts suficientes para
+  // mts_consumidos + mts_desperdicio. Si alguna no alcanza, bloquear.
+  const conflictos = [];
+  for (const bob of bobsEnMaq) {
+    const mtsActuales = Number(bob['Mts Totales']) || 0;
+    const necesarios = mtsConsumidos + mtsDespUniforme;
+    if (necesarios > mtsActuales + 5) { // +5m de tolerancia por redondeos
+      conflictos.push(`${bob['Código Bobina']}: tiene ${fmtNum(Math.round(mtsActuales))}m, necesita ${fmtNum(Math.round(necesarios))}m`);
+    }
+  }
+  if (conflictos.length) {
+    alert(
+      `❌ No se puede aprobar este parte.\n\n` +
+      `Los datos cargados son físicamente imposibles con las bobinas que estaban en máquina:\n\n` +
+      `Bolsas producidas: ${fmtNum(bolsas)} × ${largoBolsaCm} cm = ${fmtNum(Math.round(mtsConsumidos))} mts\n` +
+      `Kg desperdicio: ${kgDesp} kg ≈ ${fmtNum(Math.round(mtsDespUniforme))} mts (por bobina)\n` +
+      `Total necesario por bobina: ${fmtNum(Math.round(mtsConsumidos + mtsDespUniforme))} mts\n\n` +
+      `Bobinas con mts insuficientes:\n` +
+      conflictos.map(c => '• ' + c).join('\n') +
+      `\n\nSoluciones:\n` +
+      `1. Rechazar este parte y volver a cargarlo con valores correctos.\n` +
+      `2. Verificar si el operario reportó mal las bolsas o el kg desperdicio.`
+    );
+    return;
+  }
+
+  if (!confirm(`¿Aprobar parte de OF ${numOF} en ${tubera}?\n\n· ${fmtNum(bolsas)} bolsas → ${fmtNum(Math.round(mtsConsumidos))} mts\n· ${kgDesp} kg desperdicio → ${fmtNum(Math.round(mtsDespUniforme))} mts uniformes por bobina\n· ${bobsEnMaq.length} bobina(s) en uso\n\nAl aprobar se descuentan los mts. Si alguna queda < 100m → consumida.`)) return;
 
   try {
     // Marcar aprobado
     await actualizarCeldaEnFila('Tubera Papel', rowIndex, 'Aprobado Supervisor', 'SI');
     p['Aprobado Supervisor'] = 'SI';
 
-    // Descontar mts a las bobinas en uso
-    const ofObj = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
-    const largoBolsaCm = ofObj ? Number(ofObj['Largo (cm)']) || 0 : 0;
-    const mtsConsumidos = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
-    const kgDespPorBobina = bobsEnMaq.length ? kgDesp / bobsEnMaq.length : 0;
-
     for (const bob of bobsEnMaq) {
       if (!bob._rowIndex) continue;
       const ancho = Number(bob['Formato (cm)']) || 0;
       const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
       const mtsActuales = Number(bob['Mts Totales']) || 0;
-      const mtsDespBobina = (kgDespPorBobina && ancho && gramaje) ? kgDespPorBobina * 100000 / (ancho * gramaje) : 0;
-      const mtsRestantes = Math.max(0, mtsActuales - mtsConsumidos - mtsDespBobina);
+      const mtsRestantes = Math.max(0, mtsActuales - mtsConsumidos - mtsDespUniforme);
       const idxCache = bobinasCache.indexOf(bob);
 
       if (mtsRestantes < UMBRAL_REMANENTE_MTS) {
