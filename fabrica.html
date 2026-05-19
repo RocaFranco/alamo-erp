@@ -7903,6 +7903,24 @@ function abrirModalParteTP(numOF, maqCod) {
   }
   if (!maqCod) { alert('No se identificó la máquina para esta OF.'); return; }
 
+  // VALIDACIÓN DE CAPAS al cargar parte (Franco 2026-05-18):
+  // Si una bobina se consumió y salió del slot, el operario puede intentar cargar parte
+  // con menos bobinas de las requeridas. Bloquear acá igual que al arrancar OF.
+  const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
+  const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
+  const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
+  const bobsEnMaqVal = bobinasEnMaquinaTP(maqCod);
+  if (capasEsperadas && bobsEnMaqVal.length !== capasEsperadas) {
+    const detalleLleva = llevaPE ? ` (${cantCapasOF} de papel + 1 de Lámina PE)` : '';
+    alert(
+      `⚠️ No se puede cargar parte: faltan bobinas en los slots.\n\n` +
+      `La OF ${numOF} necesita ${capasEsperadas} capas${detalleLleva}.\n` +
+      `Tenés ${bobsEnMaqVal.length} bobina(s) cargada(s) en ${maqCod}.\n\n` +
+      `Probablemente una bobina se consumió en el parte anterior. Cargá las que faltan con 🟢 Nueva+ antes de cargar el parte siguiente.`
+    );
+    return;
+  }
+
   document.getElementById('tp-modal-titulo').textContent = `${numOF} en ${maqCod}`;
   document.getElementById('tp-of-cli').textContent = of['Cliente'] || '—';
   document.getElementById('tp-of-bolsa').textContent = of['Nombre Bolsa'] || '—';
