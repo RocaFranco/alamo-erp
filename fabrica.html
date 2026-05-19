@@ -2914,11 +2914,33 @@ function colLetter(idx0) {
   return s;
 }
 
+// Normaliza un nombre de header para comparación tolerante:
+// minúsculas, sin tildes, sin caracteres unicode raros (º ° ñ), espacios trimeados
+function normalizarHeader(s) {
+  return String(s||'').toLowerCase().trim()
+    .replace(/\s+/g, ' ')              // espacios múltiples → 1
+    .replace(/[°º]/g, 'o')             // degree/ordinal → o
+    .replace(/[áä]/g, 'a').replace(/[éë]/g, 'e').replace(/[íï]/g, 'i')
+    .replace(/[óö]/g, 'o').replace(/[úü]/g, 'u').replace(/[ñ]/g, 'n');
+}
+
 async function actualizarCeldaEnFila(pestana, rowIndex, headerNombre, valor) {
   const headers = pestanaHeaders[pestana];
-  if (!headers) throw new Error(`Headers de "${pestana}" no cargados`);
-  const colIdx = headers.indexOf(headerNombre);
-  if (colIdx === -1) throw new Error(`Header "${headerNombre}" no encontrado en ${pestana}`);
+  if (!headers) throw new Error(`Headers de "${pestana}" no cargados. Refrescá la página y volvé a intentar.`);
+  // 1. Match exacto
+  let colIdx = headers.indexOf(headerNombre);
+  // 2. Fallback: match tolerante (case-insensitive, sin tildes, sin unicode raros)
+  if (colIdx === -1) {
+    const target = normalizarHeader(headerNombre);
+    colIdx = headers.findIndex(h => normalizarHeader(h) === target);
+  }
+  if (colIdx === -1) {
+    throw new Error(
+      `Header "${headerNombre}" no encontrado en pestaña "${pestana}".\n` +
+      `Headers actuales: ${headers.map(h => `"${h}"`).join(', ')}\n` +
+      `Verificá que en el Sheet la columna tenga exactamente "${headerNombre}".`
+    );
+  }
   const range = `${pestana}!${colLetter(colIdx)}${rowIndex}`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`;
   const resp = await fetch(url, {
@@ -7021,9 +7043,18 @@ function ofActualEnMaquinaTP(maqCod) {
 // Setea la OF actual de una máquina en el Sheet (Estado Maquinas).
 // Si ya hay fila para esa máquina → actualiza. Si no → append nueva.
 async function setOFActualEnMaquinaTP(maqCod, numOF, legajo) {
-  const fila = (tpEstadoMaqCache || []).find(e =>
-    String(e['Máquina']||'').trim().toUpperCase() === maqCod.toUpperCase()
-  );
+  // Asegurar que los headers están cargados (importante por si la pestaña se creó después del login).
+  if (!pestanaHeaders['Estado Maquinas']) {
+    try {
+      const data = await leerPestana('Estado Maquinas');
+      tpEstadoMaqCache = data || [];
+    } catch (e) {
+      throw new Error(`No se pudo leer la pestaña "Estado Maquinas". Verificá que exista en el Sheet con columnas: Máquina, OF Actual, Fecha Inicio, Legajo.`);
+    }
+  }
+  // Buscar con tolerancia a variantes del header "Máquina"
+  const getMaq = (e) => String(e['Máquina'] || e['Maquina'] || e['MAQUINA'] || '').trim().toUpperCase();
+  const fila = (tpEstadoMaqCache || []).find(e => getMaq(e) === maqCod.toUpperCase());
   const fecha = new Date().toISOString().slice(0,10);
   if (fila && fila._rowIndex) {
     await actualizarCeldaEnFila('Estado Maquinas', fila._rowIndex, 'OF Actual', numOF || '');
@@ -7033,7 +7064,7 @@ async function setOFActualEnMaquinaTP(maqCod, numOF, legajo) {
     fila['Fecha Inicio'] = numOF ? fecha : '';
     fila['Legajo'] = numOF ? legajo : '';
   } else {
-    // Append nueva fila
+    // Append nueva fila (orden: Máquina, OF Actual, Fecha Inicio, Legajo)
     await appendFila('Estado Maquinas', [maqCod, numOF || '', numOF ? fecha : '', numOF ? legajo : '']);
     tpEstadoMaqCache.push({
       'Máquina': maqCod, 'OF Actual': numOF || '',
