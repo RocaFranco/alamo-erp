@@ -7680,20 +7680,30 @@ function renderColaTP() {
       const tagMotivo = motivo ? `<span style="font-size:10px;color:var(--warn,#f5a623);display:block;margin-top:2px">⚠️ ${motivo}</span>` : '';
       accionHTML = `<span style="color:var(--ok);font-weight:700">✅ Cerrada ${fechaTxt}</span>${tagMotivo}`;
     } else {
-      // Solo mostrar info de qué máquina la trabaja (si alguna) — la acción "trabajar" se hace desde el tab de la máquina.
+      // Info de qué máquina la trabaja + botón Cerrar OF (la acción "trabajar" se hace desde el tab de máquina).
       const maqsConOF = ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'].filter(m => ofActualEnMaquinaTP(m) === num);
       const objetivo = objetivoBolsasOF(o);
       const cumple = objetivo > 0 && hechas >= objetivo;
-      const claseCierre = cumple ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend';
-      const tituloCierre = cumple
-        ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
-        : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`;
+      // Contar partes pendientes de aprobación (no se puede cerrar OF con pendientes)
+      const partesPend = (tpEventosCache || []).filter(e =>
+        String(e['Nº OF']||'').trim() === num &&
+        String(e['Tipo Evento']||'').trim() === 'Parte de Turno' &&
+        !['SI','NO'].includes(String(e['Aprobado Supervisor']||'').toUpperCase())
+      );
+      const hayPend = partesPend.length > 0;
+      const claseCierre = hayPend ? 'btn-cerrar-of-pend' : (cumple ? 'btn-cerrar-of-ok' : 'btn-cerrar-of-pend');
+      const tituloCierre = hayPend
+        ? `⚠️ NO se puede cerrar: hay ${partesPend.length} parte(s) pendiente(s) de aprobación. Aprobá/rechazá primero.`
+        : (cumple
+          ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
+          : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`);
+      const labelCierre = hayPend ? `🔒 Cerrar OF (${partesPend.length} pend.)` : '🏁 Cerrar OF';
       const tagMaq = maqsConOF.length
         ? `<span style="font-size:10px;color:var(--accent);font-weight:600">🧵 ${maqsConOF.join(', ')}</span>`
         : `<span style="font-size:10px;color:var(--text-3)">En espera</span>`;
       accionHTML = `
         ${tagMaq}
-        <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">🏁 Cerrar OF</button>
+        <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">${labelCierre}</button>
       `;
     }
 
@@ -7704,7 +7714,7 @@ function renderColaTP() {
       <td style="text-align:center">${fmtNum(cant)}</td>
       <td style="text-align:center">${fmtNum(hechas)}</td>
       <td style="text-align:center">${pct}%</td>
-      <td class="num">${accionHTML}</td>
+      <td class="num" style="overflow:visible;white-space:nowrap;min-width:240px;text-align:right">${accionHTML}</td>
     </tr>`;
   }).join('');
 }
@@ -7776,7 +7786,7 @@ function renderPartesTP() {
       <td><span class="of-num">${numOF}</span></td>
       <td class="num">${fmtNum(bolsas)}</td>
       <td class="num">${fmtNum(kgDesp)}</td>
-      <td class="num">${accionHTML}</td>
+      <td class="num" style="overflow:visible;white-space:nowrap;min-width:200px;text-align:right">${accionHTML}</td>
     </tr>`;
   }).join('');
 }
@@ -8089,6 +8099,29 @@ async function rechazarParteTP(rowIndex, numOF) {
 function abrirModalCierreTP(numOF) {
   const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
   if (!of) { alert('OF no encontrada: ' + numOF); return; }
+
+  // VALIDACIÓN: bloquear cierre si hay partes pendientes de aprobación.
+  // Mismo patrón que en Impresión (Franco 2026-05-18).
+  // Sin esto, las bolsas/mts de partes no aprobados no se contabilizan y el cierre podría
+  // darse con datos incompletos. Hay que aprobar/rechazar todos los partes antes de cerrar.
+  const partesPendientes = (tpEventosCache || []).filter(e =>
+    String(e['Nº OF']||'').trim() === String(numOF).trim() &&
+    String(e['Tipo Evento']||'').trim() === 'Parte de Turno' &&
+    !['SI','NO'].includes(String(e['Aprobado Supervisor']||'').toUpperCase())
+  );
+  if (partesPendientes.length > 0) {
+    alert(
+      `⚠️ NO se puede cerrar la OF.\n\n` +
+      `Hay ${partesPendientes.length} parte${partesPendientes.length === 1 ? '' : 's'} de Tubera Papel pendiente${partesPendientes.length === 1 ? '' : 's'} de aprobación para esta OF.\n\n` +
+      `Antes de cerrar:\n` +
+      `1. Ir a "Partes cargados"\n` +
+      `2. Aprobar o Rechazar cada parte pendiente\n` +
+      `3. Volver acá y cerrar la OF\n\n` +
+      `Si cerrás con partes pendientes, las bolsas de esos partes no se contabilizan ni se descuentan los mts de las bobinas.`
+    );
+    return;
+  }
+
   const cant = Number(of['Cant Bolsas']) || 0;
   const objetivo = objetivoBolsasOF(of);
   const hechas = bolsasHechasEnTPporOF(numOF);
