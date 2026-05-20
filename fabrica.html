@@ -2546,6 +2546,58 @@
   </div>
 </div>
 
+<!-- Modal Pausar OF en Tubera Papel (Franco 2026-05-20) -->
+<!-- Dos caminos: (a) cargar parte primero y después liberar máquina,
+     (b) liberar máquina directo con motivo (OF se arrancó sin querer / no hay nada que cargar) -->
+<div class="modal-overlay" id="tp-modal-pausar" style="display:none">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-head">
+      <h3>⏸️ Pausar OF en Tubera Papel — <span id="tp-pausar-of">OF</span></h3>
+      <button class="modal-close" onclick="cerrarModalPausarTP()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 14px;color:var(--text-2);font-size:13px">
+        Al pausar, la OF <strong>sale de la máquina</strong> y vuelve a la cola con tag "⏸️ Pausada". Las bobinas <strong>se quedan en los slots</strong> — si la pausa es definitiva podés vaciarlas a mano después.
+      </p>
+
+      <!-- Paso 1: elegir camino -->
+      <div id="tp-pausar-paso-1">
+        <p style="margin:0 0 10px;font-size:13px;color:var(--text-2)">¿Hay parte de turno que cargar antes de pausar?</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button type="button" class="btn-cargar-parte" style="text-align:left;padding:14px" onclick="elegirCaminoPausarTP('con-parte')">
+            📝 <strong>Sí, cargar parte primero</strong><br>
+            <span style="font-size:12px;color:var(--text-3);font-weight:400">Se abre el modal de Cargar Parte normal. Al guardar el parte (queda Pendiente), la OF se pausa automáticamente.</span>
+          </button>
+          <button type="button" class="btn-secondary" style="text-align:left;padding:14px;background:rgba(245,166,35,0.1);border:1px solid var(--warn,#f5a623);color:var(--text)" onclick="elegirCaminoPausarTP('sin-parte')">
+            🟠 <strong>No, pausar sin parte</strong><br>
+            <span style="font-size:12px;color:var(--text-3);font-weight:400">Para cuando la OF se arrancó sin querer o no hay nada que registrar.</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 2: motivo (solo si "sin parte") -->
+      <form id="form-tp-pausar" class="form-grid" style="display:none;margin-top:10px">
+        <div class="field-2" style="padding:12px 14px; background:rgba(245,166,35,0.08); border:1px solid var(--warn,#f5a623); border-radius:8px; color:var(--warn,#f5a623); font-size:13px;">
+          ⚠️ <strong>Pausa sin parte cargado.</strong> Indicá el motivo y tu legajo. La OF vuelve a la cola con tag "Pausada".
+        </div>
+        <label class="field field-2">
+          <span>Motivo (obligatorio)</span>
+          <input type="text" name="motivo_pausa" required placeholder="Ej: se arrancó por error, cliente canceló, máquina rota" maxlength="200">
+        </label>
+        <label class="field field-2">
+          <span>Legajo del que pausa</span>
+          <input type="text" name="legajo_pausa" required placeholder="Ej: 499">
+        </label>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalPausarTP()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="tp-pausar-submit">Confirmar pausa</button>
+        </div>
+      </form>
+      <div id="tp-pausar-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Cargar Recepción de Tintas -->
 <div class="modal-overlay" id="tnt-modal-recep" style="display:none">
   <div class="modal-card" style="max-width:680px">
@@ -7305,6 +7357,7 @@ function renderMaquinaTP(maqCod) {
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTP('${ofActual}','${maqCod}')">📝 Cargar Parte</button>
+          <button type="button" class="btn-secondary" style="background:rgba(245,166,35,0.15);border:1px solid var(--warn,#f5a623);color:var(--warn,#f5a623)" onclick="abrirModalPausarTP('${ofActual}','${maqCod}')" title="Sacar OF de la máquina sin terminarla. Vuelve a la cola con tag Pausada.">⏸️ Pausar OF</button>
           <button type="button" class="btn-cerrar-of-ok" onclick="abrirModalCierreTP('${ofActual}')">🏁 Terminar OF</button>
         </div>
       </div>`;
@@ -7340,7 +7393,7 @@ function renderMaquinaTP(maqCod) {
     headerHTML = `
       <div class="conv-padre-card" style="margin-bottom:16px;border:1px dashed var(--bg-3)">
         <p style="margin:0 0 14px;color:var(--text-2);font-size:13px">
-          <strong>Sin OF activa en ${maqCod}.</strong> Elegí una OF para arrancar (ordenadas por fecha de entrega). Al arrancar, el sistema valida que tengas las bobinas necesarias en los slots.
+          <strong>Sin OF activa en ${maqCod}.</strong> Podés cargar bobinas en los slots (🟢 Nueva+) antes o después de elegir OF. Al apretar <strong>▶️ Arrancar OF</strong> el sistema valida que tengas las bobinas necesarias para esa OF (capas + ancho + impresa correcta).
         </p>
         ${ofsPend.length ? `
           <div class="form-grid" style="margin:0">
@@ -7380,15 +7433,14 @@ function renderMaquinaTP(maqCod) {
           <button type="button" class="btn-cerrar-of-pend" title="Bobina se acabó físicamente (marca consumida, no vuelve a stock)" onclick="terminarBobinaSlotTP('${maqCod}','${bob['Código Bobina']}')">⚫ Terminada</button>
         </div>`;
     } else {
-      // Si no hay OF activa, deshabilitar [Nueva+]: sin OF el sistema no sabe qué ancho/Nombre Bolsa validar
-      const sinOF = !ofActual;
-      const btnHtml = sinOF
-        ? `<button type="button" class="btn-cargar-parte" disabled title="Elegí una OF primero (arriba) para poder cargar bobinas a los slots">🟢 Nueva+</button>`
-        : `<button type="button" class="btn-cargar-parte" onclick="abrirModalCargarBobTP('${maqCod}',${slotN})">🟢 Nueva+</button>`;
+      // [Nueva+] habilitado SIEMPRE — el operario puede cargar bobinas antes o después de elegir OF.
+      // La validación de capas / ancho / Nombre Bolsa se hace al ARRANCAR OF, no acá.
+      // (Franco 2026-05-20: invertimos el flujo OF→Bobinas a Bobinas→OF para matchear con planta.)
+      const btnHtml = `<button type="button" class="btn-cargar-parte" onclick="abrirModalCargarBobTP('${maqCod}',${slotN})">🟢 Nueva+</button>`;
       slotsHTML += `
         <div style="display:flex;align-items:center;gap:14px;padding:14px;background:rgba(255,255,255,0.02);border:1px dashed var(--bg-3);border-radius:8px;margin-bottom:8px">
           <div style="font-size:11px;color:var(--text-3);min-width:60px">Slot ${slotN}</div>
-          <div style="flex:1;color:var(--text-3);font-style:italic">${sinOF ? 'Elegí una OF arriba para empezar a cargar' : 'Vacío'}</div>
+          <div style="flex:1;color:var(--text-3);font-style:italic">Vacío</div>
           ${btnHtml}
         </div>`;
     }
@@ -7420,9 +7472,9 @@ async function arrancarOFEnMaquinaTP(maqCod) {
   const of = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === numOF);
   if (!of) { alert('OF no encontrada.'); return; }
 
-  // Arrancar OF = asociar OF a máquina. NO valida capas acá (se valida al cargar parte).
-  // Esto resuelve el chicken-and-egg: arrancar OF NO requiere bobinas, así el operario
-  // puede después cargar las bobinas con [🟢 Nueva+] tranquilo.
+  // Arrancar OF = asociar OF a máquina + validar que los slots tengan las bobinas necesarias.
+  // (Franco 2026-05-20: el operario carga bobinas primero, después arranca OF; la validación
+  // de capas / ancho / impresa correcta se hace ACÁ, no al cargar las bobinas ni al cargar parte.)
   const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
   const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
   const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
@@ -7432,8 +7484,77 @@ async function arrancarOFEnMaquinaTP(maqCod) {
     return;
   }
 
+  // VALIDACIÓN 1: cantidad de bobinas en slots
+  const bobsActuales = bobinasEnMaquinaTP(maqCod);
+  if (bobsActuales.length < capasEsperadas) {
+    const detalle = llevaPE
+      ? `${cantCapasOF} de papel + 1 de Lámina PE`
+      : `${cantCapasOF} de papel`;
+    alert(
+      `⚠️ Faltan bobinas en los slots para arrancar la OF ${numOF}.\n\n` +
+      `Necesita ${capasEsperadas} bobina(s) (${detalle}).\n` +
+      `Actualmente hay ${bobsActuales.length} cargada(s).\n\n` +
+      `Cargá las que faltan con 🟢 Nueva+ y volvé a apretar Arrancar OF.`
+    );
+    return;
+  }
+
+  // VALIDACIÓN 2: si la OF imprime, slot 1 debe ser IMPRESA del Nombre Bolsa correcto
+  const ofImp = ofImprime(of);
+  const nombreBolsa = String(of['Nombre Bolsa']||'').trim();
+  if (ofImp) {
+    const impresas = bobsActuales.filter(b => String(b['Origen']||'').includes('Impresión-impresa'));
+    if (!impresas.length) {
+      alert(
+        `⚠️ La OF ${numOF} se imprime — necesita una bobina IMPRESA en algún slot.\n\n` +
+        `Ninguna de las bobinas cargadas es impresa. Cargá la bobina impresa de "${nombreBolsa}" antes de arrancar.`
+      );
+      return;
+    }
+    const impresaMatch = impresas.find(b => String(b['Producto']||'').trim() === nombreBolsa);
+    if (!impresaMatch) {
+      const enUso = impresas.map(b => `${b['Código Bobina']} (${b['Producto']||'—'})`).join(', ');
+      alert(
+        `⚠️ La bobina impresa cargada no coincide con la OF.\n\n` +
+        `OF ${numOF} → "${nombreBolsa}"\n` +
+        `Bobina(s) impresa(s) en máquina: ${enUso}\n\n` +
+        `Sacá la impresa actual (🔴 Vaciar) y cargá la correcta antes de arrancar.`
+      );
+      return;
+    }
+  }
+
+  // VALIDACIÓN 3: ancho de todas las bobinas ≥ ancho OF
+  const anchoOF = Number(of['Ancho (cm)']) || 0;
+  if (anchoOF) {
+    const angostas = bobsActuales.filter(b => {
+      const a = Number(b['Formato (cm)']) || 0;
+      return a > 0 && a < anchoOF;
+    });
+    if (angostas.length) {
+      const listado = angostas.map(b => `${b['Código Bobina']} (${b['Formato (cm)']} cm)`).join(', ');
+      alert(
+        `⚠️ Hay bobina(s) más angostas que la OF.\n\n` +
+        `OF ${numOF} → ${anchoOF} cm\n` +
+        `Bobinas angostas: ${listado}\n\n` +
+        `No se pueden achicar las bolsas. Reemplazá esas bobinas antes de arrancar.`
+      );
+      return;
+    }
+  }
+
   const detalleLleva = llevaPE ? ` (${cantCapasOF} de papel + 1 de Lámina PE)` : '';
-  if (!confirm(`¿Arrancar ${numOF} en ${maqCod}?\n\nCliente: ${of['Cliente']||'—'}\nBolsa: ${of['Nombre Bolsa']||'—'}\nCapas requeridas: ${capasEsperadas}${detalleLleva}\n\nDespués cargá las bobinas a los slots con 🟢 Nueva+. La validación de capas se hace al cargar el primer parte.`)) return;
+  const listadoBobs = bobsActuales.map(b => {
+    const tag = String(b['Origen']||'').includes('Impresión-impresa') ? ' 🖨️' : '';
+    return `  · ${b['Código Bobina']}${tag} (${b['Formato (cm)']||'?'} cm · ${fmtNum(b['Mts Totales']||0)} m)`;
+  }).join('\n');
+  if (!confirm(
+    `¿Arrancar ${numOF} en ${maqCod}?\n\n` +
+    `Cliente: ${of['Cliente']||'—'}\n` +
+    `Bolsa: ${nombreBolsa}\n` +
+    `Capas requeridas: ${capasEsperadas}${detalleLleva}\n\n` +
+    `Bobinas en máquina:\n${listadoBobs}`
+  )) return;
   try {
     await setOFActualEnMaquinaTP(maqCod, numOF, legajo);
     renderMaquinaTP(maqCod);
@@ -7891,9 +8012,17 @@ function renderColaTP() {
           ? `Cerrar OF (cumple objetivo: ${fmtNum(hechas)} ≥ ${fmtNum(objetivo)})`
           : `Cerrar OF (faltan ${fmtNum(objetivo - hechas)} bolsas → pide motivo)`);
       const labelCierre = hayPend ? `🔒 Cerrar OF (${partesPend.length} pend.)` : '🏁 Cerrar OF';
-      const tagMaq = maqsConOF.length
-        ? `<span style="font-size:10px;color:var(--accent);font-weight:600">🧵 ${maqsConOF.join(', ')}</span>`
-        : `<span style="font-size:10px;color:var(--text-3)">En espera</span>`;
+      // Una OF está "Pausada" si tiene eventos previos en TP (parte o pausa) y NO está en máquina.
+      // Si tampoco tuvo eventos → "En espera" (nunca arrancó en TP).
+      const eventosPrevios = (tpEventosCache || []).some(e => String(e['Nº OF']||'').trim() === num);
+      let tagMaq;
+      if (maqsConOF.length) {
+        tagMaq = `<span style="font-size:10px;color:var(--accent);font-weight:600">🧵 ${maqsConOF.join(', ')}</span>`;
+      } else if (eventosPrevios) {
+        tagMaq = `<span style="font-size:10px;color:var(--warn,#f5a623);font-weight:600" title="Esta OF estuvo en una máquina y se pausó. Para reanudar elegila del dropdown en cualquier tab de tubera.">⏸️ Pausada</span>`;
+      } else {
+        tagMaq = `<span style="font-size:10px;color:var(--text-3)">En espera</span>`;
+      }
       accionHTML = `
         ${tagMaq}
         <button type="button" class="${claseCierre}" title="${tituloCierre}" onclick="abrirModalCierreTP('${num.replace(/'/g,"\\'")}')">${labelCierre}</button>
@@ -8129,6 +8258,16 @@ function abrirModalParteTP(numOF, maqCod) {
 
 function cerrarModalParteTP() {
   document.getElementById('tp-modal-parte').style.display = 'none';
+  // Limpiar el flag de pausa por si veníamos del flujo "Pausar con parte" y el usuario canceló.
+  const f = document.getElementById('form-tp');
+  if (f && f.dataset.pausarAlGuardar) {
+    delete f.dataset.pausarAlGuardar;
+    const btn = document.getElementById('tp-parte-submit');
+    if (btn && btn.dataset.txtOrig) {
+      btn.textContent = btn.dataset.txtOrig;
+      delete btn.dataset.txtOrig;
+    }
+  }
 }
 
 document.getElementById('tp-modal-parte').addEventListener('click', e => {
@@ -8204,7 +8343,25 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     });
 
     eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
-    showFormMsg('tp-msg', `✓ Parte cargado como Pendiente · ${bolsas} bolsas. Aprobálo desde "Partes cargados" para descontar mts.`, true);
+
+    // FLAG PAUSAR AL GUARDAR (Franco 2026-05-20): si veníamos del modal Pausar OF con
+    // camino "con parte", después de guardar el parte liberamos Estado Maquinas y la OF
+    // vuelve a la cola con tag Pausada. El parte queda Pendiente como cualquier otro.
+    let pausoOK = false;
+    if (f.dataset.pausarAlGuardar === '1') {
+      try {
+        await setOFActualEnMaquinaTP(tubera, '', '');
+        pausoOK = true;
+      } catch (e) {
+        console.warn('No se pudo liberar Estado Maquinas tras parte+pausa:', e);
+      }
+    }
+
+    const msgFinal = pausoOK
+      ? `✓ Parte cargado como Pendiente y OF ${numOF} pausada en ${tubera}. Volvió a la cola.`
+      : `✓ Parte cargado como Pendiente · ${bolsas} bolsas. Aprobálo desde "Partes cargados" para descontar mts.`;
+    showFormMsg('tp-msg', msgFinal, true);
+
     // Recargar cache del Sheet para que el parte nuevo tenga _rowIndex correcto.
     // Sin esto, los botones Aprobar/Rechazar no funcionan (no encuentran la fila).
     try {
@@ -8214,10 +8371,23 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     } catch (e) { console.warn('No se pudo recargar Tubera Papel cache:', e); }
     renderColaTP();
     renderPartesTP();
+    if (pausoOK) renderMaquinaTP(tubera);
     setTimeout(() => {
       cerrarModalParteTP();
       delete f.dataset.guardando;
-      btn.disabled = false; btn.textContent = txtOrig;
+      // Limpiar flag de pausa + restaurar texto del botón submit
+      if (f.dataset.pausarAlGuardar === '1') {
+        delete f.dataset.pausarAlGuardar;
+        if (btn.dataset.txtOrig) {
+          btn.textContent = btn.dataset.txtOrig;
+          delete btn.dataset.txtOrig;
+        } else {
+          btn.textContent = txtOrig;
+        }
+      } else {
+        btn.textContent = txtOrig;
+      }
+      btn.disabled = false;
     }, 1500);
   } catch (err) {
     showFormMsg('tp-msg', '✗ Error: ' + err.message, false);
@@ -8479,6 +8649,127 @@ document.getElementById('form-tp-cierre').addEventListener('submit', async (e) =
   }
 });
 
+// ============================================================
+// MODAL PAUSAR OF EN TUBERA PAPEL (Franco 2026-05-20)
+// Permite sacar una OF de la máquina sin cerrarla. La OF vuelve a la cola
+// con tag "⏸️ Pausada" (se infiere de tener eventos previos + no estar en máquina).
+// Dos caminos:
+//   (a) "Con parte" → abre el modal Cargar Parte normal con flag dataset.pausarAlGuardar=1.
+//       Cuando el form submit del parte termina exitosamente, libera Estado Maquinas.
+//   (b) "Sin parte" → pide motivo + legajo, registra evento 'Pausa OF' en Tubera Papel
+//       y libera Estado Maquinas. (Para cuando la OF se arrancó sin querer.)
+// En ambos casos las bobinas en slots se quedan con Sector Actual = máquina. Si la
+// pausa es definitiva, Franco/Tomi vacían los slots manualmente con 🔴 Vaciar.
+// ============================================================
+function abrirModalPausarTP(numOF, maqCod) {
+  document.getElementById('tp-pausar-of').textContent = numOF;
+  // Reset visibilidad: paso 1 visible, form oculto
+  document.getElementById('tp-pausar-paso-1').style.display = '';
+  const f = document.getElementById('form-tp-pausar');
+  f.style.display = 'none';
+  f.reset();
+  f.dataset.numOf = numOF;
+  f.dataset.maq = maqCod;
+  const msg = document.getElementById('tp-pausar-msg');
+  msg.textContent = ''; msg.className = 'form-msg';
+  document.getElementById('tp-modal-pausar').style.display = 'flex';
+}
+
+function cerrarModalPausarTP() {
+  document.getElementById('tp-modal-pausar').style.display = 'none';
+}
+document.getElementById('tp-modal-pausar').addEventListener('click', e => {
+  if (e.target.id === 'tp-modal-pausar') cerrarModalPausarTP();
+});
+
+// Camino 'con-parte' o 'sin-parte'
+function elegirCaminoPausarTP(camino) {
+  const f = document.getElementById('form-tp-pausar');
+  const numOF = f.dataset.numOf;
+  const maqCod = f.dataset.maq;
+  if (camino === 'con-parte') {
+    // Cierra el modal pausar, abre el modal Cargar Parte normal con flag
+    cerrarModalPausarTP();
+    abrirModalParteTP(numOF, maqCod);
+    // Al guardar el parte (form-tp submit), el handler detecta pausarAlGuardar y libera máquina.
+    const fParte = document.getElementById('form-tp');
+    if (fParte) {
+      fParte.dataset.pausarAlGuardar = '1';
+      // Cambiar texto del botón submit para que sea claro
+      const btn = document.getElementById('tp-parte-submit');
+      if (btn) {
+        btn.textContent = '📝 Guardar parte y pausar OF';
+        btn.dataset.txtOrig = 'Guardar parte';
+      }
+    }
+  } else {
+    // Mostrar el form de motivo
+    document.getElementById('tp-pausar-paso-1').style.display = 'none';
+    f.style.display = '';
+    setTimeout(() => { const inp = f.querySelector('[name="motivo_pausa"]'); if (inp) inp.focus(); }, 100);
+  }
+}
+
+// Submit: pausar sin parte → registra evento Pausa OF + libera Estado Maquinas
+document.getElementById('form-tp-pausar').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOF = f.dataset.numOf;
+  const maqCod = f.dataset.maq;
+  const motivo = f.querySelector('[name="motivo_pausa"]').value.trim();
+  const legajo = f.querySelector('[name="legajo_pausa"]').value.trim();
+  if (!motivo) { showFormMsg('tp-pausar-msg', '✗ Cargá el motivo.', false); return; }
+  if (!legajo) { showFormMsg('tp-pausar-msg', '✗ Cargá el legajo.', false); return; }
+
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('tp-pausar-submit');
+  const txtOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Pausando…';
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    // Registrar evento 'Pausa OF' en pestaña Tubera Papel (para que quede traza).
+    // No descuenta bobinas — la pausa no produce bolsas ni desperdicio.
+    // Columnas: Fecha · Tipo Evento · Turno · Nº Tubera · Legajos · Bobinas en Uso · Nº OF
+    //   · Bolsas Producidas · Bobinas Sacadas · Kg Bobinas Sacadas · Kg Desperdicio
+    //   · Hora Inicio · Hora Fin · Observaciones · Aprobado Supervisor
+    await appendFila('Tubera Papel', [
+      fecha, 'Pausa OF', '', maqCod, legajo,
+      '', numOF, '',
+      '', '', '',
+      '', '', motivo,
+      '', // Aprobado Supervisor — no aplica para pausa
+    ]);
+    tpEventosCache.push({
+      'Fecha': fecha, 'Tipo Evento': 'Pausa OF', 'Turno': '',
+      'Nº Tubera': maqCod, 'Legajos': legajo, 'Bobinas en Uso': '',
+      'Nº OF': numOF, 'Bolsas Producidas': '',
+      'Bobinas Sacadas': '', 'Kg Bobinas Sacadas': '',
+      'Kg Desperdicio': '',
+      'Hora Inicio': '', 'Hora Fin': '',
+      'Observaciones': motivo,
+      'Aprobado Supervisor': '',
+    });
+    eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
+
+    // Liberar Estado Maquinas (OF vuelve a la cola).
+    await setOFActualEnMaquinaTP(maqCod, '', '');
+
+    renderColaTP();
+    renderMaquinaTP(maqCod);
+    showFormMsg('tp-pausar-msg', `✓ OF ${numOF} pausada en ${maqCod}. Volvió a la cola con tag "Pausada".`, true);
+    setTimeout(() => {
+      cerrarModalPausarTP();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 1500);
+  } catch (err) {
+    showFormMsg('tp-pausar-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
 // Esc cierra los modales de Tubera Papel
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
@@ -8486,6 +8777,8 @@ document.addEventListener('keydown', (e) => {
   if (mp && mp.style.display === 'flex') cerrarModalParteTP();
   const mc = document.getElementById('tp-modal-cierre');
   if (mc && mc.style.display === 'flex') cerrarModalCierreTP();
+  const mpau = document.getElementById('tp-modal-pausar');
+  if (mpau && mpau.style.display === 'flex') cerrarModalPausarTP();
 });
 
 // Botón + Nueva OF → redirige al módulo Ventas (las OFs nacen ahí)
