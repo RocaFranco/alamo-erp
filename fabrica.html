@@ -6525,9 +6525,9 @@ function excelTimeToHHMM(v) {
 // El % Excedente vive en la columna "% Excedente" de la OF (puede estar vacío → 0).
 function objetivoBolsasOF(of) {
   const cant = Number(of['Cant Bolsas']) || 0;
-  // El excedente puede venir como número (2) o como porcentaje (0.02). Normalizamos.
-  let exc = Number(of['% Excedente']) || 0;
-  if (exc > 1) exc = exc / 100; // si vino "2" lo interpretamos como 2%
+  // Convención (Franco 2026-05-21): % Excedente SIEMPRE como porcentaje entero.
+  // 1 = 1%, 20 = 20%, 100 = 100%. Sin tratar valores < 1 como decimal.
+  const exc = (Number(of['% Excedente']) || 0) / 100;
   return Math.round(cant * (1 + exc));
 }
 
