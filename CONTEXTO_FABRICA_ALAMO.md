@@ -2,7 +2,7 @@
 
 > **Cómo usar este archivo:** si arrancás una nueva conversación con Claude, pegale este archivo entero como primer mensaje (o decile "leé `Claude ERP Alamo/CONTEXTO_FABRICA_ALAMO.md`"). Con esto tiene todo el contexto que necesita para retomar sin que vos repitas cosas.
 
-> **Última actualización:** 2026-05-19 (Tubera Papel 100% completo con modelo Pendientes/Aprobados + bloqueo cierre con pendientes + distribución proporcional de kg desperdicio + validación de coherencia física + botón eliminar bobinas codificadas por error + lupa Seguimiento mostrando consumo por sector/máquina/fecha/mts. Regla explícita de "bobina entrante mantiene código + remanente, bobina saliente es nueva" documentada para replicar en TODOS los sectores con bobinas. **Próxima sesión arranca por: (1) Pausar OF en Tubera con/sin parte, (2) Permitir cargar bobinas sin OF activa y validar capas recién al Arrancar OF.** Después: Laminadora, Tubera Rafia, Costura Papel/Rafia, Embutido.)
+> **Última actualización:** 2026-05-21 (Tubera Papel 100% completo + flujo de máquina rediseñado: header con 📝 Cargar Parte · ⏸️ Pausar OF · 🔁 Cambiar OF. Terminar OF SACADO del header — solo se cierra desde la cola. Pausar OF y Cambiar OF tienen mismos 2 caminos: con parte (reusa modal Cargar Parte) o sin parte (motivo). Cambiar OF pausa la actual + arranca otra en la misma máquina, validando bobinas. Flujo Bobinas→OF: bobinas se cargan en slots sin OF activa, validación al Arrancar OF. **Próxima sesión: Laminadora (Regla 1 + Regla 2).** Después: Tubera Rafia, Costura Papel/Rafia, Embutido.)
 
 ---
 
@@ -1193,6 +1193,68 @@ kg_a_descontar(b) = (mts_consumidos + mts_desperdicio) × peso_por_metro(b)
 
 ---
 
+## 📅 SESIÓN 2026-05-20 / 21 — Flujo de máquina rediseñado en Tubera Papel
+
+### Lo que cambió en el header de cada máquina (TUB-PAPEL-1/2/3)
+
+**Antes:** Cargar Parte · Terminar OF.
+**Ahora (3 botones, todos con el mismo estilo):**
+1. 📝 **Cargar Parte** — igual que antes (parte de turno queda Pendiente, supervisor aprueba después).
+2. ⏸️ **Pausar OF** — saca la OF de la máquina sin cerrarla. Vuelve a la cola con tag "Pausada".
+3. 🔁 **Cambiar OF** — pausa la actual + arranca otra OF en la misma máquina, en un solo flujo.
+
+**🏁 Terminar OF se SACÓ del header** (Franco 2026-05-21). El cierre definitivo de la OF en el sector solo se hace desde el tab **📋 OFs en cola** (donde se ve % cumplido, motivo si no cumple, etc.). En cada máquina solo se opera día a día.
+
+### Regla nueva: Pausar OF vs Cambiar OF (Franco 2026-05-21)
+
+Son 2 botones SEPARADOS:
+- **Pausar OF**: deja la máquina libre. Útil cuando la pausa es por un rato, sin reemplazo inmediato.
+- **Cambiar OF**: pausa la actual + arranca otra de una. Útil cuando entra una OF urgente que ocupa la misma máquina.
+
+Ambos tienen mismos 2 caminos:
+- **(a) Con parte** — abre el modal Cargar Parte normal con flag (`pausarAlGuardar` o `cambiarOfAlGuardar`). Al guardar el parte (Pendiente), se ejecuta la acción posterior (liberar máquina o cambiar a nueva OF).
+- **(b) Sin parte** — pide motivo + legajo, registra evento `Pausa OF` en pestaña Tubera Papel (para traza), libera máquina (y arranca nueva si es Cambiar).
+
+### Bobinas al pausar/cambiar (decisión de Franco 2026-05-21)
+
+**Se quedan en los slots** (Sector Actual no se toca). El operario decide qué hacer:
+- Si la pausa es para retomar en breve, no toca nada.
+- Si la pausa es definitiva o cambia a OF incompatible, vacía manualmente con 🔴 Vaciar.
+- Al arrancar la nueva OF (en Cambiar OF), el sistema **valida bobinas vs OF** (capas/ancho/impresa correcta) y avisa qué falta o sobra. No deja avanzar si no coincide.
+
+### Flujo Bobinas→OF (Franco 2026-05-20)
+
+Invertido el flujo histórico OF→Bobinas. Ahora:
+1. El operario carga bobinas en los slots cuando quiere (botón 🟢 Nueva+ habilitado SIEMPRE, sin OF activa).
+2. Al apretar ▶️ Arrancar OF (o 🔁 Cambiar OF), el sistema valida que las bobinas en slots sirven para esa OF:
+   - **Cantidad**: `cantBobinas >= cantCapasOF + (1 si Lleva PE)`.
+   - **Impresa**: si la OF imprime, debe haber bobina con `Origen = Impresión-impresa` y `Producto = Nombre Bolsa de la OF`.
+   - **Ancho**: todas las bobinas deben tener `Formato (cm) >= Ancho (cm) de OF`.
+3. Si la validación pasa, confirm con listado de bobinas; si no, alerta con detalle de qué falta.
+
+Validación extraída a helper `validarBobinasParaArrancarOFTP(maqCod, of) → {ok, error?, meta}`. Reusada en `arrancarOFEnMaquinaTP` y en el modal Cambiar OF.
+
+### Tag "Pausada" en la cola
+
+`renderColaTP` detecta OFs pausadas con esta heurística:
+- Tiene al menos 1 evento en pestaña Tubera Papel (parte o `Pausa OF`).
+- NO está actualmente en ninguna máquina (Estado Maquinas).
+- Resultado: tag `⏸️ Pausada` (en lugar de `En espera`).
+
+Para reanudar: el operario va a cualquier tab de tubera y elige la OF del dropdown como cualquier OF nueva. Si las bobinas que quedaron son compatibles, arranca de una; si no, ajusta los slots.
+
+### Otros cambios menores
+- Estilo unificado del botón Pausar OF con los otros del header (eca006f, 2026-05-21).
+- Esc cierra los 4 modales de TP (Cargar Parte, Cierre, Pausar, Cambiar OF).
+- Cleanup de flags `pausarAlGuardar` / `cambiarOfAlGuardar` cuando el operario cancela el modal Cargar Parte.
+
+### Commits relevantes
+- `58206cb` — feat(TP): pausar OF + cargar bobinas sin OF activa
+- `a54f8cb` — feat(TP): Cambiar OF en máquina + sacar Terminar OF del header
+- `eca006f` — style(TP): unificar estilo botón Pausar OF
+
+---
+
 ## 🎨 ESTILO VISUAL DEL ERP
 
 - Dark theme (`#0e0f11`)
@@ -1225,22 +1287,23 @@ kg_a_descontar(b) = (mts_consumidos + mts_desperdicio) × peso_por_metro(b)
 
 ## 📝 PRÓXIMO PASO INMEDIATO
 
-✅ **Completado:** Clisé · Impresión · Tubera Papel · Stock Tintas · Stock Bobinas (con seguimiento).
+✅ **Completado (al 2026-05-21):** Clisé · Impresión · **Tubera Papel COMPLETA** (con Pausar + Cambiar OF + flujo Bobinas→OF + lupa seguimiento) · Stock Tintas · Stock Bobinas.
 
-🔥 **ARRANCAR LA PRÓXIMA SESIÓN POR ACÁ (Franco confirmó 2026-05-19):**
+🔥 **ARRANCAR LA PRÓXIMA SESIÓN POR ACÁ:**
 
-1. **Pausar OF en Tubera Papel** — botón ⏸️ con modal de 2 caminos (cargar parte antes / no hay nada que cargar). OF vuelve a cola con tag Pausada. Bobinas en slots se quedan. Detalle completo en sección "SESIÓN 2026-05-17/18/19 → Pendientes".
-2. **Cargar bobinas en slots SIN OF activa** — sacar el disabled del botón Nueva+. Validar capas al click de Arrancar OF, no antes. Invertir el flujo Bobinas→OF.
+1. **Laminadora** — aplicar Regla 1 (Pendientes/Aprobados + bloqueo cierre) + Regla 2 (bobina entrante mantiene código, bobina saliente es nueva). Producto saliente: bobina laminada (`Origen = Laminadora-laminada`). Modelo más cercano a Impresión que a Tubera Papel (1 bobina padre → 1 bobina hija laminada por parte).
+   - Replicar header de máquina con los mismos 3 botones (Cargar Parte · Pausar OF · Cambiar OF).
+   - Misma regla "Cerrar OF solo desde la cola, no desde la máquina".
+   - Flujo Bobinas→OF: cargar bobina origen + cargar lámina PE/BOPP en slot adicional, validar al Arrancar OF.
 
 ⏳ **Después seguir con:**
 
-3. **Laminadora**: aplicar Regla 1 + Regla 2. Producto saliente: bobina laminada.
-4. **Tubera Rafia**: mismo patrón que Tubera Papel.
-5. **Costura Papel · Costura Rafia · Embutido**: solo Regla 1 (manejan bolsas).
-6. **Stock Varios** (catálogo de insumos + retiros).
-7. **Refactor "% Avance General"** (postergado hasta tener todos los sectores).
+2. **Tubera Rafia**: mismo patrón que Tubera Papel (Regla 1 + Regla 2 + 3 botones header + cierre desde cola).
+3. **Costura Papel · Costura Rafia · Embutido**: solo Regla 1 (manejan bolsas, no bobinas). Cargan bolsas hechas + descarte; descuento del stock de bolsas-tubo del sector anterior.
+4. **Stock Varios** (catálogo de insumos + retiros).
+5. **Refactor "% Avance General"** (postergado hasta tener todos los sectores).
 
-Las reglas universales están documentadas en la sección "SESIÓN 2026-05-17 / 18 / 19" arriba — leer ANTES de empezar cualquier sector nuevo.
+Las reglas universales están documentadas en las secciones "SESIÓN 2026-05-17/18/19" y "SESIÓN 2026-05-20/21" arriba — leer ANTES de empezar cualquier sector nuevo.
 
 ---
 
