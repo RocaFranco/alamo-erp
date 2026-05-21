@@ -2191,7 +2191,7 @@
         <!-- Lista dinámica de Bobinas usadas en el turno -->
         <div class="conv-block field-2">
           <div class="conv-block-title">🧵 Bobinas usadas en el turno</div>
-          <p class="form-sub" style="margin:0 0 10px">Cargá el código de cada bobina a medida que la usás. Las primeras se asumen consumidas completas; en la última se descuenta el remanente con bolsas + desperdicio.</p>
+          <p class="form-sub" style="margin:0 0 10px">Cargá el código de cada bobina y los <strong>kg desperdicio propios de esa bobina</strong>. Las primeras se asumen consumidas completas; en la última se descuenta el remanente con bolsas. La madre con remanente ≥ 100m vuelve a stock con el mismo código.</p>
           <div id="imp-bobinas-list">
             <!-- filas generadas dinámicamente -->
           </div>
@@ -2199,13 +2199,9 @@
         </div>
 
         <!-- Producción del turno -->
-        <label class="field">
-          <span>Bolsas Producidas (turno)</span>
+        <label class="field field-2">
+          <span>Bolsas Producidas (turno · total)</span>
           <input type="number" name="bolsas" id="imp-form-bolsas" step="1" min="0" required placeholder="Total fabricado en el turno">
-        </label>
-        <label class="field">
-          <span>Kg Desperdicio (turno)</span>
-          <input type="number" name="kg_desp" id="imp-form-kgdesp" step="0.1" min="0" placeholder="Pesado al final">
         </label>
 
         <!-- Cálculos auto (solo lectura) -->
@@ -5499,15 +5495,23 @@ function agregarBobinaInput() {
   div.dataset.idx = idx;
   // Numero visible = posición actual (re-calculado al cambiar)
   div.innerHTML = `
-    <label class="field" style="margin-bottom:0">
-      <span><span class="bob-num">Bobina ${cont.children.length + 1}</span></span>
-      <input type="text" name="bob-cod" placeholder="Ej: BOB-2026-00012" autocomplete="off" required>
-      <small class="hint bob-info">Ingresá el código.</small>
-    </label>
-    <button type="button" class="btn-tinta-del bob-del" title="Quitar bobina">✕</button>
+    <div style="display:grid;grid-template-columns:1fr 160px auto;gap:10px;align-items:start">
+      <label class="field" style="margin-bottom:0">
+        <span><span class="bob-num">Bobina ${cont.children.length + 1}</span></span>
+        <input type="text" name="bob-cod" placeholder="Ej: BOB-2026-00012" autocomplete="off" required>
+        <small class="hint bob-info">Ingresá el código.</small>
+      </label>
+      <label class="field" style="margin-bottom:0">
+        <span>Kg Desperdicio</span>
+        <input type="number" name="bob-kgdesp" class="bob-kgdesp" step="0.1" min="0" placeholder="0">
+      </label>
+      <button type="button" class="btn-tinta-del bob-del" title="Quitar bobina" style="align-self:end;margin-bottom:4px">✕</button>
+    </div>
   `;
-  const input = div.querySelector('input');
+  const input = div.querySelector('input[name="bob-cod"]');
   input.addEventListener('input', () => autocompletarBobina(div));
+  const kgDespInput = div.querySelector('input[name="bob-kgdesp"]');
+  kgDespInput.addEventListener('input', recalcImpKPIs);
   div.querySelector('.bob-del').addEventListener('click', () => {
     if (cont.querySelectorAll('.bob-row').length <= 1) return; // siempre al menos 1
     div.remove();
@@ -5526,7 +5530,7 @@ function renumerarBobinas() {
 }
 
 function autocompletarBobina(row) {
-  const cod = String(row.querySelector('input').value||'').trim().toUpperCase();
+  const cod = String(row.querySelector('input[name="bob-cod"]').value||'').trim().toUpperCase();
   const info = row.querySelector('.bob-info');
   // Reset data
   delete row.dataset.cod;
@@ -5615,13 +5619,22 @@ document.getElementById('imp-bobina-add').addEventListener('click', agregarBobin
 // ============================================================
 // RECALC AUTOMÁTICO DE MTS / DESPERDICIO / REMANENTE / KPIs
 // ============================================================
+// Helper centralizado: dada una fila .bob-row, devuelve mts de desperdicio convertidos
+// usando el ancho/gramaje propios de esa bobina. mts = kg × 100.000 / (ancho × gramaje).
+function mtsDesperdicioFila(row) {
+  const kg = Number(row.querySelector('input[name="bob-kgdesp"]').value) || 0;
+  const a = Number(row.dataset.ancho) || 0;
+  const g = Number(row.dataset.gramaje) || 0;
+  if (!kg || !a || !g) return 0;
+  return kg * 100000 / (a * g);
+}
+
 function recalcImpKPIs() {
   const numOF = document.getElementById('imp-form-of').value;
   const of = numOF ? impOFsCache.find(o => o['Nº OF'] === numOF) : null;
   const largoBolsaCm = of ? Number(of['Largo (cm)']) || 0 : 0;
   const colores = of ? Number(of['Cant Colores']) || 0 : 0;
   const bolsas = Number(document.getElementById('imp-form-bolsas').value) || 0;
-  const kgDesp = Number(document.getElementById('imp-form-kgdesp').value) || 0;
 
   // Mts utilizados = bolsas × largo (cm → m)
   const mtsUtil = (bolsas && largoBolsaCm) ? bolsas * largoBolsaCm / 100 : 0;
@@ -5631,38 +5644,56 @@ function recalcImpKPIs() {
     .filter(r => r.dataset.cod && r.dataset.mts);
   const ultima = bobs[bobs.length - 1] || null;
 
-  // Mts desperdicio: convertir kg → mts usando gramaje + ancho de la ÚLTIMA bobina (la que está en uso)
-  // Fórmula inversa: mts = kg × 100000 / (ancho_cm × gramaje_g/m²)
-  let mtsDesp = 0;
-  if (ultima && kgDesp) {
-    const a = Number(ultima.dataset.ancho) || 0;
-    const g = Number(ultima.dataset.gramaje) || 0;
-    if (a && g) mtsDesp = kgDesp * 100000 / (a * g);
-  }
+  // Desperdicio total (suma por bobina, cada una con su propio kg + ancho/gramaje)
+  const mtsDespTotal = bobs.reduce((s, r) => s + mtsDesperdicioFila(r), 0);
 
   // Mts remanente última bobina
+  //   Modelo: previas se asumen consumidas COMPLETAS (todos sus mts pasan a hija impresa
+  //   menos el desperdicio propio); la última usa lo que falta para llegar a mtsUtil.
+  //   mts_usados_última = max(0, mtsUtil − Σ(mts_previas − desp_previa))
+  //   mts_remanente_última = mts_iniciales − mts_usados_última − desp_última
   let mtsRem = null;
   let estadoUltima = '—';
+  let aviso = '';
   if (ultima && mtsUtil) {
-    const sumaPrevias = bobs.slice(0, -1).reduce((s, r) => s + (Number(r.dataset.mts)||0), 0);
+    const previas = bobs.slice(0, -1);
+    const mtsImpresosPrevias = previas.reduce((s, r) => {
+      const mts = Number(r.dataset.mts) || 0;
+      return s + Math.max(0, mts - mtsDesperdicioFila(r));
+    }, 0);
     const mtsUltimaIni = Number(ultima.dataset.mts) || 0;
-    const mtsUsadosUltima = Math.max(0, mtsUtil - sumaPrevias);
-    mtsRem = mtsUltimaIni - mtsUsadosUltima - mtsDesp;
+    const mtsDespUlt = mtsDesperdicioFila(ultima);
+    const mtsUsadosUltima = Math.max(0, mtsUtil - mtsImpresosPrevias);
+    mtsRem = mtsUltimaIni - mtsUsadosUltima - mtsDespUlt;
+
+    // Validaciones físicas (avisos en vivo, no bloquean)
+    // 1. ¿Alguna previa con desp > sus mts?
+    const previaSobrada = previas.find(r => {
+      const m = Number(r.dataset.mts) || 0;
+      return mtsDesperdicioFila(r) > m + 5;
+    });
+    if (previaSobrada) {
+      aviso = `⚠️ La bobina ${previaSobrada.dataset.cod} tiene más desperdicio que mts disponibles`;
+    } else if (mtsImpresosPrevias > 0 && mtsUtil < mtsImpresosPrevias - 5) {
+      // 2. Si previas existen, mtsUtil debe ser al menos lo que aportan (porque se asumen consumidas)
+      aviso = `⚠️ Con ${fmtNum(bolsas)} bolsas no alcanza para vaciar las primeras ${previas.length} bobina(s). Quitalas o cargá más bolsas.`;
+    }
+
     if (mtsRem >= UMBRAL_REMANENTE_MTS) {
-      estadoUltima = `🟢 Queda remanente ≥ ${UMBRAL_REMANENTE_MTS}m → genera bobina hija kraft`;
+      estadoUltima = `🟢 Queda remanente ≥ ${UMBRAL_REMANENTE_MTS}m → la madre vuelve a stock con el mismo código`;
     } else if (mtsRem > 0) {
-      estadoUltima = `⚫ Remanente < ${UMBRAL_REMANENTE_MTS}m → descarte (no se guarda hija)`;
-    } else if (mtsRem >= -50) {
+      estadoUltima = `⚫ Remanente < ${UMBRAL_REMANENTE_MTS}m → la madre queda como consumida (descarte)`;
+    } else if (mtsRem >= -5) {
       estadoUltima = `🔴 Bobina consumida (cuadra)`;
     } else {
-      estadoUltima = `⚠️ Faltan mts (revisar bolsas o desperdicio)`;
+      estadoUltima = `⚠️ Faltan ${fmtNum(Math.round(-mtsRem))}m — revisá bolsas o desperdicio`;
     }
   }
 
   document.getElementById('imp-calc-mts-util').textContent = mtsUtil ? fmtNum(Math.round(mtsUtil)) + ' m' : '—';
-  document.getElementById('imp-calc-mts-desp').textContent = mtsDesp ? fmtNum(Math.round(mtsDesp)) + ' m' : '—';
+  document.getElementById('imp-calc-mts-desp').textContent = mtsDespTotal ? fmtNum(Math.round(mtsDespTotal)) + ' m' : '—';
   document.getElementById('imp-calc-mts-rem').textContent = (mtsRem !== null) ? fmtNum(Math.round(mtsRem)) + ' m' : '—';
-  document.getElementById('imp-calc-estado-ultima').textContent = estadoUltima;
+  document.getElementById('imp-calc-estado-ultima').textContent = aviso || estadoUltima;
   document.getElementById('imp-calc-mts-color').textContent = (mtsUtil && colores) ? fmtNum(Math.round(mtsUtil / colores)) + ' m/color' : '—';
   // Mts/Min
   const hi = document.querySelector('#form-imp input[name="hora_in"]').value;
@@ -5678,7 +5709,7 @@ function recalcImpKPIs() {
   }
 }
 
-['bolsas','kg_desp','hora_in','hora_fin'].forEach(name => {
+['bolsas','hora_in','hora_fin'].forEach(name => {
   const el = document.querySelector(`#form-imp [name="${name}"]`);
   if (el) el.addEventListener('input', recalcImpKPIs);
 });
@@ -5842,10 +5873,52 @@ function bolsasDeFila(p) {
 async function aprobarParteImp(rowIndex, numOf) {
   const p = impPartesCache.find(x => x._rowIndex === rowIndex);
   if (!p) { alert('No encontré el parte.'); return; }
-  const hermanas = filasHermanasDeParte(p);
+  const hermanas = filasHermanasDeParte(p).sort((a, b) => (a._rowIndex||0) - (b._rowIndex||0));
   const ultima = hermanas.find(h => bolsasDeFila(h) > 0) || hermanas[hermanas.length - 1];
   const previas = hermanas.filter(h => h !== ultima);
-  if (!confirm(`¿Aprobar parte de la OF ${numOf}?\n\n· ${hermanas.length} bobina(s) madre en el turno\n· Bolsas impresas: ${bolsasDeFila(ultima)}\n· Esto va a generar bobinas hijas IMPRESAS asignadas a la OF, listas para Tubera Papel.`)) return;
+
+  // === VALIDACIÓN FÍSICA defensiva — mismo modelo que aprobarParteTP (Franco 2026-05-21) ===
+  // El submit ya valida, pero verificamos de nuevo acá por si las bobinas cambiaron entre
+  // que se cargó y se aprobó (otro parte aprobado primero, por ejemplo).
+  const TOLERANCIA_MTS = 5;
+  const conflictos = [];
+  for (const h of hermanas) {
+    const cod = String(h['Código Bobina']||'').toUpperCase();
+    const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+    if (!bob) {
+      conflictos.push(`• ${cod}: no encontrada en stock`);
+      continue;
+    }
+    const estado = String(bob['Estado']||'').toLowerCase();
+    if (['transformada','consumida','desperdicio'].includes(estado)) {
+      conflictos.push(`• ${cod}: ya está ${estado} (otra aprobación la procesó)`);
+      continue;
+    }
+    const mtsDisp = Number(bob['Mts Totales']) || 0;
+    const kgDespFila = Number(h['Kg Desperdicio']) || 0;
+    const ancho = Number(bob['Formato (cm)']) || 0;
+    const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
+    const mtsDespFila = (kgDespFila && ancho && gramaje) ? kgDespFila * 100000 / (ancho * gramaje) : 0;
+    const esUltima = (h === ultima);
+    // Mts que esta bobina aporta + lo que desperdicia
+    const mtsNecesarios = esUltima
+      ? Number(h['Mts Reales']) + mtsDespFila              // última: lo impreso + su desp
+      : mtsDisp;                                            // previa: se asume consumida completa
+    if (mtsNecesarios > mtsDisp + TOLERANCIA_MTS) {
+      conflictos.push(`• ${cod}: necesita ${fmtNum(Math.round(mtsNecesarios))}m, disponible ${fmtNum(Math.round(mtsDisp))}m`);
+    }
+  }
+  if (conflictos.length) {
+    alert(
+      `❌ No se puede aprobar este parte.\n\n` +
+      `Las bobinas no cuadran físicamente:\n\n` +
+      conflictos.join('\n') +
+      `\n\nRechazá el parte y volvé a cargarlo con los valores correctos.`
+    );
+    return;
+  }
+
+  if (!confirm(`¿Aprobar parte de la OF ${numOf}?\n\n· ${hermanas.length} bobina(s) madre en el turno\n· Bolsas impresas: ${bolsasDeFila(ultima)}\n· Esto va a generar bobinas hijas IMPRESAS asignadas a la OF, listas para Tubera Papel.\n· Las bobinas con remanente ≥ ${UMBRAL_REMANENTE_MTS}m vuelven a stock con el mismo código.`)) return;
 
   try {
     // ¿La OF está cerrada en Tubera Papel? Si sí, las hijas NO se asignan a la OF
@@ -5894,8 +5967,9 @@ async function aprobarParteImp(rowIndex, numOf) {
     }
 
     const hijasGeneradas = [];
+    let madresQueVolvieronAStock = 0;
 
-    // 2. Bobinas PREVIAS (consumidas completas → hija impresa con TODOS sus mts)
+    // 2. Bobinas PREVIAS (consumidas completas → hija impresa con mts_iniciales − desperdicio)
     for (const h of previas) {
       const cod = String(h['Código Bobina']||'').toUpperCase();
       const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
@@ -5903,32 +5977,47 @@ async function aprobarParteImp(rowIndex, numOf) {
       const mtsBob = Number(bob['Mts Totales']) || Number(h['Mts Iniciales']) || 0;
       const ancho = Number(bob['Formato (cm)']) || 0;
       const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
-      const kgHija = (ancho && gramaje) ? mtsBob * (gramaje * ancho / 100) / 1000 : 0;
-      const codHija = siguienteCodBob();
-      await crearBobinaFila({
-        cod: codHija, fecha: h['Fecha'], producto: nombreBolsa,
-        ancho, kg: kgHija, gramaje, mts: mtsBob, padre: cod,
-        origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: '',
-        obs: `Impresa en ${h['Nº Impresora']} (parte ${fmtFechaCorta(excelDateToJs(h['Fecha']))})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
-        ofAsignada: ofAsignadaParaHija,
-      });
-      await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'transformada');
-      hijasGeneradas.push(codHija);
+      // Mts impresos = mts_iniciales − desp_propio de esta bobina
+      const kgDespFila = Number(h['Kg Desperdicio']) || 0;
+      const mtsDespFila = (kgDespFila && ancho && gramaje) ? kgDespFila * 100000 / (ancho * gramaje) : 0;
+      const mtsImpresos = Math.max(0, mtsBob - mtsDespFila);
+      if (mtsImpresos > 0) {
+        const kgHija = (ancho && gramaje) ? mtsImpresos * (gramaje * ancho / 100) / 1000 : 0;
+        const codHija = siguienteCodBob();
+        await crearBobinaFila({
+          cod: codHija, fecha: h['Fecha'], producto: nombreBolsa,
+          ancho, kg: kgHija, gramaje, mts: Math.round(mtsImpresos), padre: cod,
+          origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: '',
+          obs: `Impresa en ${h['Nº Impresora']} (parte ${fmtFechaCorta(excelDateToJs(h['Fecha']))})${kgDespFila ? ' · ' + kgDespFila + ' kg desp' : ''}${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
+          ofAsignada: ofAsignadaParaHija,
+        });
+        hijasGeneradas.push(codHija);
+      }
+      // Madre previa siempre queda consumida (se asume vacía)
+      await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+      await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
+      const idxCache = bobinasCache.indexOf(bob);
+      if (idxCache >= 0) {
+        bobinasCache[idxCache]['Estado'] = 'consumida';
+        bobinasCache[idxCache]['Sector Actual'] = '';
+      }
     }
 
-    // 3. ÚLTIMA bobina: genera hija impresa + (si hubo remanente) hija sin imprimir
+    // 3. ÚLTIMA bobina: genera hija impresa + (si hay remanente ≥ 100m) la madre VUELVE A STOCK
+    //    con su mismo código (igual que Tubera Papel — Franco 2026-05-21).
+    //    Si remanente < 100m → madre queda consumida (descarte).
     const codUlt = String(ultima['Código Bobina']||'').toUpperCase();
     const bobUlt = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === codUlt);
     if (bobUlt && bobUlt._rowIndex) {
       const mtsRem = Number(ultima['Mts Finales']) || 0;
-      const mtsIni = Number(ultima['Mts Iniciales']) || Number(bobUlt['Mts Totales']) || 0;
-      const mtsImpresos = Math.max(0, mtsIni - mtsRem);
+      const mtsImpresos = Number(ultima['Mts Reales']) || 0; // ya viene sin desp (calculado en submit)
       const ancho = Number(bobUlt['Formato (cm)']) || 0;
       const gramaje = Number(bobUlt['Gramaje (g/m²)']) || 0;
       const fechaUlt = ultima['Fecha'];
-      const fechaUltTxt = fmtFechaCorta(excelDateToJs(fechaUlt)); // legible: "16/05"
+      const fechaUltTxt = fmtFechaCorta(excelDateToJs(fechaUlt));
+      const kgDespFila = Number(ultima['Kg Desperdicio']) || 0;
 
-      // 3a. Hija IMPRESA con los mts realmente impresos
+      // 3a. Hija IMPRESA con los mts realmente impresos de la última bobina
       if (mtsImpresos > 0) {
         const kgImp = (ancho && gramaje) ? mtsImpresos * (gramaje * ancho / 100) / 1000 : 0;
         const codHijaImp = siguienteCodBob();
@@ -5936,37 +6025,42 @@ async function aprobarParteImp(rowIndex, numOf) {
           cod: codHijaImp, fecha: fechaUlt, producto: nombreBolsa,
           ancho, kg: kgImp, gramaje, mts: mtsImpresos, padre: codUlt,
           origen: ORIGEN_IMPRESION_IMPRESA, sectorActual: '',
-          obs: `Impresa en ${ultima['Nº Impresora']} (parte ${fechaUltTxt})${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
+          obs: `Impresa en ${ultima['Nº Impresora']} (parte ${fechaUltTxt})${kgDespFila ? ' · ' + kgDespFila + ' kg desp' : ''}${tpCerrado ? ' · OF cerrada en TP → stock cliente' : ''}`,
           ofAsignada: ofAsignadaParaHija,
         });
         hijasGeneradas.push(codHijaImp);
       }
 
-      // 3b. Hija REMANENTE sin imprimir (papel kraft normal, vuelve a stock libre)
-      // Regla umbral (Franco 2026-05-17): si remanente < 100 mts → descarte, no se genera hija.
-      let huboHijaRemanente = false;
+      // 3b. Madre última: vuelve a stock con MISMO código si remanente ≥ 100m,
+      //     o queda consumida si < 100m (descarte). NO se genera bobina hija de remanente.
+      const idxCache = bobinasCache.indexOf(bobUlt);
       if (mtsRem >= UMBRAL_REMANENTE_MTS) {
-        const kgRem = (ancho && gramaje) ? mtsRem * (gramaje * ancho / 100) / 1000 : 0;
-        const codHijaRem = siguienteCodBob();
-        await crearBobinaFila({
-          cod: codHijaRem, fecha: fechaUlt, producto: bobUlt['Producto'] || '',
-          ancho, kg: kgRem, gramaje, mts: mtsRem, padre: codUlt,
-          origen: 'Impresión-remanente', sectorActual: '',
-          obs: `Remanente sin imprimir de ${codUlt} (parte ${ultima['Nº Impresora']} ${fechaUltTxt})`,
-          ofAsignada: '', // SIN OF — vuelve a stock libre
-        });
-        hijasGeneradas.push(codHijaRem);
-        huboHijaRemanente = true;
+        const kgRem = (ancho && gramaje) ? Math.round(mtsRem * (gramaje * ancho / 100) / 1000 * 10) / 10 : 0;
+        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Mts Totales', Math.round(mtsRem));
+        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Kg', kgRem);
+        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', 'disponible');
+        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Sector Actual', '');
+        if (idxCache >= 0) {
+          bobinasCache[idxCache]['Mts Totales'] = Math.round(mtsRem);
+          bobinasCache[idxCache]['Kg'] = kgRem;
+          bobinasCache[idxCache]['Estado'] = 'disponible';
+          bobinasCache[idxCache]['Sector Actual'] = '';
+        }
+        madresQueVolvieronAStock++;
+      } else {
+        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', 'consumida');
+        await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Sector Actual', '');
+        if (idxCache >= 0) {
+          bobinasCache[idxCache]['Estado'] = 'consumida';
+          bobinasCache[idxCache]['Sector Actual'] = '';
+        }
       }
-
-      // 3c. Estado madre: transformada si generó hija(s), consumida si no.
-      // mtsImpresos > 0 ya generó hija impresa arriba → siempre va a ser transformada salvo
-      // el caso edge mtsImpresos=0 y mtsRem<umbral (madre quedó vacía y descarte).
-      const generóHijas = (mtsImpresos > 0) || huboHijaRemanente;
-      await actualizarCeldaEnFila('Bobinas', bobUlt._rowIndex, 'Estado', generóHijas ? 'transformada' : 'consumida');
     }
 
-    alert(`✓ Parte aprobado · ${hermanas.length} madre(s) transformada(s) · ${hijasGeneradas.length} hija(s) generada(s)${tpCerrado ? '\n\n⚠️ OF cerrada en Tubera Papel — bobinas impresas quedaron en stock del cliente.' : ''}`);
+    const resumenMadre = madresQueVolvieronAStock
+      ? `\n· ${madresQueVolvieronAStock} madre vuelve a stock con su mismo código (remanente ≥ ${UMBRAL_REMANENTE_MTS}m)`
+      : '';
+    alert(`✓ Parte aprobado · ${hijasGeneradas.length} hija(s) impresa(s) generada(s)${resumenMadre}${tpCerrado ? '\n\n⚠️ OF cerrada en Tubera Papel — bobinas impresas quedaron en stock del cliente.' : ''}`);
     cargarImpresion();
   } catch (err) {
     alert('Error al aprobar: ' + err.message);
@@ -6128,7 +6222,6 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
   const legajoAy = f.legajo_ay.value.trim();
   const numOf = f.of.value;
   const bolsas = Number(f.bolsas.value) || 0;
-  const kgDesp = Number(f.kg_desp.value) || 0;
   const obs = (f.obs.value || '').trim();
   const pantones = f.dataset.pantones || '';
 
@@ -6145,7 +6238,7 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
   const bobsValidas = bobRows.filter(r => r.dataset.cod && r.dataset.mts);
   // Bobinas con código tipeado pero rechazadas (no encontrada / transformada / consumida / etc.)
   const bobsConError = bobRows.filter(r => {
-    const cod = String(r.querySelector('input').value||'').trim();
+    const cod = String(r.querySelector('input[name="bob-cod"]').value||'').trim();
     return cod && !r.dataset.cod;
   });
 
@@ -6157,7 +6250,7 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
 
   if (bobsConError.length) {
     const detalles = bobsConError.map(r => {
-      const cod = r.querySelector('input').value;
+      const cod = r.querySelector('input[name="bob-cod"]').value;
       const info = (r.querySelector('.bob-info').textContent||'').replace(/^✗\s*/, '');
       return `• ${cod}: ${info}`;
     }).join('\n');
@@ -6181,17 +6274,66 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Cálculos del turno
+  // Cálculos del turno con desperdicio POR BOBINA (Franco 2026-05-21)
+  // Helper local para no depender del helper global durante el submit.
+  const mtsDespDeFila = (r) => {
+    const kg = Number(r.querySelector('input[name="bob-kgdesp"]').value) || 0;
+    const a = Number(r.dataset.ancho) || 0;
+    const g = Number(r.dataset.gramaje) || 0;
+    if (!kg || !a || !g) return 0;
+    return kg * 100000 / (a * g);
+  };
+  const kgDespDeFila = (r) => Number(r.querySelector('input[name="bob-kgdesp"]').value) || 0;
+
   const mtsUtilTotal = bolsas * largoBolsaCm / 100;
   const ultima = bobsValidas[bobsValidas.length - 1];
-  const anchoUlt = Number(ultima.dataset.ancho) || 0;
-  const gramajeUlt = Number(ultima.dataset.gramaje) || 0;
-  let mtsDesp = 0;
-  if (kgDesp && anchoUlt && gramajeUlt) mtsDesp = kgDesp * 100000 / (anchoUlt * gramajeUlt);
-  const sumaPrevias = bobsValidas.slice(0, -1).reduce((s, r) => s + (Number(r.dataset.mts)||0), 0);
+  const previas = bobsValidas.slice(0, -1);
+  const mtsDespUlt = mtsDespDeFila(ultima);
+  const mtsDespTotal = bobsValidas.reduce((s, r) => s + mtsDespDeFila(r), 0);
+  // Aporte real de cada previa (consumida COMPLETA): mts_iniciales − desperdicio_propio
+  const aportePrevias = previas.reduce((s, r) => {
+    const mts = Number(r.dataset.mts) || 0;
+    return s + Math.max(0, mts - mtsDespDeFila(r));
+  }, 0);
   const mtsUltimaIni = Number(ultima.dataset.mts) || 0;
-  const mtsUsadosUltima = Math.max(0, mtsUtilTotal - sumaPrevias);
-  const mtsRem = mtsUltimaIni - mtsUsadosUltima - mtsDesp;
+  const mtsUsadosUltima = Math.max(0, mtsUtilTotal - aportePrevias);
+  const mtsRem = mtsUltimaIni - mtsUsadosUltima - mtsDespUlt;
+
+  // === VALIDACIÓN FÍSICA (al GUARDAR el parte) — Franco 2026-05-21 ===
+  // Mismo modelo que aprobarParteTP, adaptado al modelo Impresión (1 bobina activa por vez).
+  const TOLERANCIA_MTS = 5;
+  const erroresFisicos = [];
+
+  // 1. Ninguna bobina puede tener kg desperdicio > sus mts disponibles (en mts)
+  for (const r of bobsValidas) {
+    const mts = Number(r.dataset.mts) || 0;
+    const mDesp = mtsDespDeFila(r);
+    if (mDesp > mts + TOLERANCIA_MTS) {
+      erroresFisicos.push(`• ${r.dataset.cod}: ${kgDespDeFila(r)} kg desp ≈ ${fmtNum(Math.round(mDesp))}m, pero la bobina solo tiene ${fmtNum(Math.round(mts))}m`);
+    }
+  }
+
+  // 2. Si hay previas, las bolsas tienen que alcanzar al menos para "vaciarlas"
+  //    (porque las asumimos consumidas completas)
+  if (previas.length && mtsUtilTotal < aportePrevias - TOLERANCIA_MTS) {
+    const sobranBolsas = Math.round((aportePrevias - mtsUtilTotal) / largoBolsaCm * 100);
+    erroresFisicos.push(`• Con ${fmtNum(bolsas)} bolsas no alcanza para vaciar las ${previas.length} bobina(s) anteriores. Faltan ≈ ${fmtNum(sobranBolsas)} bolsas (o quitá alguna bobina del listado).`);
+  }
+
+  // 3. Remanente de la última no puede ser negativo (no alcanzan los mts totales)
+  if (mtsRem < -TOLERANCIA_MTS) {
+    erroresFisicos.push(`• Faltan ${fmtNum(Math.round(-mtsRem))}m en la bobina ${ultima.dataset.cod}. Total necesario: ${fmtNum(Math.round(mtsUtilTotal + mtsDespTotal))}m, disponible entre todas: ${fmtNum(Math.round(aportePrevias + mtsUltimaIni - mtsDespUlt))}m.`);
+  }
+
+  if (erroresFisicos.length) {
+    showFormMsg('imp-msg',
+      `✗ Los datos no cierran físicamente:\n\n` +
+      erroresFisicos.join('\n') +
+      `\n\nRevisá las bolsas producidas, el desperdicio por bobina, o la cantidad de bobinas cargadas.`,
+      false);
+    scrollMsg();
+    return;
+  }
 
   // KPIs
   const kpiMtsColor = colores ? Math.round(mtsUtilTotal / colores) : '';
@@ -6240,14 +6382,20 @@ document.getElementById('form-imp').addEventListener('submit', async (e) => {
       const r = bobsValidas[i];
       const esUltima = (i === bobsValidas.length - 1);
       const mtsIni = Number(r.dataset.mts) || 0;
-      const mtsRealesFila = esUltima ? Math.round(mtsUsadosUltima) : mtsIni;
+      const mtsDespFilaMts = mtsDespDeFila(r);
+      const kgDespFila = kgDespDeFila(r);
+      // Mts Reales = mts efectivamente IMPRESOS de esta bobina (sin contar su desperdicio).
+      // Previas: mtsIni − desp. Última: mts_usados (lo que sobró del total) − sin restar desp (Mts Reales ya es solo lo impreso).
+      const mtsRealesFila = esUltima
+        ? Math.round(mtsUsadosUltima)
+        : Math.max(0, Math.round(mtsIni - mtsDespFilaMts));
+      // Mts Finales = remanente que VUELVE a stock. Previas: 0 (consumidas). Última: lo que sobra.
       const mtsFinalesFila = esUltima ? Math.max(0, Math.round(mtsRem)) : 0;
-      const kgDespFila = esUltima ? kgDesp : 0;
       // Si la bobina entró con motivo de "ancho sobrado" (más ancha que la OF), lo agregamos a su fila
       const motivoAncho = r.dataset.motivoAnchoSobrado ? ` · ⚠️ Bobina ancha: ${r.dataset.motivoAnchoSobrado}` : '';
       const obsFila = esUltima
         ? `Bolsas: ${bolsas}${obs ? ' · ' + obs : ''}${bobsValidas.length > 1 ? ' · ' + bobsValidas.length + ' bobinas' : ''}${motivoAncho}`
-        : `Consumida completa en este turno (parte multi-bobina)${motivoAncho}`;
+        : `Consumida completa en este turno (parte multi-bobina)${kgDespFila ? ' · desp ' + kgDespFila + ' kg' : ''}${motivoAncho}`;
       if (editMode) {
         const rowIdx = editRowIndices[i];
         // UPDATE celda por celda — solo los campos que pueden haber cambiado
@@ -6767,12 +6915,11 @@ function abrirModalParte(numOF, opts) {
     form.legajo_op.value = legParts[0] || '';
     form.legajo_ay.value = legParts[1] || '';
     form.bolsas.value = bolsasDeFila(ult) || '';
-    form.kg_desp.value = Number(ult['Kg Desperdicio']) || '';
     // Observaciones (sacarle el prefijo "Bolsas: NN ·" si lo tiene)
     const obsRaw = String(ult['Observaciones']||'');
     const obsClean = obsRaw.replace(/^Bolsas:\s*\d+\s*(·\s*)?/i, '').replace(/\s*·\s*\d+\s*bobinas?\s*$/i, '').trim();
     form.obs.value = obsClean;
-    // Pre-poblar bobinas: 1 input por fila hermana, en orden
+    // Pre-poblar bobinas: 1 input por fila hermana, en orden + su kg desperdicio propio
     const cont = document.getElementById('imp-bobinas-list');
     cont.innerHTML = '';
     impBobIdx = 0;
@@ -6781,6 +6928,9 @@ function abrirModalParte(numOF, opts) {
       const lastRow = cont.querySelector('.bob-row:last-of-type');
       const inp = lastRow.querySelector('input[name="bob-cod"]');
       inp.value = h['Código Bobina'] || '';
+      // Pre-cargar kg desperdicio propio de esta bobina (la columna "Kg Desperdicio" de la fila)
+      const kgInp = lastRow.querySelector('input[name="bob-kgdesp"]');
+      if (kgInp) kgInp.value = Number(h['Kg Desperdicio']) || '';
       // Deshabilitar el ✕ (cantidad fija en edit)
       const del = lastRow.querySelector('.bob-del');
       if (del) { del.disabled = true; del.style.opacity = '0.4'; del.title = 'Cantidad de bobinas fija en edición'; }
