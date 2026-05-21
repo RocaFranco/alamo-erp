@@ -7418,7 +7418,7 @@ function renderMaquinaTP(maqCod) {
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTP('${ofActual}','${maqCod}')">📝 Cargar Parte</button>
-          <button type="button" class="btn-secondary" style="background:rgba(245,166,35,0.15);border:1px solid var(--warn,#f5a623);color:var(--warn,#f5a623)" onclick="abrirModalPausarTP('${ofActual}','${maqCod}')" title="Sacar OF de la máquina sin terminarla. Vuelve a la cola con tag Pausada.">⏸️ Pausar OF</button>
+          <button type="button" class="btn-cargar-parte" onclick="abrirModalPausarTP('${ofActual}','${maqCod}')" title="Sacar OF de la máquina sin terminarla. Vuelve a la cola con tag Pausada.">⏸️ Pausar OF</button>
           <button type="button" class="btn-cargar-parte" onclick="abrirModalCambiarOFTP('${ofActual}','${maqCod}')" title="Pausar la OF actual y arrancar otra en la misma máquina. Las bobinas se quedan; el sistema valida al arrancar la nueva.">🔁 Cambiar OF</button>
         </div>
         <!-- Cerrar/Terminar OF NO va acá: se hace desde el tab "OFs en cola" para que sea una decisión consciente
