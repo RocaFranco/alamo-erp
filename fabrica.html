@@ -2598,6 +2598,67 @@
   </div>
 </div>
 
+<!-- Modal Cambiar OF en Tubera Papel (Franco 2026-05-21) -->
+<!-- Pausa la OF actual y arranca otra nueva en la misma máquina, todo en un paso.
+     Las bobinas en slots se quedan; el sistema valida al arrancar la nueva OF (capas/ancho/impresa)
+     y avisa qué falta o sobra. Mismo flujo de 2 caminos que Pausar (con parte / sin parte). -->
+<div class="modal-overlay" id="tp-modal-cambiar" style="display:none">
+  <div class="modal-card" style="max-width:560px">
+    <div class="modal-head">
+      <h3>🔁 Cambiar OF en Tubera Papel — <span id="tp-cambiar-of-actual">OF</span></h3>
+      <button class="modal-close" onclick="cerrarModalCambiarOFTP()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 14px;color:var(--text-2);font-size:13px">
+        Pausa la OF actual y arranca <strong>otra OF</strong> en <strong id="tp-cambiar-maq">esta máquina</strong>. Las bobinas se quedan en los slots — el sistema valida al arrancar la nueva (capas, ancho, impresa) y avisa qué falta o sobra.
+      </p>
+
+      <!-- Selector de nueva OF -->
+      <div class="form-grid" style="margin:0 0 12px">
+        <label class="field field-2" style="margin:0">
+          <span>OF nueva a arrancar</span>
+          <select id="tp-cambiar-nueva-of"><option value="">— Elegir OF —</option></select>
+        </label>
+        <label class="field field-2" style="margin:0">
+          <span>Legajo del operario que arranca la nueva</span>
+          <input type="text" id="tp-cambiar-legajo-nueva" placeholder="Ej: 499">
+        </label>
+      </div>
+
+      <!-- Paso 1: elegir camino (cargar parte de la OF actual antes o no) -->
+      <div id="tp-cambiar-paso-1">
+        <p style="margin:14px 0 10px;font-size:13px;color:var(--text-2)">¿Hay parte de la OF actual que cargar antes de cambiar?</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button type="button" class="btn-cargar-parte" style="text-align:left;padding:14px" onclick="elegirCaminoCambiarTP('con-parte')">
+            📝 <strong>Sí, cargar parte de la OF actual primero</strong><br>
+            <span style="font-size:12px;color:var(--text-3);font-weight:400">Se abre el modal de Cargar Parte. Al guardar, la OF actual se pausa y se arranca la nueva.</span>
+          </button>
+          <button type="button" class="btn-secondary" style="text-align:left;padding:14px;background:rgba(245,166,35,0.1);border:1px solid var(--warn,#f5a623);color:var(--text)" onclick="elegirCaminoCambiarTP('sin-parte')">
+            🟠 <strong>No, cambiar sin parte</strong><br>
+            <span style="font-size:12px;color:var(--text-3);font-weight:400">Para cuando la OF actual recién arrancó / no hay nada que registrar. Pide motivo.</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 2: motivo (solo si "sin parte") -->
+      <form id="form-tp-cambiar" class="form-grid" style="display:none;margin-top:10px">
+        <div class="field-2" style="padding:12px 14px; background:rgba(245,166,35,0.08); border:1px solid var(--warn,#f5a623); border-radius:8px; color:var(--warn,#f5a623); font-size:13px;">
+          ⚠️ <strong>Cambio sin parte cargado.</strong> Indicá el motivo de la pausa. La OF actual vuelve a la cola con tag "Pausada" y se arranca la nueva.
+        </div>
+        <label class="field field-2">
+          <span>Motivo de la pausa (obligatorio)</span>
+          <input type="text" name="motivo_cambio" required placeholder="Ej: entró OF urgente, máquina libre para otra OF" maxlength="200">
+        </label>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalCambiarOFTP()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="tp-cambiar-submit">Confirmar cambio</button>
+        </div>
+      </form>
+      <div id="tp-cambiar-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Cargar Recepción de Tintas -->
 <div class="modal-overlay" id="tnt-modal-recep" style="display:none">
   <div class="modal-card" style="max-width:680px">
@@ -7358,8 +7419,13 @@ function renderMaquinaTP(maqCod) {
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
           <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTP('${ofActual}','${maqCod}')">📝 Cargar Parte</button>
           <button type="button" class="btn-secondary" style="background:rgba(245,166,35,0.15);border:1px solid var(--warn,#f5a623);color:var(--warn,#f5a623)" onclick="abrirModalPausarTP('${ofActual}','${maqCod}')" title="Sacar OF de la máquina sin terminarla. Vuelve a la cola con tag Pausada.">⏸️ Pausar OF</button>
-          <button type="button" class="btn-cerrar-of-ok" onclick="abrirModalCierreTP('${ofActual}')">🏁 Terminar OF</button>
+          <button type="button" class="btn-cargar-parte" onclick="abrirModalCambiarOFTP('${ofActual}','${maqCod}')" title="Pausar la OF actual y arrancar otra en la misma máquina. Las bobinas se quedan; el sistema valida al arrancar la nueva.">🔁 Cambiar OF</button>
         </div>
+        <!-- Cerrar/Terminar OF NO va acá: se hace desde el tab "OFs en cola" para que sea una decisión consciente
+             (sumar bolsas, ver % cumplido, motivo si no cumple). Acá solo se opera la máquina día a día. -->
+        <p style="margin:8px 0 0;font-size:11px;color:var(--text-3)">
+          Para <strong>cerrar la OF</strong> definitivamente andá al tab <strong>📋 OFs en cola</strong> y apretá "🏁 Cerrar OF" en esta OF.
+        </p>
       </div>`;
   } else {
     // Dropdown de OFs pendientes ordenadas por Fecha Entrega ascendente
@@ -7460,6 +7526,59 @@ function renderMaquinaTP(maqCod) {
 }
 
 // ============================================================
+// HELPER: validar que las bobinas en slots sirven para arrancar una OF
+// Devuelve {ok: true, ...meta} o {ok: false, error: '...'}
+// Usado por arrancarOFEnMaquinaTP y por el flujo Cambiar OF.
+// ============================================================
+function validarBobinasParaArrancarOFTP(maqCod, of) {
+  const numOF = String(of['Nº OF']||'').trim();
+  const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
+  const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
+  const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
+
+  if (!capasEsperadas) {
+    return { ok: false, error: `⚠️ La OF ${numOF} no tiene 'Cantidad Capas' definida en el Sheet. Cargala antes de arrancar.` };
+  }
+
+  const bobsActuales = bobinasEnMaquinaTP(maqCod);
+  if (bobsActuales.length < capasEsperadas) {
+    const detalle = llevaPE ? `${cantCapasOF} de papel + 1 de Lámina PE` : `${cantCapasOF} de papel`;
+    return {
+      ok: false,
+      error: `⚠️ Faltan bobinas en los slots para arrancar la OF ${numOF}.\n\nNecesita ${capasEsperadas} bobina(s) (${detalle}).\nActualmente hay ${bobsActuales.length} cargada(s).\n\nCargá las que faltan con 🟢 Nueva+ y volvé a intentar.`,
+    };
+  }
+
+  const ofImp = ofImprime(of);
+  const nombreBolsa = String(of['Nombre Bolsa']||'').trim();
+  if (ofImp) {
+    const impresas = bobsActuales.filter(b => String(b['Origen']||'').includes('Impresión-impresa'));
+    if (!impresas.length) {
+      return { ok: false, error: `⚠️ La OF ${numOF} se imprime — necesita una bobina IMPRESA en algún slot.\n\nNinguna de las bobinas cargadas es impresa. Cargá la bobina impresa de "${nombreBolsa}".` };
+    }
+    const impresaMatch = impresas.find(b => String(b['Producto']||'').trim() === nombreBolsa);
+    if (!impresaMatch) {
+      const enUso = impresas.map(b => `${b['Código Bobina']} (${b['Producto']||'—'})`).join(', ');
+      return { ok: false, error: `⚠️ La bobina impresa cargada no coincide con la OF.\n\nOF ${numOF} → "${nombreBolsa}"\nBobina(s) impresa(s) en máquina: ${enUso}\n\nSacá la impresa actual (🔴 Vaciar) y cargá la correcta.` };
+    }
+  }
+
+  const anchoOF = Number(of['Ancho (cm)']) || 0;
+  if (anchoOF) {
+    const angostas = bobsActuales.filter(b => {
+      const a = Number(b['Formato (cm)']) || 0;
+      return a > 0 && a < anchoOF;
+    });
+    if (angostas.length) {
+      const listado = angostas.map(b => `${b['Código Bobina']} (${b['Formato (cm)']} cm)`).join(', ');
+      return { ok: false, error: `⚠️ Hay bobina(s) más angostas que la OF.\n\nOF ${numOF} → ${anchoOF} cm\nBobinas angostas: ${listado}\n\nNo se pueden achicar las bolsas. Reemplazá esas bobinas.` };
+    }
+  }
+
+  return { ok: true, bobsActuales, capasEsperadas, cantCapasOF, llevaPE, nombreBolsa, ofImp };
+}
+
+// ============================================================
 // ARRANCAR OF en una máquina específica
 // ============================================================
 async function arrancarOFEnMaquinaTP(maqCod) {
@@ -7475,84 +7594,19 @@ async function arrancarOFEnMaquinaTP(maqCod) {
   // Arrancar OF = asociar OF a máquina + validar que los slots tengan las bobinas necesarias.
   // (Franco 2026-05-20: el operario carga bobinas primero, después arranca OF; la validación
   // de capas / ancho / impresa correcta se hace ACÁ, no al cargar las bobinas ni al cargar parte.)
-  const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
-  const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
-  const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
+  const val = validarBobinasParaArrancarOFTP(maqCod, of);
+  if (!val.ok) { alert(val.error); return; }
 
-  if (!capasEsperadas) {
-    alert(`⚠️ La OF ${numOF} no tiene 'Cantidad Capas' definida en el Sheet. Cargala antes de arrancar.`);
-    return;
-  }
-
-  // VALIDACIÓN 1: cantidad de bobinas en slots
-  const bobsActuales = bobinasEnMaquinaTP(maqCod);
-  if (bobsActuales.length < capasEsperadas) {
-    const detalle = llevaPE
-      ? `${cantCapasOF} de papel + 1 de Lámina PE`
-      : `${cantCapasOF} de papel`;
-    alert(
-      `⚠️ Faltan bobinas en los slots para arrancar la OF ${numOF}.\n\n` +
-      `Necesita ${capasEsperadas} bobina(s) (${detalle}).\n` +
-      `Actualmente hay ${bobsActuales.length} cargada(s).\n\n` +
-      `Cargá las que faltan con 🟢 Nueva+ y volvé a apretar Arrancar OF.`
-    );
-    return;
-  }
-
-  // VALIDACIÓN 2: si la OF imprime, slot 1 debe ser IMPRESA del Nombre Bolsa correcto
-  const ofImp = ofImprime(of);
-  const nombreBolsa = String(of['Nombre Bolsa']||'').trim();
-  if (ofImp) {
-    const impresas = bobsActuales.filter(b => String(b['Origen']||'').includes('Impresión-impresa'));
-    if (!impresas.length) {
-      alert(
-        `⚠️ La OF ${numOF} se imprime — necesita una bobina IMPRESA en algún slot.\n\n` +
-        `Ninguna de las bobinas cargadas es impresa. Cargá la bobina impresa de "${nombreBolsa}" antes de arrancar.`
-      );
-      return;
-    }
-    const impresaMatch = impresas.find(b => String(b['Producto']||'').trim() === nombreBolsa);
-    if (!impresaMatch) {
-      const enUso = impresas.map(b => `${b['Código Bobina']} (${b['Producto']||'—'})`).join(', ');
-      alert(
-        `⚠️ La bobina impresa cargada no coincide con la OF.\n\n` +
-        `OF ${numOF} → "${nombreBolsa}"\n` +
-        `Bobina(s) impresa(s) en máquina: ${enUso}\n\n` +
-        `Sacá la impresa actual (🔴 Vaciar) y cargá la correcta antes de arrancar.`
-      );
-      return;
-    }
-  }
-
-  // VALIDACIÓN 3: ancho de todas las bobinas ≥ ancho OF
-  const anchoOF = Number(of['Ancho (cm)']) || 0;
-  if (anchoOF) {
-    const angostas = bobsActuales.filter(b => {
-      const a = Number(b['Formato (cm)']) || 0;
-      return a > 0 && a < anchoOF;
-    });
-    if (angostas.length) {
-      const listado = angostas.map(b => `${b['Código Bobina']} (${b['Formato (cm)']} cm)`).join(', ');
-      alert(
-        `⚠️ Hay bobina(s) más angostas que la OF.\n\n` +
-        `OF ${numOF} → ${anchoOF} cm\n` +
-        `Bobinas angostas: ${listado}\n\n` +
-        `No se pueden achicar las bolsas. Reemplazá esas bobinas antes de arrancar.`
-      );
-      return;
-    }
-  }
-
-  const detalleLleva = llevaPE ? ` (${cantCapasOF} de papel + 1 de Lámina PE)` : '';
-  const listadoBobs = bobsActuales.map(b => {
+  const detalleLleva = val.llevaPE ? ` (${val.cantCapasOF} de papel + 1 de Lámina PE)` : '';
+  const listadoBobs = val.bobsActuales.map(b => {
     const tag = String(b['Origen']||'').includes('Impresión-impresa') ? ' 🖨️' : '';
     return `  · ${b['Código Bobina']}${tag} (${b['Formato (cm)']||'?'} cm · ${fmtNum(b['Mts Totales']||0)} m)`;
   }).join('\n');
   if (!confirm(
     `¿Arrancar ${numOF} en ${maqCod}?\n\n` +
     `Cliente: ${of['Cliente']||'—'}\n` +
-    `Bolsa: ${nombreBolsa}\n` +
-    `Capas requeridas: ${capasEsperadas}${detalleLleva}\n\n` +
+    `Bolsa: ${val.nombreBolsa}\n` +
+    `Capas requeridas: ${val.capasEsperadas}${detalleLleva}\n\n` +
     `Bobinas en máquina:\n${listadoBobs}`
   )) return;
   try {
@@ -8258,10 +8312,11 @@ function abrirModalParteTP(numOF, maqCod) {
 
 function cerrarModalParteTP() {
   document.getElementById('tp-modal-parte').style.display = 'none';
-  // Limpiar el flag de pausa por si veníamos del flujo "Pausar con parte" y el usuario canceló.
+  // Limpiar flags de pausa/cambio por si veníamos del flujo "Pausar/Cambiar con parte" y el usuario canceló.
   const f = document.getElementById('form-tp');
-  if (f && f.dataset.pausarAlGuardar) {
+  if (f && (f.dataset.pausarAlGuardar || f.dataset.cambiarOfAlGuardar)) {
     delete f.dataset.pausarAlGuardar;
+    delete f.dataset.cambiarOfAlGuardar;
     const btn = document.getElementById('tp-parte-submit');
     if (btn && btn.dataset.txtOrig) {
       btn.textContent = btn.dataset.txtOrig;
@@ -8348,6 +8403,8 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     // camino "con parte", después de guardar el parte liberamos Estado Maquinas y la OF
     // vuelve a la cola con tag Pausada. El parte queda Pendiente como cualquier otro.
     let pausoOK = false;
+    let cambioOK = false;
+    let nuevaOfArrancada = '';
     if (f.dataset.pausarAlGuardar === '1') {
       try {
         await setOFActualEnMaquinaTP(tubera, '', '');
@@ -8355,11 +8412,27 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
       } catch (e) {
         console.warn('No se pudo liberar Estado Maquinas tras parte+pausa:', e);
       }
+    } else if (f.dataset.cambiarOfAlGuardar) {
+      // FLAG CAMBIAR OF AL GUARDAR (Franco 2026-05-21): después de guardar parte,
+      // pausa la OF actual + arranca la nueva en la misma máquina.
+      try {
+        const { nuevaOF, legajoNueva } = JSON.parse(f.dataset.cambiarOfAlGuardar);
+        await setOFActualEnMaquinaTP(tubera, nuevaOF, legajoNueva);
+        cambioOK = true;
+        nuevaOfArrancada = nuevaOF;
+      } catch (e) {
+        console.warn('No se pudo cambiar OF tras parte+cambio:', e);
+      }
     }
 
-    const msgFinal = pausoOK
-      ? `✓ Parte cargado como Pendiente y OF ${numOF} pausada en ${tubera}. Volvió a la cola.`
-      : `✓ Parte cargado como Pendiente · ${bolsas} bolsas. Aprobálo desde "Partes cargados" para descontar mts.`;
+    let msgFinal;
+    if (cambioOK) {
+      msgFinal = `✓ Parte cargado como Pendiente · OF ${numOF} pausada · OF ${nuevaOfArrancada} arrancada en ${tubera}.`;
+    } else if (pausoOK) {
+      msgFinal = `✓ Parte cargado como Pendiente y OF ${numOF} pausada en ${tubera}. Volvió a la cola.`;
+    } else {
+      msgFinal = `✓ Parte cargado como Pendiente · ${bolsas} bolsas. Aprobálo desde "Partes cargados" para descontar mts.`;
+    }
     showFormMsg('tp-msg', msgFinal, true);
 
     // Recargar cache del Sheet para que el parte nuevo tenga _rowIndex correcto.
@@ -8371,13 +8444,15 @@ document.getElementById('form-tp').addEventListener('submit', async (e) => {
     } catch (e) { console.warn('No se pudo recargar Tubera Papel cache:', e); }
     renderColaTP();
     renderPartesTP();
-    if (pausoOK) renderMaquinaTP(tubera);
+    if (pausoOK || cambioOK) renderMaquinaTP(tubera);
     setTimeout(() => {
       cerrarModalParteTP();
       delete f.dataset.guardando;
-      // Limpiar flag de pausa + restaurar texto del botón submit
-      if (f.dataset.pausarAlGuardar === '1') {
+      // Limpiar flags de pausa/cambio + restaurar texto del botón submit
+      const teniaFlag = f.dataset.pausarAlGuardar === '1' || !!f.dataset.cambiarOfAlGuardar;
+      if (teniaFlag) {
         delete f.dataset.pausarAlGuardar;
+        delete f.dataset.cambiarOfAlGuardar;
         if (btn.dataset.txtOrig) {
           btn.textContent = btn.dataset.txtOrig;
           delete btn.dataset.txtOrig;
@@ -8770,6 +8845,186 @@ document.getElementById('form-tp-pausar').addEventListener('submit', async (e) =
   }
 });
 
+// ============================================================
+// MODAL CAMBIAR OF EN TUBERA PAPEL (Franco 2026-05-21)
+// Pausa la OF actual y arranca una nueva en la misma máquina, en un solo flujo.
+// Útil cuando entra una OF urgente y hay que sacar la actual sin terminarla.
+// Las bobinas se quedan en slots; el sistema valida al arrancar la nueva y avisa qué falta o sobra.
+// Dos caminos (mismo patrón que Pausar):
+//   (a) "Con parte": carga parte de la OF actual, después pausa + arranca nueva.
+//   (b) "Sin parte": pide motivo, registra evento Pausa OF, libera máquina, arranca nueva.
+// ============================================================
+function abrirModalCambiarOFTP(numOFActual, maqCod) {
+  document.getElementById('tp-cambiar-of-actual').textContent = numOFActual;
+  document.getElementById('tp-cambiar-maq').textContent = maqCod;
+
+  // Poblar dropdown de OFs nuevas: las que pueden trabajarse en TP, no son la actual,
+  // y no están siendo trabajadas en otra máquina.
+  const cerradasEnTP = new Set(
+    (cierresPorSectorCache || [])
+      .filter(c => String(c['Sector']||'').trim() === 'Tubera Papel')
+      .map(c => String(c['Nº OF']||'').trim())
+  );
+  const ofsPend = (tpOFsCache || [])
+    .filter(o => {
+      const num = String(o['Nº OF']||'').trim();
+      if (num === String(numOFActual).trim()) return false; // no puede ser la misma
+      const estado = String(o['Estado']||'').toLowerCase();
+      if (!(estado === 'en_proceso' || estado === 'borrador' || estado === 'pausada')) return false;
+      if (cerradasEnTP.has(num)) return false;
+      const otrasMaq = ['TUB-PAPEL-1','TUB-PAPEL-2','TUB-PAPEL-3'].filter(m => m !== maqCod);
+      const yaEnOtra = otrasMaq.some(m => ofActualEnMaquinaTP(m) === num);
+      if (yaEnOtra) return false;
+      return puedeTrabajarseEnSector(o, 'Tubera Papel', eventosPorSectorCache);
+    })
+    .sort((a, b) => {
+      const fa = excelDateToJs(a['Fecha Entrega']) || new Date('9999-12-31');
+      const fb = excelDateToJs(b['Fecha Entrega']) || new Date('9999-12-31');
+      return fa - fb;
+    });
+  const opts = ofsPend.map(o => {
+    const fe = excelDateToJs(o['Fecha Entrega']);
+    const venceTxt = fe ? fmtFechaCorta(fe) : '—';
+    const diasResta = fe ? Math.ceil((fe - new Date()) / (1000*60*60*24)) : '?';
+    return `<option value="${o['Nº OF']}">${o['Nº OF']} · ${o['Cliente']||'—'} · ${o['Nombre Bolsa']||'—'} · Vence ${venceTxt} (${diasResta}d)</option>`;
+  }).join('');
+  const sel = document.getElementById('tp-cambiar-nueva-of');
+  sel.innerHTML = '<option value="">— Elegir OF —</option>' + opts;
+  document.getElementById('tp-cambiar-legajo-nueva').value = '';
+
+  // Reset visibilidad
+  document.getElementById('tp-cambiar-paso-1').style.display = '';
+  const f = document.getElementById('form-tp-cambiar');
+  f.style.display = 'none';
+  f.reset();
+  f.dataset.numOfActual = numOFActual;
+  f.dataset.maq = maqCod;
+  const msg = document.getElementById('tp-cambiar-msg');
+  msg.textContent = ''; msg.className = 'form-msg';
+
+  document.getElementById('tp-modal-cambiar').style.display = 'flex';
+}
+
+function cerrarModalCambiarOFTP() {
+  document.getElementById('tp-modal-cambiar').style.display = 'none';
+}
+document.getElementById('tp-modal-cambiar').addEventListener('click', e => {
+  if (e.target.id === 'tp-modal-cambiar') cerrarModalCambiarOFTP();
+});
+
+function elegirCaminoCambiarTP(camino) {
+  // Validar que se haya elegido nueva OF + legajo ANTES de avanzar
+  const nuevaOF = (document.getElementById('tp-cambiar-nueva-of').value || '').trim();
+  const legajoNueva = (document.getElementById('tp-cambiar-legajo-nueva').value || '').trim();
+  if (!nuevaOF) {
+    alert('Elegí la OF nueva a arrancar antes de continuar.');
+    return;
+  }
+  if (!legajoNueva) {
+    alert('Cargá el legajo del operario que arranca la nueva OF.');
+    return;
+  }
+  // Validar bobinas para la nueva OF ANTES de hacer cualquier cosa (sale temprano si no sirven).
+  const ofNueva = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === nuevaOF);
+  if (!ofNueva) { alert('OF nueva no encontrada en cache.'); return; }
+  const f = document.getElementById('form-tp-cambiar');
+  const maqCod = f.dataset.maq;
+  const val = validarBobinasParaArrancarOFTP(maqCod, ofNueva);
+  if (!val.ok) {
+    alert(val.error + '\n\nAjustá los slots y volvé a apretar Cambiar OF.');
+    return;
+  }
+
+  // Guardar la nueva OF y legajo en el dataset para usar en el submit/parte
+  f.dataset.nuevaOf = nuevaOF;
+  f.dataset.legajoNueva = legajoNueva;
+
+  if (camino === 'con-parte') {
+    // Cierra el modal Cambiar y abre el modal Cargar Parte con flag especial.
+    const numOFActual = f.dataset.numOfActual;
+    cerrarModalCambiarOFTP();
+    abrirModalParteTP(numOFActual, maqCod);
+    const fParte = document.getElementById('form-tp');
+    if (fParte) {
+      // Flag: al guardar el parte, además de pausar, arranca la nueva OF.
+      fParte.dataset.cambiarOfAlGuardar = JSON.stringify({ nuevaOF, legajoNueva });
+      const btn = document.getElementById('tp-parte-submit');
+      if (btn) {
+        btn.textContent = '📝 Guardar parte y cambiar a ' + nuevaOF;
+        btn.dataset.txtOrig = 'Guardar parte';
+      }
+    }
+  } else {
+    // Mostrar form de motivo
+    document.getElementById('tp-cambiar-paso-1').style.display = 'none';
+    f.style.display = '';
+    setTimeout(() => { const inp = f.querySelector('[name="motivo_cambio"]'); if (inp) inp.focus(); }, 100);
+  }
+}
+
+// Submit: cambiar sin parte → registra evento Pausa OF + libera + arranca nueva
+document.getElementById('form-tp-cambiar').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOFActual = f.dataset.numOfActual;
+  const maqCod = f.dataset.maq;
+  const nuevaOF = f.dataset.nuevaOf;
+  const legajoNueva = f.dataset.legajoNueva;
+  const motivo = f.querySelector('[name="motivo_cambio"]').value.trim();
+  if (!motivo) { showFormMsg('tp-cambiar-msg', '✗ Cargá el motivo.', false); return; }
+  if (!nuevaOF || !legajoNueva) { showFormMsg('tp-cambiar-msg', '✗ Falta la nueva OF o legajo (volvé a abrir el modal).', false); return; }
+
+  // Re-validar bobinas para la nueva OF (por si cambió algo desde que se abrió el modal)
+  const ofNueva = (tpOFsCache || []).find(o => String(o['Nº OF']||'').trim() === nuevaOF);
+  if (!ofNueva) { showFormMsg('tp-cambiar-msg', '✗ OF nueva no encontrada.', false); return; }
+  const val = validarBobinasParaArrancarOFTP(maqCod, ofNueva);
+  if (!val.ok) { showFormMsg('tp-cambiar-msg', val.error, false); return; }
+
+  f.dataset.guardando = '1';
+  const btn = document.getElementById('tp-cambiar-submit');
+  const txtOrig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Cambiando…';
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    // 1. Registrar evento Pausa OF de la OF actual
+    await appendFila('Tubera Papel', [
+      fecha, 'Pausa OF', '', maqCod, legajoNueva,
+      '', numOFActual, '',
+      '', '', '',
+      '', '', `${motivo} (cambio a ${nuevaOF})`,
+      '',
+    ]);
+    tpEventosCache.push({
+      'Fecha': fecha, 'Tipo Evento': 'Pausa OF', 'Turno': '',
+      'Nº Tubera': maqCod, 'Legajos': legajoNueva, 'Bobinas en Uso': '',
+      'Nº OF': numOFActual, 'Bolsas Producidas': '',
+      'Bobinas Sacadas': '', 'Kg Bobinas Sacadas': '',
+      'Kg Desperdicio': '',
+      'Hora Inicio': '', 'Hora Fin': '',
+      'Observaciones': `${motivo} (cambio a ${nuevaOF})`,
+      'Aprobado Supervisor': '',
+    });
+    eventosPorSectorCache['Tubera Papel'] = tpEventosCache;
+
+    // 2. Asociar la nueva OF a la máquina (sobrescribe Estado Maquinas)
+    await setOFActualEnMaquinaTP(maqCod, nuevaOF, legajoNueva);
+
+    renderColaTP();
+    renderMaquinaTP(maqCod);
+    showFormMsg('tp-cambiar-msg', `✓ OF ${numOFActual} pausada · OF ${nuevaOF} arrancada en ${maqCod}.`, true);
+    setTimeout(() => {
+      cerrarModalCambiarOFTP();
+      delete f.dataset.guardando;
+      btn.disabled = false; btn.textContent = txtOrig;
+    }, 1500);
+  } catch (err) {
+    showFormMsg('tp-cambiar-msg', '✗ Error: ' + err.message, false);
+    delete f.dataset.guardando;
+    btn.disabled = false; btn.textContent = txtOrig;
+  }
+});
+
 // Esc cierra los modales de Tubera Papel
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
@@ -8779,6 +9034,8 @@ document.addEventListener('keydown', (e) => {
   if (mc && mc.style.display === 'flex') cerrarModalCierreTP();
   const mpau = document.getElementById('tp-modal-pausar');
   if (mpau && mpau.style.display === 'flex') cerrarModalPausarTP();
+  const mcam = document.getElementById('tp-modal-cambiar');
+  if (mcam && mcam.style.display === 'flex') cerrarModalCambiarOFTP();
 });
 
 // Botón + Nueva OF → redirige al módulo Ventas (las OFs nacen ahí)
