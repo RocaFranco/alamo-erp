@@ -1678,8 +1678,300 @@
       </div>
     </section>
     <section class="panel" id="panel-sec-laminadora">
-      <div class="wip"><div class="wip-icon">🌀</div><h2>Laminadora</h2><p>Laminado / Coating / BioPP. Bobinas Padre → Nueva Bobina. Kg Agregados, PP, PE, Master, Purgados.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">🌀 Laminadora · LAM-1</h2>
+          <p class="page-sub">1 hija = 1 parte · aprobación supervisor · padres pueden empalmarse</p>
+        </div>
+      </div>
+
+      <!-- Sub-tabs Laminados / Consumo Grumo -->
+      <div class="subtabs">
+        <button type="button" class="subtab-btn active" data-lam-tab="cargado">📝 Laminados</button>
+        <button type="button" class="subtab-btn" data-lam-tab="grumo">🧪 Consumo Grumo</button>
+      </div>
+
+      <!-- ========== SUBPANEL: Laminados (default) ========== -->
+      <div class="lam-subpanel" id="lam-sub-cargado" style="display:block">
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-warn">
+            <div class="kpi-label">Pendientes aprobación</div>
+            <div class="kpi-value" id="lam-kpi-pend">0</div>
+            <div class="kpi-sub">esperando supervisor</div>
+          </div>
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">Mts laminados (mes)</div>
+            <div class="kpi-value" id="lam-kpi-mts">0</div>
+            <div class="kpi-sub">acumulado</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Kg producidos (mes)</div>
+            <div class="kpi-value" id="lam-kpi-kg">0</div>
+            <div class="kpi-sub">total mes</div>
+          </div>
+        </div>
+
+        <div class="mnt-toggles" style="justify-content:space-between">
+          <div style="display:flex;gap:8px">
+            <button type="button" class="imp-toggle active" data-lam-vista="pendiente">🟠 Pendientes <span class="badge-num" id="lam-tg-pend">0</span></button>
+            <button type="button" class="imp-toggle" data-lam-vista="aprobado">✓ Aprobados <span class="badge-num" id="lam-tg-apr">0</span></button>
+          </div>
+          <button type="button" class="btn-cargar-parte" id="lam-btn-cargar">+ Cargar Laminado</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Sub</th>
+                <th>Padres usados</th>
+                <th>Hija</th>
+                <th>Ancho</th>
+                <th class="num">Mts</th>
+                <th class="num">Kg</th>
+                <th>OF</th>
+                <th>Legajos</th>
+                <th class="num">Acciones</th>
+              </tr>
+              <tr class="filter-row">
+                <th></th>
+                <th><select class="col-filter" id="lam-filt-tipo">
+                  <option value="">Todos</option>
+                  <option value="Laminado">Laminado</option>
+                  <option value="Coating">Coating</option>
+                  <option value="BioPP">BioPP</option>
+                  <option value="Polipapel">Polipapel</option>
+                </select></th>
+                <th></th>
+                <th></th>
+                <th><input type="text" class="col-filter" id="lam-filt-hija" placeholder="BOB-…"></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th><input type="text" class="col-filter" id="lam-filt-of" placeholder="Nº OF…"></th>
+                <th><input type="text" class="col-filter" id="lam-filt-leg" placeholder="Legajo…"></th>
+                <th class="filter-actions">
+                  <button type="button" class="btn-clear-filt" id="lam-btn-clear">Limpiar filtros</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="lam-body">
+              <tr><td colspan="11" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========== SUBPANEL: Consumo Grumo ========== -->
+      <div class="lam-subpanel" id="lam-sub-grumo" style="display:none">
+        <div class="page-sub" style="margin-bottom:12px">
+          🧪 Carga al tambor de la máquina. Sin aprobación · descuenta Stock Varios cuando esté implementado.
+        </div>
+
+        <div class="mnt-toggles" style="justify-content:flex-end">
+          <button type="button" class="btn-cargar-parte" id="grm-btn-cargar">+ Cargar consumo</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha y Hora</th>
+                <th>Tipo</th>
+                <th>Material</th>
+                <th class="num">Kg</th>
+                <th>Legajo</th>
+                <th>Observaciones</th>
+              </tr>
+              <tr class="filter-row">
+                <th></th>
+                <th><select class="col-filter" id="grm-filt-tipo">
+                  <option value="">Todos</option>
+                  <option value="PP">PP</option>
+                  <option value="PE">PE</option>
+                  <option value="Master">Master</option>
+                  <option value="Reciclado">Reciclado</option>
+                </select></th>
+                <th><input type="text" class="col-filter" id="grm-filt-mat" placeholder="Material…"></th>
+                <th></th>
+                <th><input type="text" class="col-filter" id="grm-filt-leg" placeholder="Legajo…"></th>
+                <th class="filter-actions">
+                  <button type="button" class="btn-clear-filt" id="grm-btn-clear">Limpiar filtros</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="grm-body">
+              <tr><td colspan="6" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
+
+    <!-- ========== MODAL: Cargar Laminado ========== -->
+    <div class="modal-overlay" id="lam-modal" style="display:none">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="lam-modal-titulo">🌀 Cargar Laminado</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalLam()">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-lam">
+            <input type="hidden" id="lam-form-fecha">
+
+            <!-- Tipo de proceso + sub-tipo -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">⚙️ Tipo de Proceso</div>
+              <div class="proceso-grid" id="lam-tipo-grid">
+                <label><input type="radio" name="tipo" value="Laminado" required> Laminado <small>(1 bobina rafia)</small></label>
+                <label><input type="radio" name="tipo" value="Coating"> Coating <small>(rafia/papel + capa PE)</small></label>
+                <label><input type="radio" name="tipo" value="BioPP"> BioPP <small>(rafia + biopp)</small></label>
+                <label><input type="radio" name="tipo" value="Polipapel"> Polipapel <small>(rafia + papel)</small></label>
+              </div>
+              <div id="lam-subtipo-wrap" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px">
+                <small style="display:block;margin-bottom:6px;color:var(--text-3)">Sub-tipo Coating:</small>
+                <label style="display:inline-block;margin-right:18px"><input type="radio" name="subtipo" value="Externo"> Externo <small>(bobina ya impresa)</small></label>
+                <label><input type="radio" name="subtipo" value="Interno"> Interno <small>(sin imprimir, refuerzo PE)</small></label>
+              </div>
+            </div>
+
+            <!-- Slots de bobinas padre (dinámicos según tipo) -->
+            <div class="conv-block field-2" id="lam-slots-wrap" style="display:none">
+              <div class="conv-block-title">🧵 Bobinas Padre</div>
+              <p class="form-sub" style="margin:0 0 10px">Cargá el código de cada bobina. Cada slot tiene su Kg Desperdicio total (se prorratea entre las bobinas del slot al aprobar).</p>
+              <div id="lam-slots-list">
+                <!-- slots generados dinámicamente según tipo de proceso -->
+              </div>
+            </div>
+
+            <!-- Legajos -->
+            <label class="field">
+              <span>Maquinista (legajo)</span>
+              <input type="text" name="legajo_op" required>
+            </label>
+            <label class="field">
+              <span>Ayudante (legajo)</span>
+              <input type="text" name="legajo_ay" required>
+            </label>
+            <label class="field">
+              <span>Hora Inicio</span>
+              <input type="time" name="hora_in" required>
+            </label>
+            <label class="field">
+              <span>Hora Fin</span>
+              <input type="time" name="hora_fin" required>
+            </label>
+
+            <!-- Hija generada -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">👶 Hija generada (código auto al guardar)</div>
+              <div class="padre-info-grid">
+                <div class="item">
+                  <small>Ancho (cm)</small>
+                  <input type="number" name="hija_ancho" id="lam-hija-ancho" step="1" min="1" required>
+                </div>
+                <div class="item">
+                  <small>Mts Finales (del contador)</small>
+                  <input type="number" name="hija_mts" id="lam-hija-mts" step="1" min="1" required>
+                </div>
+                <div class="item">
+                  <small>Kg Finales (pesado)</small>
+                  <input type="number" name="hija_kg" id="lam-hija-kg" step="0.1" min="0.1" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Material agregado a esta hija (informativo) -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">⚗️ Material agregado A ESTA HIJA</div>
+              <p class="form-sub" style="margin:0 0 10px">Cuánto del tambor se gastó en esta bobina puntual. <strong>NO descuenta stock</strong> (eso lo hace "Consumo Grumo" al cargar al tambor).</p>
+              <div class="padre-info-grid">
+                <div class="item"><small>Kg PP</small><input type="number" name="kg_pp" step="0.1" min="0" placeholder="0"></div>
+                <div class="item"><small>Kg PE</small><input type="number" name="kg_pe" step="0.1" min="0" placeholder="0"></div>
+                <div class="item"><small>Kg Master</small><input type="number" name="kg_master" step="0.1" min="0" placeholder="0"></div>
+                <div class="item"><small>Kg Reciclado</small><input type="number" name="kg_reciclado" step="0.1" min="0" placeholder="0"></div>
+                <div class="item">
+                  <small>Kg Purgados (desperdicio máquina)</small>
+                  <input type="number" name="kg_purgados" step="0.1" min="0" placeholder="0">
+                </div>
+              </div>
+            </div>
+
+            <!-- Cálculos automáticos -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">📐 Cálculos automáticos</div>
+              <div class="padre-info-grid">
+                <div class="item"><small>Gramaje Promedio hija</small><strong id="lam-calc-gr-prom">—</strong></div>
+                <div class="item"><small>Gramaje Agregado</small><strong id="lam-calc-gr-agr">—</strong></div>
+                <div class="item"><small>Σ Padres + Agregados</small><strong id="lam-calc-suma-in">—</strong></div>
+                <div class="item"><small>Hija + Kg Desp padres</small><strong id="lam-calc-suma-out">—</strong></div>
+                <div class="item"><small>Cuadre</small><strong id="lam-calc-cuadre">—</strong></div>
+                <div class="item"><small>Asignar a OF</small><strong id="lam-calc-of">stock libre</strong></div>
+              </div>
+            </div>
+
+            <label class="field field-2">
+              <span>Observaciones (opcional)</span>
+              <input type="text" name="obs" placeholder="Notas para el supervisor…">
+            </label>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="cerrarModalLam()">Cancelar</button>
+              <button type="submit" class="btn-aprobar">Guardar laminado</button>
+            </div>
+            <div class="form-msg" id="lam-msg"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL: Cargar Consumo Grumo ========== -->
+    <div class="modal-overlay" id="grm-modal" style="display:none">
+      <div class="modal-card" style="max-width:480px">
+        <div class="modal-header">
+          <h3>🧪 Cargar Consumo de Grumo</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalGrumo()">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-grumo">
+            <label class="field field-2">
+              <span>Tipo Grumo</span>
+              <select name="tipo" required>
+                <option value="">Elegí tipo…</option>
+                <option value="PP">PP</option>
+                <option value="PE">PE</option>
+                <option value="Master">Master</option>
+                <option value="Reciclado">Reciclado</option>
+              </select>
+            </label>
+            <label class="field field-2">
+              <span>Código Material (o nombre)</span>
+              <input type="text" name="material" required placeholder="Ej: PP-001 · PP virgen">
+            </label>
+            <label class="field">
+              <span>Kg</span>
+              <input type="number" name="kg" step="0.1" min="0.1" required>
+            </label>
+            <label class="field">
+              <span>Legajo</span>
+              <input type="text" name="legajo" required>
+            </label>
+            <label class="field field-2">
+              <span>Observaciones (opcional)</span>
+              <input type="text" name="obs">
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="cerrarModalGrumo()">Cancelar</button>
+              <button type="submit" class="btn-aprobar">Guardar</button>
+            </div>
+            <div class="form-msg" id="grm-msg"></div>
+          </form>
+        </div>
+      </div>
+    </div>
     <section class="panel" id="panel-sec-tubera-papel">
       <div class="page-head">
         <div>
@@ -2951,6 +3243,7 @@ function abrirSector(secKey) {
   if (secKey === 'clise')          cargarClise();
   if (secKey === 'impresion')      cargarImpresion();
   if (secKey === 'tubera-papel')   cargarTuberaPapel();
+  if (secKey === 'laminadora')     cargarLaminadora();
 }
 
 // Dropdown de sectores
@@ -3486,6 +3779,13 @@ let tintasCatalogoCache = [];   // pestaña "Tintas Catálogo" — todos los Pan
 let entradasTintasCache = [];   // pestaña "Entradas Tintas" — compras
 let tintasConsumosCache = [];   // pestaña "Tintas de Impresión" — consumos por parte
 let ofsParaTintasCache = [];    // pestaña "OF" — para cruzar consumos con Tipo Bolsa
+
+// Caches para Laminadora (Franco 2026-05-22)
+let lamPartesCache = [];        // pestaña "Laminadora" — partes (N filas hermanas por parte)
+let lamOFsCache = [];           // alias OFs para Laminadora
+let grumoConsumosCache = [];    // pestaña "Consumo Grumo" — descuentos al tambor
+let lamVista = 'pendiente';     // toggle Pendientes/Aprobados en sub-tab Laminados
+let lamBobIdx = 0;              // contador para IDs de fila bobina en el modal
 
 // Helper: lee 'Categoría' o 'Categoria' del cache (tolerancia tilde)
 function getCategoria(row) {
@@ -6548,6 +6848,12 @@ function getOFAsignada(bob) {
 const ORIGEN_IMPRESION_IMPRESA = 'Impresión-impresa';
 // Origen marker para remanente impreso (queda asignado a OF mientras esté activa)
 const ORIGEN_TP_REMANENTE = 'Tubera Papel-remanente';
+// Origen markers para bobinas generadas en Laminadora (Franco 2026-05-22)
+const ORIGEN_LAM_LAMINADO       = 'Laminadora-laminado';
+const ORIGEN_LAM_COATING_EXT    = 'Laminadora-coating-ext';
+const ORIGEN_LAM_COATING_INT    = 'Laminadora-coating-int';
+const ORIGEN_LAM_BIOPP          = 'Laminadora-biopp';
+const ORIGEN_LAM_POLIPAPEL      = 'Laminadora-polipapel';
 // Umbral en mts por debajo del cual el remanente va a DESCARTE (no se genera hija).
 // Franco 2026-05-17: bobinas con < 100 mts son inviables operativamente, mejor desperdicio.
 //
@@ -8076,6 +8382,1130 @@ document.querySelectorAll('.cola-toggle[data-tp-vista-partes]').forEach(btn => {
     renderPartesTP();
   });
 });
+
+// ============================================================
+// PANTALLA LAMINADORA (Franco 2026-05-22)
+//
+// Modelo: 1 hija cortada = 1 parte. Slots de padres dinámicos según tipo:
+//   - Laminado:   1 bobina rafia (no empalmable)
+//   - Coating:    1 bobina (papel impreso ó papel sin imprimir, según sub-tipo) — empalmable
+//   - BioPP:      1 rafia (no empalmable) + 1 biopp (empalmable)
+//   - Polipapel:  1 rafia (no empalmable) + 1 papel (empalmable)
+//
+// Sheet: pestaña "Laminadora", N filas hermanas por parte (1 por bobina padre del slot).
+// La última fila (la del último slot) lleva los datos de la hija + cálculos.
+// claveDeParteLam = Fecha + Hora Inicio + Legajos + Tipo
+// ============================================================
+
+const SLOTS_POR_TIPO_LAM = {
+  'Laminado':         [{ slot: 'Rafia', label: '🧵 Slot Rafia',          empalmable: false, principal: true }],
+  'Coating-Externo':  [{ slot: 'Papel', label: '📄 Slot Papel impreso',  empalmable: true,  principal: true,  exigirImpresa: true }],
+  'Coating-Interno':  [{ slot: 'Papel', label: '📄 Slot Papel kraft',    empalmable: true,  principal: true }],
+  'BioPP':            [
+    { slot: 'Rafia', label: '🧵 Slot Rafia',  empalmable: false, principal: true },
+    { slot: 'BioPP', label: '🌿 Slot BioPP',  empalmable: true,  principal: false },
+  ],
+  'Polipapel':        [
+    { slot: 'Rafia', label: '🧵 Slot Rafia',  empalmable: false, principal: true },
+    { slot: 'Papel', label: '📄 Slot Papel',  empalmable: true,  principal: false },
+  ],
+};
+
+function origenLamPorTipo(tipoFull) {
+  // tipoFull = 'Laminado' | 'Coating-Externo' | 'Coating-Interno' | 'BioPP' | 'Polipapel'
+  switch (tipoFull) {
+    case 'Laminado':         return ORIGEN_LAM_LAMINADO;
+    case 'Coating-Externo':  return ORIGEN_LAM_COATING_EXT;
+    case 'Coating-Interno':  return ORIGEN_LAM_COATING_INT;
+    case 'BioPP':            return ORIGEN_LAM_BIOPP;
+    case 'Polipapel':        return ORIGEN_LAM_POLIPAPEL;
+    default: return 'Laminadora';
+  }
+}
+
+// claveDeParteLam: agrupa filas hermanas del mismo laminado
+function claveDeParteLam(p) {
+  return `${p['Fecha']}|${p['Hora Inicio']}|${p['Legajos']}|${p['Tipo de Proceso']}`;
+}
+function filasHermanasDeLamParte(p) {
+  const k = claveDeParteLam(p);
+  return (lamPartesCache || []).filter(x => claveDeParteLam(x) === k);
+}
+
+async function cargarLaminadora() {
+  try {
+    const [partes, ofs, bobinas, consumos] = await Promise.all([
+      leerPestana('Laminadora').catch(() => []),
+      leerPestana('OF').catch(() => []),
+      leerPestana('Bobinas').catch(() => []),
+      leerPestana('Consumo Grumo').catch(() => []),
+    ]);
+    lamPartesCache = partes || [];
+    lamOFsCache = ofs || [];
+    grumoConsumosCache = consumos || [];
+    if (bobinas && bobinas.length) bobinasCache = bobinas;
+  } catch (err) {
+    console.error('Error cargando Laminadora:', err);
+    document.getElementById('lam-body').innerHTML = `<tr><td colspan="11" class="empty">Error: ${err.message}</td></tr>`;
+    return;
+  }
+  renderTablaLam();
+  renderTablaGrumo();
+}
+
+// ============================================================
+// Sub-tab nav (Laminados / Consumo Grumo)
+// ============================================================
+document.querySelectorAll('.subtab-btn[data-lam-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.subtab-btn[data-lam-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.lam-subpanel').forEach(p => p.style.display = 'none');
+    const tab = btn.dataset.lamTab;
+    if (tab === 'cargado') document.getElementById('lam-sub-cargado').style.display = 'block';
+    if (tab === 'grumo')   document.getElementById('lam-sub-grumo').style.display = 'block';
+  });
+});
+
+// Vista toggle Pendientes/Aprobados
+document.querySelectorAll('.imp-toggle[data-lam-vista]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    lamVista = btn.dataset.lamVista;
+    document.querySelectorAll('.imp-toggle[data-lam-vista]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTablaLam();
+  });
+});
+
+// Filtros tabla Laminados
+['lam-filt-hija','lam-filt-tipo','lam-filt-of','lam-filt-leg'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) { el.addEventListener('input', renderTablaLam); el.addEventListener('change', renderTablaLam); }
+});
+document.getElementById('lam-btn-clear').addEventListener('click', () => {
+  ['lam-filt-hija','lam-filt-tipo','lam-filt-of','lam-filt-leg'].forEach(id => document.getElementById(id).value = '');
+  renderTablaLam();
+});
+
+// Filtros tabla Consumo Grumo
+['grm-filt-tipo','grm-filt-mat','grm-filt-leg'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) { el.addEventListener('input', renderTablaGrumo); el.addEventListener('change', renderTablaGrumo); }
+});
+document.getElementById('grm-btn-clear').addEventListener('click', () => {
+  ['grm-filt-tipo','grm-filt-mat','grm-filt-leg'].forEach(id => document.getElementById(id).value = '');
+  renderTablaGrumo();
+});
+
+// Botones abrir modal
+document.getElementById('lam-btn-cargar').addEventListener('click', () => abrirModalLam());
+document.getElementById('grm-btn-cargar').addEventListener('click', () => abrirModalGrumo());
+
+// ============================================================
+// RENDER tabla Laminados (Pendientes/Aprobados)
+// ============================================================
+function renderTablaLam() {
+  const hoy = new Date();
+  // Agrupar hermanas por clave
+  const grupos = {};
+  (lamPartesCache || []).forEach(p => {
+    const k = claveDeParteLam(p);
+    if (!grupos[k]) grupos[k] = [];
+    grupos[k].push(p);
+  });
+  // 1 representante por parte (preferir la fila que tenga "Código Hija" — esa es la última)
+  const partesUnicos = Object.values(grupos).map(hermanas => {
+    return hermanas.find(h => String(h['Código Hija']||'').trim()) || hermanas[0];
+  });
+
+  // Stats por aprobación
+  const pendientes = partesUnicos.filter(p => {
+    const a = String(p['Aprobado Supervisor']||'').toUpperCase();
+    return a !== 'SI' && a !== 'NO';
+  });
+  const aprobados = partesUnicos.filter(p => String(p['Aprobado Supervisor']||'').toUpperCase() === 'SI');
+
+  // KPIs mes (solo aprobados)
+  const mtsMes = aprobados.reduce((s, p) => {
+    const f = excelDateToJs(p['Fecha']);
+    if (f && f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()) {
+      return s + (Number(p['Mts Finales Hija']) || 0);
+    }
+    return s;
+  }, 0);
+  const kgMes = aprobados.reduce((s, p) => {
+    const f = excelDateToJs(p['Fecha']);
+    if (f && f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()) {
+      return s + (Number(p['Kg Finales Hija']) || 0);
+    }
+    return s;
+  }, 0);
+  setKpi('lam-kpi-pend', pendientes.length, '', pendientes.length === 0);
+  setKpi('lam-kpi-mts', fmtNum(Math.round(mtsMes)), '', mtsMes === 0);
+  setKpi('lam-kpi-kg', fmtNum(Math.round(kgMes)), '', kgMes === 0);
+  document.getElementById('lam-tg-pend').textContent = pendientes.length;
+  document.getElementById('lam-tg-apr').textContent = aprobados.length;
+
+  // Filtros
+  const fHija = (document.getElementById('lam-filt-hija').value || '').toLowerCase().trim();
+  const fTipo = document.getElementById('lam-filt-tipo').value || '';
+  const fOf   = (document.getElementById('lam-filt-of').value || '').toLowerCase().trim();
+  const fLeg  = (document.getElementById('lam-filt-leg').value || '').toLowerCase().trim();
+
+  let lista = partesUnicos.filter(p => {
+    const apr = String(p['Aprobado Supervisor']||'').toUpperCase();
+    if (apr === 'NO') return false; // rechazados no se muestran
+    if (lamVista === 'pendiente' && apr === 'SI') return false;
+    if (lamVista === 'aprobado'  && apr !== 'SI') return false;
+    if (fHija && !String(p['Código Hija']||'').toLowerCase().includes(fHija)) return false;
+    if (fTipo && String(p['Tipo de Proceso']||'') !== fTipo) return false;
+    if (fOf   && !String(p['N° OF Asignada']||'').toLowerCase().includes(fOf)) return false;
+    if (fLeg  && !String(p['Legajos']||'').toLowerCase().includes(fLeg)) return false;
+    return true;
+  });
+  lista.sort((a,b) => (excelDateToJs(b['Fecha'])||0) - (excelDateToJs(a['Fecha'])||0));
+
+  const tbody = document.getElementById('lam-body');
+  if (!lista.length) {
+    tbody.innerHTML = !lamPartesCache.length
+      ? `<tr><td colspan="11" class="empty">Sin laminados cargados. Cargá el primero con <strong>+ Cargar Laminado</strong>.</td></tr>`
+      : `<tr><td colspan="11" class="empty">Ningún laminado cumple los filtros.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(p => {
+    const k = claveDeParteLam(p);
+    const hermanas = grupos[k];
+    const f = excelDateToJs(p['Fecha']);
+    const apr = String(p['Aprobado Supervisor']||'').toUpperCase();
+    const tipo = p['Tipo de Proceso'] || '—';
+    const sub = p['Sub-tipo'] || '—';
+    const padres = hermanas.map(h => h['Código Bobina Padre']).filter(Boolean).join(' + ');
+    const hija = p['Código Hija'] || (apr === 'SI' ? '—' : '<em style="color:var(--text-3)">al aprobar</em>');
+    const ancho = p['Ancho Hija (cm)'] || '—';
+    const mts = Number(p['Mts Finales Hija']) || 0;
+    const kg = Number(p['Kg Finales Hija']) || 0;
+    const of = p['N° OF Asignada'] || '<small style="color:var(--text-3)">stock libre</small>';
+    const acciones = apr === 'SI'
+      ? '<span style="color:var(--ok)">✓ Aprobado</span>'
+      : `<button class="btn-editar" onclick="editarParteLam('${k.replace(/'/g,"\\'")}')">Editar</button>
+         <button class="btn-rechazar" onclick="rechazarParteLam('${k.replace(/'/g,"\\'")}')">Rechazar</button>
+         <button class="btn-aprobar" onclick="aprobarParteLam('${k.replace(/'/g,"\\'")}')">Aprobar</button>`;
+    return `<tr>
+      <td>${f ? fmtFechaCorta(f) : '—'}</td>
+      <td>${tipo}</td>
+      <td>${sub === '—' ? '—' : sub.replace('Coating-','')}</td>
+      <td><small>${padres || '—'}</small></td>
+      <td><span class="of-num">${hija}</span></td>
+      <td>${ancho}</td>
+      <td class="num">${fmtNum(Math.round(mts))}</td>
+      <td class="num">${fmtNum(Math.round(kg))}</td>
+      <td>${of}</td>
+      <td title="${p['Legajos']||''}">${p['Legajos'] || '—'}</td>
+      <td class="num" style="overflow:visible;white-space:nowrap;min-width:240px">${acciones}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// RENDER tabla Consumo Grumo
+// ============================================================
+function renderTablaGrumo() {
+  const fTipo = document.getElementById('grm-filt-tipo').value || '';
+  const fMat = (document.getElementById('grm-filt-mat').value || '').toLowerCase().trim();
+  const fLeg = (document.getElementById('grm-filt-leg').value || '').toLowerCase().trim();
+  let lista = (grumoConsumosCache || []).filter(c => {
+    if (fTipo && String(c['Tipo Grumo']||'') !== fTipo) return false;
+    if (fMat && !String(c['Código Material']||'').toLowerCase().includes(fMat)) return false;
+    if (fLeg && !String(c['Legajo']||'').toLowerCase().includes(fLeg)) return false;
+    return true;
+  });
+  lista.sort((a,b) => (excelDateToJs(b['Fecha'])||0) - (excelDateToJs(a['Fecha'])||0));
+  const tbody = document.getElementById('grm-body');
+  if (!lista.length) {
+    tbody.innerHTML = !grumoConsumosCache.length
+      ? `<tr><td colspan="6" class="empty">Sin consumos cargados. Cargá el primero con <strong>+ Cargar consumo</strong>.</td></tr>`
+      : `<tr><td colspan="6" class="empty">Ningún consumo cumple los filtros.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(c => {
+    const f = excelDateToJs(c['Fecha']);
+    const hora = excelTimeToHHMM(c['Hora']) || '';
+    return `<tr>
+      <td>${f ? fmtFechaCorta(f) : '—'} ${hora}</td>
+      <td>${c['Tipo Grumo']||'—'}</td>
+      <td>${c['Código Material']||'—'}</td>
+      <td class="num">${fmtNum(Number(c['Kg'])||0)}</td>
+      <td>${c['Legajo']||'—'}</td>
+      <td><small style="color:var(--text-3)">${c['Observaciones']||''}</small></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// MODAL "Cargar Laminado" — abrir / cerrar / slots dinámicos
+// ============================================================
+function abrirModalLam(opts) {
+  const editMode = !!(opts && opts.editMode);
+  const form = document.getElementById('form-lam');
+  form.reset();
+  delete form.dataset.editMode;
+  delete form.dataset.editKey;
+  document.getElementById('lam-form-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('lam-modal-titulo').textContent = '🌀 Cargar Laminado' + (editMode ? ' (editando)' : '');
+  document.getElementById('lam-slots-wrap').style.display = 'none';
+  document.getElementById('lam-slots-list').innerHTML = '';
+  document.getElementById('lam-subtipo-wrap').style.display = 'none';
+  recalcLamKPIs();
+  if (editMode) {
+    form.dataset.editMode = 'true';
+    form.dataset.editKey = opts.clave;
+    precargarEdicionLam(opts.hermanas, opts.repr);
+  }
+  const msg = document.getElementById('lam-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('lam-modal').style.display = 'flex';
+}
+
+function cerrarModalLam() {
+  const form = document.getElementById('form-lam');
+  delete form.dataset.editMode;
+  delete form.dataset.editKey;
+  document.getElementById('lam-modal').style.display = 'none';
+}
+
+// Cambio de tipo de proceso → mostrar slots correctos
+document.querySelectorAll('#lam-tipo-grid input[name="tipo"]').forEach(r => {
+  r.addEventListener('change', () => onTipoLamChange());
+});
+document.querySelectorAll('#lam-subtipo-wrap input[name="subtipo"]').forEach(r => {
+  r.addEventListener('change', () => onTipoLamChange());
+});
+
+function onTipoLamChange() {
+  const form = document.getElementById('form-lam');
+  const tipo = form.tipo.value;
+  const subWrap = document.getElementById('lam-subtipo-wrap');
+  if (tipo === 'Coating') {
+    subWrap.style.display = 'block';
+    const sub = form.subtipo ? form.subtipo.value : '';
+    if (!sub) {
+      document.getElementById('lam-slots-wrap').style.display = 'none';
+      document.getElementById('lam-slots-list').innerHTML = '';
+      return;
+    }
+    armarSlotsLam(`Coating-${sub}`);
+  } else {
+    subWrap.style.display = 'none';
+    if (tipo) armarSlotsLam(tipo);
+    else {
+      document.getElementById('lam-slots-wrap').style.display = 'none';
+      document.getElementById('lam-slots-list').innerHTML = '';
+    }
+  }
+}
+
+function armarSlotsLam(tipoFull) {
+  const slots = SLOTS_POR_TIPO_LAM[tipoFull] || [];
+  const cont = document.getElementById('lam-slots-list');
+  cont.innerHTML = '';
+  lamBobIdx = 0;
+  slots.forEach(cfg => {
+    const wrap = document.createElement('div');
+    wrap.className = 'lam-slot';
+    wrap.dataset.slot = cfg.slot;
+    wrap.dataset.empalmable = cfg.empalmable ? '1' : '0';
+    wrap.dataset.principal = cfg.principal ? '1' : '0';
+    if (cfg.exigirImpresa) wrap.dataset.exigirImpresa = '1';
+    wrap.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <strong>${cfg.label}</strong>
+        <small style="color:var(--text-3)">${cfg.empalmable ? 'se puede empalmar' : 'no se empalma — 1 sola'}</small>
+      </div>
+      <div class="lam-slot-bobs"></div>
+      ${cfg.empalmable ? `<button type="button" class="btn-secondary lam-add-empalme" style="margin-top:6px">+ Sumar empalme</button>` : ''}
+      <label class="field" style="margin-top:8px;margin-bottom:0">
+        <span>Kg Desperdicio TOTAL ${cfg.label.replace(/^[^a-zA-Z]+/,'')} (se prorratea entre bobinas del slot)</span>
+        <input type="number" class="lam-slot-kgdesp" step="0.1" min="0" placeholder="0">
+      </label>
+    `;
+    cont.appendChild(wrap);
+    agregarBobinaSlotLam(wrap);
+    if (cfg.empalmable) {
+      wrap.querySelector('.lam-add-empalme').addEventListener('click', () => agregarBobinaSlotLam(wrap));
+    }
+    wrap.querySelector('.lam-slot-kgdesp').addEventListener('input', recalcLamKPIs);
+  });
+  document.getElementById('lam-slots-wrap').style.display = 'block';
+  recalcLamKPIs();
+}
+
+function agregarBobinaSlotLam(slotWrap) {
+  lamBobIdx++;
+  const bobsCont = slotWrap.querySelector('.lam-slot-bobs');
+  const row = document.createElement('div');
+  row.className = 'bob-row';
+  row.dataset.idx = lamBobIdx;
+  row.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;margin-bottom:6px">
+      <label class="field" style="margin-bottom:0">
+        <input type="text" name="lam-bob-cod" placeholder="Ej: BOB-2026-00012" autocomplete="off" required>
+        <small class="hint bob-info">Ingresá el código.</small>
+      </label>
+      <button type="button" class="btn-tinta-del bob-del" title="Quitar bobina" style="align-self:end;margin-bottom:4px">✕</button>
+    </div>
+  `;
+  const inp = row.querySelector('input[name="lam-bob-cod"]');
+  inp.addEventListener('input', () => autocompletarBobinaLam(row, slotWrap));
+  row.querySelector('.bob-del').addEventListener('click', () => {
+    if (bobsCont.querySelectorAll('.bob-row').length <= 1) return;
+    row.remove();
+    recalcLamKPIs();
+  });
+  bobsCont.appendChild(row);
+}
+
+function autocompletarBobinaLam(row, slotWrap) {
+  const cod = String(row.querySelector('input').value||'').trim().toUpperCase();
+  const info = row.querySelector('.bob-info');
+  delete row.dataset.cod;
+  delete row.dataset.mts;
+  delete row.dataset.ancho;
+  delete row.dataset.gramaje;
+  delete row.dataset.producto;
+  delete row.dataset.rowindex;
+  delete row.dataset.ofAsignada;
+  delete row.dataset.origen;
+  delete row.dataset.motivoAncho;
+  if (cod.length < 5) {
+    info.textContent = 'Ingresá el código.';
+    info.style.color = '';
+    recalcLamKPIs();
+    return;
+  }
+  const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+  if (!bob) {
+    info.textContent = '✗ Bobina no encontrada';
+    info.style.color = 'var(--danger)';
+    recalcLamKPIs();
+    return;
+  }
+  const estado = String(bob['Estado']||'').toLowerCase();
+  if (['transformada','consumida','desperdicio'].includes(estado)) {
+    info.textContent = `✗ Bobina ya está ${estado}`;
+    info.style.color = 'var(--danger)';
+    recalcLamKPIs();
+    return;
+  }
+  // Validar que no esté duplicada en otro slot/empalme
+  const yaCargada = Array.from(document.querySelectorAll('#lam-slots-list .bob-row'))
+    .some(r => r !== row && String(r.dataset.cod||'').toUpperCase() === cod);
+  if (yaCargada) {
+    info.textContent = `✗ Esta bobina ya está cargada en otra fila.`;
+    info.style.color = 'var(--danger)';
+    recalcLamKPIs();
+    return;
+  }
+  // Si el slot exige bobina impresa (Coating Externo) — validar Origen
+  if (slotWrap.dataset.exigirImpresa === '1') {
+    const ori = String(bob['Origen']||'').trim();
+    if (ori !== ORIGEN_IMPRESION_IMPRESA) {
+      info.textContent = `✗ Coating Externo necesita bobina IMPRESA. Esta tiene origen "${ori || 'no impresa'}".`;
+      info.style.color = 'var(--danger)';
+      recalcLamKPIs();
+      return;
+    }
+  }
+  // Validar ancho contra slot principal (si es slot secundario, no principal)
+  const anchoBob = Number(bob['Formato (cm)']) || 0;
+  const principalSlot = document.querySelector('#lam-slots-list .lam-slot[data-principal="1"]');
+  const principalAncho = principalSlot ? maxAnchoDelSlot(principalSlot) : 0;
+  const esPrincipal = slotWrap.dataset.principal === '1';
+  if (!esPrincipal && principalAncho && anchoBob > principalAncho) {
+    const motivo = prompt(
+      `⚠️ ATENCIÓN — bobina más ANCHA que el slot principal\n\n` +
+      `Bobina: ${cod}\n` +
+      `Ancho bobina: ${anchoBob} cm\n` +
+      `Ancho principal (rafia): ${principalAncho} cm\n` +
+      `Sobrante: +${anchoBob - principalAncho} cm\n\n` +
+      `Lo ideal es CORTARLA primero desde "Convertir Bobinas".\n` +
+      `Si querés usarla así, escribí el MOTIVO obligatorio:`
+    );
+    if (!motivo || !motivo.trim()) {
+      info.textContent = `✗ Bobina más ancha (${anchoBob}>${principalAncho}cm). Cortala o aceptá con motivo.`;
+      info.style.color = 'var(--danger)';
+      recalcLamKPIs();
+      return;
+    }
+    row.dataset.motivoAncho = motivo.trim();
+  }
+  // OK
+  row.dataset.cod = cod;
+  row.dataset.mts = String(Number(bob['Mts Totales']) || 0);
+  row.dataset.ancho = String(anchoBob);
+  row.dataset.gramaje = String(Number(bob['Gramaje (g/m²)']) || 0);
+  row.dataset.producto = bob['Producto'] || '';
+  row.dataset.rowindex = String(bob._rowIndex || '');
+  row.dataset.ofAsignada = getOFAsignada(bob);
+  row.dataset.origen = String(bob['Origen']||'');
+  const motivoTag = row.dataset.motivoAncho ? ` · ⚠️ ancha (${row.dataset.motivoAncho})` : '';
+  info.textContent = `✓ ${bob['Producto']||''} · ${anchoBob}cm · ${fmtNum(bob['Mts Totales']||0)}m disp${motivoTag}`;
+  info.style.color = row.dataset.motivoAncho ? 'var(--warn, #f5a623)' : 'var(--ok)';
+  recalcLamKPIs();
+}
+
+function maxAnchoDelSlot(slotWrap) {
+  let max = 0;
+  slotWrap.querySelectorAll('.bob-row').forEach(r => {
+    const a = Number(r.dataset.ancho) || 0;
+    if (a > max) max = a;
+  });
+  return max;
+}
+
+// ============================================================
+// CÁLCULOS EN VIVO + VALIDACIÓN FÍSICA
+// Fórmulas:
+//   GR Promedio hija     = Kg Hija × 1.000.000 / (Mts Hija × Ancho Hija)
+//   GR Agregado          = Kg Agregados × 1.000.000 / (Mts Hija × Ancho Hija)
+//   Kg Agregados         = PP + PE + Master + Reciclado
+//   Σ Padres + Agregados = Σ (mts_padre × ancho_padre × gramaje_padre / 100 / 1000)  + Agregados
+//   Hija + Kg Desp pad   = Kg Hija + Σ Kg Desp slots
+//   Cuadre (±5 kg)       = (Σ Padres + Agregados) − (Hija + Kg Desp padres)
+// (Kg Purgados NO entra — es desperdicio de máquina, no de bobinas)
+// ============================================================
+function recalcLamKPIs() {
+  const form = document.getElementById('form-lam');
+  if (!form) return;
+  const mtsHija = Number(form.hija_mts.value) || 0;
+  const kgHija = Number(form.hija_kg.value) || 0;
+  const anchoHija = Number(form.hija_ancho.value) || 0;
+  const kgPP = Number(form.kg_pp.value) || 0;
+  const kgPE = Number(form.kg_pe.value) || 0;
+  const kgMaster = Number(form.kg_master.value) || 0;
+  const kgRec = Number(form.kg_reciclado.value) || 0;
+  const kgAgregados = kgPP + kgPE + kgMaster + kgRec;
+
+  const grProm = (kgHija && mtsHija && anchoHija) ? (kgHija * 1000000 / (mtsHija * anchoHija)) : 0;
+  const grAgr  = (kgAgregados && mtsHija && anchoHija) ? (kgAgregados * 1000000 / (mtsHija * anchoHija)) : 0;
+
+  // Suma kg de todos los padres usando MTS DISPONIBLES (no consumidos — eso se sabrá al aprobar).
+  // Para el cuadre en vivo asumimos que se consume TODO de cada padre — el operario verá si cuadra.
+  // En realidad, lo que necesitamos saber es cuánto se va a CONSUMIR.
+  // Heurística: mts_consumidos_slot = mtsHija + mts_desperdicio_slot (en mts del slot).
+  //   mts_desperdicio_slot = kg_desp_slot × 100.000 / (ancho_slot × gramaje_slot_promedio).
+  // El cuadre real lo calculamos como: Σ kg_consumidos_padres + kg_agregados ≈ kg_hija + kg_desp_padres
+  // donde kg_consumidos_padres = mts_consumidos × ancho × gramaje / 100 / 1000
+  let kgConsumidosPadres = 0;
+  let kgDespPadresTotal = 0;
+  let ofAsignada = '';
+  document.querySelectorAll('#lam-slots-list .lam-slot').forEach(slotWrap => {
+    const kgDesp = Number(slotWrap.querySelector('.lam-slot-kgdesp').value) || 0;
+    kgDespPadresTotal += kgDesp;
+    const bobs = Array.from(slotWrap.querySelectorAll('.bob-row')).filter(r => r.dataset.cod && r.dataset.mts);
+    if (!bobs.length) return;
+    // Para cálculo de mts desp del slot: usamos gramaje y ancho promedio (todas las bobinas del slot
+    // suelen ser del mismo material). Tomamos la última bobina como referencia.
+    const ref = bobs[bobs.length - 1];
+    const anchoSlot = Number(ref.dataset.ancho) || 0;
+    const gramajeSlot = Number(ref.dataset.gramaje) || 0;
+    const mtsDespSlot = (kgDesp && anchoSlot && gramajeSlot) ? kgDesp * 100000 / (anchoSlot * gramajeSlot) : 0;
+    const mtsConsSlot = mtsHija + mtsDespSlot;
+    // kg consumidos del slot = mts_consumidos × peso/m del slot
+    bobs.forEach(b => {
+      const a = Number(b.dataset.ancho) || 0;
+      const g = Number(b.dataset.gramaje) || 0;
+      // Cuántos mts toma esta bobina: el operario carga las bobinas en orden, las primeras N-1 completas
+      // y la última con el remanente. Simplificación para cuadre en vivo: contamos su contribución
+      // proporcional al total de mts disponibles del slot.
+    });
+    // Más simple: sumamos los kg consumidos del slot completo
+    kgConsumidosPadres += mtsConsSlot * anchoSlot * gramajeSlot / 100 / 1000;
+    // OF heredada (primer slot con OF)
+    if (!ofAsignada) {
+      const padreConOF = bobs.find(b => b.dataset.ofAsignada);
+      if (padreConOF) ofAsignada = padreConOF.dataset.ofAsignada;
+    }
+  });
+
+  const sumaIn = kgConsumidosPadres + kgAgregados;
+  const sumaOut = kgHija + kgDespPadresTotal;
+  const cuadre = sumaIn - sumaOut;
+
+  document.getElementById('lam-calc-gr-prom').textContent = grProm ? Math.round(grProm) + ' g/m²' : '—';
+  document.getElementById('lam-calc-gr-agr').textContent = grAgr ? Math.round(grAgr) + ' g/m²' : '—';
+  document.getElementById('lam-calc-suma-in').textContent = sumaIn ? Math.round(sumaIn * 10)/10 + ' kg' : '—';
+  document.getElementById('lam-calc-suma-out').textContent = sumaOut ? Math.round(sumaOut * 10)/10 + ' kg' : '—';
+  let cuadreTxt = '—';
+  let cuadreColor = '';
+  if (sumaIn || sumaOut) {
+    const cuadreR = Math.round(cuadre * 10)/10;
+    if (Math.abs(cuadre) <= 5) { cuadreTxt = `✓ ${cuadreR > 0 ? '+' : ''}${cuadreR} kg (±5)`; cuadreColor = 'var(--ok)'; }
+    else { cuadreTxt = `⚠️ ${cuadreR > 0 ? '+' : ''}${cuadreR} kg fuera de tolerancia`; cuadreColor = 'var(--warn, #f5a623)'; }
+  }
+  const cuadreEl = document.getElementById('lam-calc-cuadre');
+  cuadreEl.textContent = cuadreTxt;
+  cuadreEl.style.color = cuadreColor;
+  document.getElementById('lam-calc-of').textContent = ofAsignada || 'stock libre';
+
+  // Sugerir ancho hija = ancho slot principal si está vacío
+  if (!anchoHija) {
+    const principalSlot = document.querySelector('#lam-slots-list .lam-slot[data-principal="1"]');
+    if (principalSlot) {
+      const a = maxAnchoDelSlot(principalSlot);
+      if (a) form.hija_ancho.value = a;
+    }
+  }
+}
+
+['hija_mts','hija_kg','hija_ancho','kg_pp','kg_pe','kg_master','kg_reciclado','kg_purgados'].forEach(name => {
+  const el = document.querySelector(`#form-lam [name="${name}"]`);
+  if (el) el.addEventListener('input', recalcLamKPIs);
+});
+
+// ============================================================
+// MODAL Consumo Grumo
+// ============================================================
+function abrirModalGrumo() {
+  const form = document.getElementById('form-grumo');
+  form.reset();
+  const msg = document.getElementById('grm-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('grm-modal').style.display = 'flex';
+}
+function cerrarModalGrumo() {
+  document.getElementById('grm-modal').style.display = 'none';
+}
+document.getElementById('grm-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'grm-modal') cerrarModalGrumo();
+});
+document.getElementById('lam-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'lam-modal') cerrarModalLam();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const m1 = document.getElementById('lam-modal');
+  if (m1 && m1.style.display === 'flex') cerrarModalLam();
+  const m2 = document.getElementById('grm-modal');
+  if (m2 && m2.style.display === 'flex') cerrarModalGrumo();
+});
+
+// SUBMIT Consumo Grumo
+document.getElementById('form-grumo').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const tipo = f.tipo.value;
+  const material = f.material.value.trim();
+  const kg = Number(f.kg.value) || 0;
+  const legajo = f.legajo.value.trim();
+  const obs = (f.obs.value || '').trim();
+  if (!tipo || !material || !kg || !legajo) {
+    showFormMsg('grm-msg', '✗ Faltan datos.', false);
+    return;
+  }
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    const ahora = new Date();
+    const fecha = ahora.toISOString().slice(0,10);
+    const hora = ahora.toTimeString().slice(0,5);
+    await appendFila('Consumo Grumo', [fecha, hora, tipo, material, kg, legajo, obs]);
+    grumoConsumosCache.push({ 'Fecha': fecha, 'Hora': hora, 'Tipo Grumo': tipo, 'Código Material': material, 'Kg': kg, 'Legajo': legajo, 'Observaciones': obs });
+    renderTablaGrumo();
+    cerrarModalGrumo();
+  } catch (err) {
+    showFormMsg('grm-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
+
+// ============================================================
+// SUBMIT Cargar Laminado — N filas hermanas (1 por bobina padre)
+// Modelo: la ÚLTIMA fila lleva los datos de la hija. Las anteriores solo padres.
+// ============================================================
+document.getElementById('form-lam').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const tipo = f.tipo.value;
+  const sub = (f.subtipo && f.subtipo.value) || '';
+  const tipoFull = tipo === 'Coating' ? `Coating-${sub}` : tipo;
+  if (!tipo) { showFormMsg('lam-msg', '✗ Elegí el tipo de proceso.', false); return; }
+  if (tipo === 'Coating' && !sub) { showFormMsg('lam-msg', '✗ Elegí Coating Externo o Interno.', false); return; }
+
+  const fecha = document.getElementById('lam-form-fecha').value || new Date().toISOString().slice(0,10);
+  const legajoOp = f.legajo_op.value.trim();
+  const legajoAy = f.legajo_ay.value.trim();
+  const horaIn = f.hora_in.value;
+  const horaFin = f.hora_fin.value;
+  const mtsHija = Number(f.hija_mts.value) || 0;
+  const kgHija = Number(f.hija_kg.value) || 0;
+  const anchoHija = Number(f.hija_ancho.value) || 0;
+  const kgPP = Number(f.kg_pp.value) || 0;
+  const kgPE = Number(f.kg_pe.value) || 0;
+  const kgMaster = Number(f.kg_master.value) || 0;
+  const kgRec = Number(f.kg_reciclado.value) || 0;
+  const kgPurg = Number(f.kg_purgados.value) || 0;
+  const obs = (f.obs.value || '').trim();
+  const kgAgregados = kgPP + kgPE + kgMaster + kgRec;
+
+  if (!legajoOp || !legajoAy || !horaIn || !horaFin || !mtsHija || !kgHija || !anchoHija) {
+    showFormMsg('lam-msg', '✗ Faltan datos obligatorios (legajos, horas, datos de la hija).', false);
+    return;
+  }
+
+  // Recolectar bobinas por slot
+  const slots = Array.from(document.querySelectorAll('#lam-slots-list .lam-slot')).map(slotWrap => {
+    const bobs = Array.from(slotWrap.querySelectorAll('.bob-row')).filter(r => r.dataset.cod && r.dataset.mts);
+    return {
+      slot: slotWrap.dataset.slot,
+      principal: slotWrap.dataset.principal === '1',
+      kgDesp: Number(slotWrap.querySelector('.lam-slot-kgdesp').value) || 0,
+      bobs,
+    };
+  });
+  const conError = Array.from(document.querySelectorAll('#lam-slots-list .bob-row')).filter(r => {
+    const cod = String(r.querySelector('input').value||'').trim();
+    return cod && !r.dataset.cod;
+  });
+  if (conError.length) {
+    showFormMsg('lam-msg', `✗ Hay ${conError.length} bobina(s) inválida(s) en los slots.`, false);
+    return;
+  }
+  for (const s of slots) {
+    if (!s.bobs.length) {
+      showFormMsg('lam-msg', `✗ El slot ${s.slot} no tiene bobinas cargadas.`, false);
+      return;
+    }
+  }
+
+  // VALIDACIÓN FÍSICA — Σ Padres consumidos + Agregados ≈ Hija + Σ Kg Desp Padres (±5 kg)
+  // Calculamos kg consumidos por slot asumiendo mts_consumidos_slot = mts_hija + mts_desperdicio_slot
+  let kgConsumidosTotal = 0;
+  let kgDespTotal = 0;
+  const planConsumo = []; // {slot, bob, mtsConsumidos, kgConsumidos, kgDespAsignado}
+  for (const s of slots) {
+    kgDespTotal += s.kgDesp;
+    // Disponible total en el slot
+    const mtsDispSlot = s.bobs.reduce((a, b) => a + (Number(b.dataset.mts)||0), 0);
+    // Mts desp en mts del slot (usando última como referencia de gramaje/ancho)
+    const ref = s.bobs[s.bobs.length - 1];
+    const anchoSlot = Number(ref.dataset.ancho) || 0;
+    const gramajeSlot = Number(ref.dataset.gramaje) || 0;
+    if (!anchoSlot || !gramajeSlot) {
+      showFormMsg('lam-msg', `✗ Bobina sin ancho/gramaje en slot ${s.slot}.`, false);
+      return;
+    }
+    const mtsDespSlot = s.kgDesp ? s.kgDesp * 100000 / (anchoSlot * gramajeSlot) : 0;
+    const mtsConsSlotTotal = mtsHija + mtsDespSlot;
+    if (mtsConsSlotTotal > mtsDispSlot + 5) {
+      showFormMsg('lam-msg', `✗ Slot ${s.slot}: necesita ${Math.round(mtsConsSlotTotal)}m pero las bobinas tienen ${Math.round(mtsDispSlot)}m disponibles.`, false);
+      return;
+    }
+    // Distribuir mts consumidos entre bobinas del slot: previas completas, última con remanente
+    let mtsRestPorRepartir = mtsConsSlotTotal;
+    for (let i = 0; i < s.bobs.length; i++) {
+      const b = s.bobs[i];
+      const mtsB = Number(b.dataset.mts) || 0;
+      let mtsConsB;
+      if (i < s.bobs.length - 1) {
+        // Previa: se asume consumida completa
+        mtsConsB = mtsB;
+      } else {
+        // Última: lo que falta para completar el total del slot
+        mtsConsB = Math.max(0, mtsRestPorRepartir);
+      }
+      mtsRestPorRepartir -= mtsConsB;
+      const ancho = Number(b.dataset.ancho) || 0;
+      const gramaje = Number(b.dataset.gramaje) || 0;
+      const kgConsB = mtsConsB * ancho * gramaje / 100 / 1000;
+      // Prorrateo del kg desp del slot entre bobinas: proporcional a mtsConsumidos
+      const kgDespB = mtsConsSlotTotal > 0 ? s.kgDesp * (mtsConsB / mtsConsSlotTotal) : 0;
+      planConsumo.push({ slot: s.slot, bob: b, mtsConsumidos: Math.round(mtsConsB), kgConsumidos: kgConsB, kgDespAsignado: Math.round(kgDespB * 10)/10 });
+      kgConsumidosTotal += kgConsB;
+    }
+  }
+  // Validar coherencia ±5 kg
+  const sumaIn = kgConsumidosTotal + kgAgregados;
+  const sumaOut = kgHija + kgDespTotal;
+  if (Math.abs(sumaIn - sumaOut) > 5) {
+    if (!confirm(
+      `⚠️ Los kg no cuadran físicamente (fuera de ±5 kg):\n\n` +
+      `Σ Padres consumidos + Agregados: ${Math.round(sumaIn*10)/10} kg\n` +
+      `Hija + Kg Desp padres:           ${Math.round(sumaOut*10)/10} kg\n` +
+      `Diferencia: ${Math.round((sumaIn-sumaOut)*10)/10} kg\n\n` +
+      `¿Guardar igual? (queda Pendiente, el supervisor decide al aprobar)`
+    )) return;
+  }
+
+  // OF heredada del primer slot que tenga padre con OF
+  let ofHeredada = '';
+  for (const s of slots) {
+    const padreOF = s.bobs.find(b => b.dataset.ofAsignada);
+    if (padreOF) { ofHeredada = padreOF.dataset.ofAsignada; break; }
+  }
+
+  const legajos = `${legajoOp} / ${legajoAy}`;
+  const editMode = f.dataset.editMode === 'true';
+  const editKey = editMode ? f.dataset.editKey : '';
+
+  // Anti doble-click
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = editMode ? 'Guardando cambios…' : 'Guardando…'; }
+
+  try {
+    if (editMode) {
+      // Para no romper el modelo, rechazamos la edición si cambió la cantidad de filas hermanas.
+      const hermanasViejas = (lamPartesCache || []).filter(p => claveDeParteLam(p) === editKey);
+      if (hermanasViejas.length !== planConsumo.length) {
+        throw new Error('Cambió la cantidad de bobinas. Rechazá el parte y cargalo de nuevo.');
+      }
+      hermanasViejas.sort((a,b) => (a._rowIndex||0)-(b._rowIndex||0));
+      for (let i = 0; i < planConsumo.length; i++) {
+        const pc = planConsumo[i];
+        const esUltima = (i === planConsumo.length - 1);
+        const row = hermanasViejas[i]._rowIndex;
+        await actualizarCeldaEnFila('Laminadora', row, 'Hora Inicio', horaIn);
+        await actualizarCeldaEnFila('Laminadora', row, 'Hora Fin', horaFin);
+        await actualizarCeldaEnFila('Laminadora', row, 'Legajos', legajos);
+        await actualizarCeldaEnFila('Laminadora', row, 'Tipo de Proceso', tipo);
+        await actualizarCeldaEnFila('Laminadora', row, 'Sub-tipo', sub || '');
+        await actualizarCeldaEnFila('Laminadora', row, 'Slot Padre', pc.slot);
+        await actualizarCeldaEnFila('Laminadora', row, 'Código Bobina Padre', pc.bob.dataset.cod);
+        await actualizarCeldaEnFila('Laminadora', row, 'Mts Iniciales Padre', Number(pc.bob.dataset.mts)||0);
+        await actualizarCeldaEnFila('Laminadora', row, 'Mts Consumidos Padre', pc.mtsConsumidos);
+        await actualizarCeldaEnFila('Laminadora', row, 'Mts Remanente Padre', Math.max(0, (Number(pc.bob.dataset.mts)||0) - pc.mtsConsumidos));
+        await actualizarCeldaEnFila('Laminadora', row, 'Kg Desperdicio Padre', pc.kgDespAsignado);
+        if (esUltima) {
+          await actualizarCeldaEnFila('Laminadora', row, 'Ancho Hija (cm)', anchoHija);
+          await actualizarCeldaEnFila('Laminadora', row, 'Mts Finales Hija', mtsHija);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg Finales Hija', kgHija);
+          await actualizarCeldaEnFila('Laminadora', row, 'Gramaje Promedio', Math.round(kgHija * 1000000 / (mtsHija * anchoHija)));
+          await actualizarCeldaEnFila('Laminadora', row, 'Gramaje Agregado', kgAgregados ? Math.round(kgAgregados * 1000000 / (mtsHija * anchoHija)) : 0);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg Agregados', kgAgregados);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg PP', kgPP);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg PE', kgPE);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg Master', kgMaster);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg Reciclado', kgRec);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg Purgados', kgPurg);
+          await actualizarCeldaEnFila('Laminadora', row, 'N° OF Asignada', ofHeredada);
+          await actualizarCeldaEnFila('Laminadora', row, 'Observaciones', obs);
+        }
+      }
+    } else {
+      // Alta: N filas hermanas en orden de slots
+      for (let i = 0; i < planConsumo.length; i++) {
+        const pc = planConsumo[i];
+        const esUltima = (i === planConsumo.length - 1);
+        const mtsIni = Number(pc.bob.dataset.mts) || 0;
+        const mtsRem = Math.max(0, mtsIni - pc.mtsConsumidos);
+        const motivoAncho = pc.bob.dataset.motivoAncho ? ` · ⚠️ Ancha: ${pc.bob.dataset.motivoAncho}` : '';
+        // Orden columnas (27): Fecha, Hora Inicio, Hora Fin, Legajos, Tipo de Proceso, Sub-tipo,
+        //   Slot Padre, Código Bobina Padre, Mts Iniciales Padre, Mts Consumidos Padre, Mts Remanente Padre, Kg Desperdicio Padre,
+        //   Código Hija, Ancho Hija (cm), Mts Finales Hija, Kg Finales Hija, Gramaje Promedio, Gramaje Agregado, Kg Agregados,
+        //   Kg PP, Kg PE, Kg Master, Kg Reciclado, Kg Purgados, N° OF Asignada, Aprobado Supervisor, Observaciones
+        const fila = [
+          fecha, horaIn, horaFin, legajos, tipo, sub || '',
+          pc.slot, pc.bob.dataset.cod, mtsIni, pc.mtsConsumidos, mtsRem, pc.kgDespAsignado,
+          '', // Código Hija → se asigna al APROBAR
+          esUltima ? anchoHija : '',
+          esUltima ? mtsHija : '',
+          esUltima ? kgHija : '',
+          esUltima && mtsHija && anchoHija ? Math.round(kgHija * 1000000 / (mtsHija * anchoHija)) : '',
+          esUltima && mtsHija && anchoHija && kgAgregados ? Math.round(kgAgregados * 1000000 / (mtsHija * anchoHija)) : '',
+          esUltima ? kgAgregados : '',
+          esUltima ? kgPP : '', esUltima ? kgPE : '', esUltima ? kgMaster : '', esUltima ? kgRec : '',
+          esUltima ? kgPurg : '',
+          esUltima ? ofHeredada : '',
+          'Pendiente',
+          esUltima ? (obs + motivoAncho) : (`Slot ${pc.slot}` + motivoAncho),
+        ];
+        await appendFila('Laminadora', fila);
+        // Agregar a cache local
+        const obj = {};
+        ['Fecha','Hora Inicio','Hora Fin','Legajos','Tipo de Proceso','Sub-tipo',
+          'Slot Padre','Código Bobina Padre','Mts Iniciales Padre','Mts Consumidos Padre','Mts Remanente Padre','Kg Desperdicio Padre',
+          'Código Hija','Ancho Hija (cm)','Mts Finales Hija','Kg Finales Hija','Gramaje Promedio','Gramaje Agregado','Kg Agregados',
+          'Kg PP','Kg PE','Kg Master','Kg Reciclado','Kg Purgados','N° OF Asignada','Aprobado Supervisor','Observaciones']
+        .forEach((h, idx) => obj[h] = fila[idx]);
+        lamPartesCache.push(obj);
+      }
+    }
+    cerrarModalLam();
+    renderTablaLam();
+    alert(`✓ Laminado guardado${editMode ? ' (editado)' : ''}. Queda Pendiente de aprobación.`);
+  } catch (err) {
+    showFormMsg('lam-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
+
+// ============================================================
+// APROBAR / RECHAZAR / EDITAR Laminado
+// ============================================================
+async function rechazarParteLam(clave) {
+  const hermanas = (lamPartesCache || []).filter(p => claveDeParteLam(p) === clave);
+  if (!hermanas.length) { alert('No encontré el parte.'); return; }
+  if (!confirm(`¿Rechazar este laminado? Quedará marcado como rechazado y NO se ejecutan cambios sobre bobinas (no había nada que reversar).`)) return;
+  try {
+    for (const h of hermanas) {
+      await actualizarCeldaEnFila('Laminadora', h._rowIndex, 'Aprobado Supervisor', 'NO');
+      h['Aprobado Supervisor'] = 'NO';
+    }
+    renderTablaLam();
+    alert(`✗ Laminado rechazado (${hermanas.length} fila/s)`);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function aprobarParteLam(clave) {
+  const hermanas = (lamPartesCache || []).filter(p => claveDeParteLam(p) === clave).sort((a,b) => (a._rowIndex||0)-(b._rowIndex||0));
+  if (!hermanas.length) { alert('No encontré el parte.'); return; }
+  const ultima = hermanas.find(h => Number(h['Mts Finales Hija']) > 0) || hermanas[hermanas.length - 1];
+
+  // VALIDACIÓN DEFENSIVA — verificar estado de bobinas padre + suficiencia de mts
+  const TOLERANCIA = 5;
+  const conflictos = [];
+  for (const h of hermanas) {
+    const cod = String(h['Código Bobina Padre']||'').toUpperCase();
+    const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+    if (!bob) { conflictos.push(`• ${cod}: no encontrada en stock`); continue; }
+    const estado = String(bob['Estado']||'').toLowerCase();
+    if (['transformada','consumida','desperdicio'].includes(estado)) {
+      conflictos.push(`• ${cod}: ya está ${estado} (otra aprobación la procesó)`);
+      continue;
+    }
+    const mtsDisp = Number(bob['Mts Totales']) || 0;
+    const mtsCons = Number(h['Mts Consumidos Padre']) || 0;
+    if (mtsCons > mtsDisp + TOLERANCIA) {
+      conflictos.push(`• ${cod}: necesita ${fmtNum(mtsCons)}m, disp ${fmtNum(mtsDisp)}m`);
+    }
+  }
+  if (conflictos.length) {
+    alert(
+      `❌ No se puede aprobar este laminado.\n\n` +
+      `Las bobinas padre no cuadran:\n\n` +
+      conflictos.join('\n') +
+      `\n\nRechazá el parte y volvé a cargarlo.`
+    );
+    return;
+  }
+
+  const tipo = ultima['Tipo de Proceso'];
+  const sub = ultima['Sub-tipo'];
+  const tipoFull = tipo === 'Coating' ? `Coating-${sub}` : tipo;
+  const mtsHija = Number(ultima['Mts Finales Hija']) || 0;
+  const kgHija = Number(ultima['Kg Finales Hija']) || 0;
+  const anchoHija = Number(ultima['Ancho Hija (cm)']) || 0;
+  const ofAsig = ultima['N° OF Asignada'] || '';
+  const padresList = hermanas.map(h => h['Código Bobina Padre']).join(' + ');
+
+  if (!confirm(
+    `¿Aprobar laminado?\n\n` +
+    `· Tipo: ${tipoFull}\n` +
+    `· Padres: ${padresList}\n` +
+    `· Hija: ${fmtNum(mtsHija)}m / ${fmtNum(kgHija)}kg / ${anchoHija}cm\n` +
+    `· OF asignada: ${ofAsig || 'stock libre'}\n\n` +
+    `Esto va a:\n` +
+    `1. Descontar mts/kg de cada bobina padre. Las que queden ≥ 100m vuelven con MISMO código; < 100m → consumida.\n` +
+    `2. Generar 1 bobina hija nueva BOB-${new Date().getFullYear()}-XXXXX origen ${origenLamPorTipo(tipoFull)}.`
+  )) return;
+
+  try {
+    // 1. Marcar Aprobado=SI en todas las hermanas
+    for (const h of hermanas) {
+      await actualizarCeldaEnFila('Laminadora', h._rowIndex, 'Aprobado Supervisor', 'SI');
+      h['Aprobado Supervisor'] = 'SI';
+    }
+
+    // 2. Helpers para crear bobina + generar código
+    const anio = new Date().getFullYear();
+    const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
+    let maxCounter = 0;
+    bobinasCache.forEach(b => {
+      const m = String(b['Código Bobina']||'').match(re);
+      if (m) maxCounter = Math.max(maxCounter, parseInt(m[1],10));
+    });
+    const siguienteCodHija = () => {
+      maxCounter++;
+      return `BOB-${anio}-${String(maxCounter).padStart(5,'0')}`;
+    };
+
+    async function crearBobinaFila(d) {
+      // Columnas Bobinas: Código, Nº OC, Proveedor, Fecha Ingreso, Producto, Formato, Kg, Gramaje, Mts,
+      //                   Padre 1, Padre 2, Origen, Estado, Sector Actual, Observaciones, N° de OF Asignada
+      await appendFila('Bobinas', [
+        d.cod, '', '', d.fecha, d.producto, d.ancho, Math.round(d.kg*10)/10,
+        d.gramaje, d.mts, d.padre1, d.padre2 || '', d.origen, 'disponible', '',
+        d.obs, d.ofAsignada || '',
+      ]);
+      bobinasCache.push({
+        'Código Bobina': d.cod, 'Fecha Ingreso': d.fecha, 'Producto': d.producto,
+        'Formato (cm)': d.ancho, 'Kg': Math.round(d.kg*10)/10, 'Gramaje (g/m²)': d.gramaje,
+        'Mts Totales': d.mts, 'Bobina Padre 1': d.padre1, 'Bobina Padre 2': d.padre2 || '',
+        'Origen': d.origen, 'Estado': 'disponible', 'Sector Actual': '',
+        'Observaciones': d.obs, [HEADER_OF_ASIGNADA]: d.ofAsignada || '',
+      });
+    }
+
+    // 3. Descontar bobinas padre — vuelven a stock con MISMO código si quedan ≥ 100m
+    let madresQueVolvieron = 0;
+    for (const h of hermanas) {
+      const cod = String(h['Código Bobina Padre']||'').toUpperCase();
+      const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+      if (!bob || !bob._rowIndex) continue;
+      const mtsRest = Number(h['Mts Remanente Padre']) || 0;
+      const ancho = Number(bob['Formato (cm)']) || 0;
+      const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
+      const idxCache = bobinasCache.indexOf(bob);
+      if (mtsRest >= UMBRAL_REMANENTE_MTS) {
+        const kgRest = (ancho && gramaje) ? Math.round(mtsRest * (gramaje * ancho / 100) / 1000 * 10) / 10 : 0;
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Mts Totales', mtsRest);
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Kg', kgRest);
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'disponible');
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
+        if (idxCache >= 0) {
+          bobinasCache[idxCache]['Mts Totales'] = mtsRest;
+          bobinasCache[idxCache]['Kg'] = kgRest;
+          bobinasCache[idxCache]['Estado'] = 'disponible';
+          bobinasCache[idxCache]['Sector Actual'] = '';
+        }
+        madresQueVolvieron++;
+      } else {
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Estado', 'consumida');
+        await actualizarCeldaEnFila('Bobinas', bob._rowIndex, 'Sector Actual', '');
+        if (idxCache >= 0) {
+          bobinasCache[idxCache]['Estado'] = 'consumida';
+          bobinasCache[idxCache]['Sector Actual'] = '';
+        }
+      }
+    }
+
+    // 4. Generar la bobina hija (1 sola por laminado)
+    const padresCods = hermanas.map(h => h['Código Bobina Padre']).filter(Boolean);
+    const padre1 = padresCods[0] || '';
+    const padre2 = padresCods.slice(1).join(' + ') || '';
+    const ofObj = (lamOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(ofAsig).trim());
+    const productoHija = ofObj ? (ofObj['Nombre Bolsa'] || `OF ${ofAsig}`) : tipoFull;
+    const fechaHija = ultima['Fecha'];
+    const grPromedio = (mtsHija && anchoHija) ? Math.round(kgHija * 1000000 / (mtsHija * anchoHija)) : 0;
+    const codHija = siguienteCodHija();
+    await crearBobinaFila({
+      cod: codHija, fecha: fechaHija, producto: productoHija,
+      ancho: anchoHija, kg: kgHija, gramaje: grPromedio, mts: mtsHija,
+      padre1, padre2, origen: origenLamPorTipo(tipoFull),
+      obs: `${tipoFull} (parte ${fmtFechaCorta(excelDateToJs(fechaHija))})`,
+      ofAsignada: ofAsig,
+    });
+    // Escribir el Código Hija en la última fila del parte
+    await actualizarCeldaEnFila('Laminadora', ultima._rowIndex, 'Código Hija', codHija);
+    ultima['Código Hija'] = codHija;
+
+    renderTablaLam();
+    const resumen = madresQueVolvieron
+      ? `\n· ${madresQueVolvieron} madre vuelve a stock con su mismo código (remanente ≥ ${UMBRAL_REMANENTE_MTS}m)`
+      : '';
+    alert(`✓ Laminado aprobado · hija ${codHija} generada${resumen}`);
+  } catch (err) {
+    alert('Error al aprobar: ' + err.message);
+  }
+}
+
+async function editarParteLam(clave) {
+  const hermanas = (lamPartesCache || []).filter(p => claveDeParteLam(p) === clave).sort((a,b) => (a._rowIndex||0)-(b._rowIndex||0));
+  if (!hermanas.length) { alert('No encontré el parte.'); return; }
+  // Si alguna bobina padre ya fue procesada por otra aprobación → no editar
+  const bobsInval = [];
+  for (const h of hermanas) {
+    const cod = String(h['Código Bobina Padre']||'').toUpperCase();
+    const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+    if (bob) {
+      const estado = String(bob['Estado']||'').toLowerCase();
+      if (['transformada','consumida','desperdicio'].includes(estado)) bobsInval.push(`${cod} (${estado})`);
+    }
+  }
+  if (bobsInval.length) {
+    alert(`No se puede editar — bobinas ya procesadas:\n${bobsInval.map(s=>'• '+s).join('\n')}\n\nLa única opción es Rechazar.`);
+    return;
+  }
+  const repr = hermanas.find(h => String(h['Código Hija']||'').trim()) || hermanas[hermanas.length - 1];
+  abrirModalLam({ editMode: true, clave, hermanas, repr });
+}
+
+function precargarEdicionLam(hermanas, repr) {
+  const form = document.getElementById('form-lam');
+  const tipo = repr['Tipo de Proceso'] || '';
+  const sub = repr['Sub-tipo'] || '';
+  // Setear tipo y sub-tipo
+  if (tipo) {
+    const r = document.querySelector(`#lam-tipo-grid input[name="tipo"][value="${tipo}"]`);
+    if (r) { r.checked = true; }
+  }
+  if (tipo === 'Coating' && sub) {
+    const r = document.querySelector(`#lam-subtipo-wrap input[name="subtipo"][value="${sub}"]`);
+    if (r) { r.checked = true; }
+  }
+  // Armar slots
+  const tipoFull = tipo === 'Coating' ? `Coating-${sub}` : tipo;
+  armarSlotsLam(tipoFull);
+  // Agrupar hermanas por slot
+  const porSlot = {};
+  hermanas.forEach(h => {
+    const s = h['Slot Padre'] || '';
+    if (!porSlot[s]) porSlot[s] = [];
+    porSlot[s].push(h);
+  });
+  // Rellenar cada slot con sus bobinas + kg desp total (suma de las hermanas del slot)
+  document.querySelectorAll('#lam-slots-list .lam-slot').forEach(slotWrap => {
+    const s = slotWrap.dataset.slot;
+    const items = porSlot[s] || [];
+    const bobsCont = slotWrap.querySelector('.lam-slot-bobs');
+    bobsCont.innerHTML = '';
+    items.forEach((h, idx) => {
+      if (idx > 0) agregarBobinaSlotLam(slotWrap);
+      else agregarBobinaSlotLam(slotWrap);
+    });
+    // Volver a obtener las filas recien creadas y setear códigos
+    const rows = bobsCont.querySelectorAll('.bob-row');
+    items.forEach((h, idx) => {
+      const inp = rows[idx].querySelector('input[name="lam-bob-cod"]');
+      if (inp) {
+        inp.value = h['Código Bobina Padre'] || '';
+        autocompletarBobinaLam(rows[idx], slotWrap);
+      }
+    });
+    // Sumar kg desp del slot
+    const sumKgDesp = items.reduce((a,h) => a + (Number(h['Kg Desperdicio Padre'])||0), 0);
+    slotWrap.querySelector('.lam-slot-kgdesp').value = Math.round(sumKgDesp*10)/10 || '';
+  });
+  // Datos generales
+  const legs = String(repr['Legajos']||'').split(/[\/+]/).map(s => s.trim());
+  form.legajo_op.value = legs[0] || '';
+  form.legajo_ay.value = legs[1] || '';
+  form.hora_in.value = excelTimeToHHMM(repr['Hora Inicio']);
+  form.hora_fin.value = excelTimeToHHMM(repr['Hora Fin']);
+  form.hija_ancho.value = Number(repr['Ancho Hija (cm)']) || '';
+  form.hija_mts.value = Number(repr['Mts Finales Hija']) || '';
+  form.hija_kg.value = Number(repr['Kg Finales Hija']) || '';
+  form.kg_pp.value = Number(repr['Kg PP']) || '';
+  form.kg_pe.value = Number(repr['Kg PE']) || '';
+  form.kg_master.value = Number(repr['Kg Master']) || '';
+  form.kg_reciclado.value = Number(repr['Kg Reciclado']) || '';
+  form.kg_purgados.value = Number(repr['Kg Purgados']) || '';
+  const obsClean = String(repr['Observaciones']||'').replace(/\s*·\s*⚠️\s*Ancha:.*$/, '').trim();
+  form.obs.value = obsClean;
+  recalcLamKPIs();
+}
 
 async function cargarTuberaPapel() {
   try {
