@@ -1196,6 +1196,7 @@
       <div class="subtabs">
         <button type="button" class="subtab-btn active" data-subtab="codificar">+ Codificar Bobina</button>
         <button type="button" class="subtab-btn" data-subtab="convertir">⚙️ Convertir Bobina</button>
+        <button type="button" class="subtab-btn" data-subtab="importar-pitec">📥 Importar Pitec</button>
       </div>
 
       <!-- SUBTAB CODIFICAR BOBINA -->
@@ -1222,10 +1223,12 @@
                 <option>Lamina de Polietileno</option>
                 <option>Rafia Tubular Laminada</option>
                 <option>Rafia Tubular Convencional</option>
+                <option>Rafia Tubular Para Laminar</option>
                 <option>Rafia Plana</option>
-                <option>Rafipel Blanco</option>
-                <option>Rafipel Natural</option>
-                <option>Rafipel Ventana Transparente</option>
+                <option>Rafia Plana Cristal</option>
+                <option>Polipapel Blanco</option>
+                <option>Polipapel Natural</option>
+                <option>Polipapel Transparente</option>
                 <option>Siliconado</option>
               </select>
             </label>
@@ -1384,6 +1387,62 @@
             </div>
           </form>
           <div id="conv-msg" class="form-msg"></div>
+        </div>
+      </div>
+
+      <!-- SUBTAB IMPORTAR PITEC (copy/paste masivo desde Sheet de Pitec) -->
+      <div class="subpanel" id="subpanel-importar-pitec">
+        <div class="form-card">
+          <h3>📥 Importar bobinas de Pitec</h3>
+          <p class="form-sub">
+            Copiá el bloque de filas desde tu Sheet de Pitec (columnas: <strong>Código · OC · Nota · FTO · Mts · Kg · Gramaje · [Trama] · Fecha</strong>) y pegalo abajo.
+            Elegí la categoría primero — define el producto en stock.
+          </p>
+          <div class="form-grid">
+            <label class="field field-2">
+              <span>Categoría (define producto en stock)</span>
+              <select id="pitec-categoria" required>
+                <option value="">— Elegir categoría —</option>
+              </select>
+              <small class="hint" id="pitec-cat-detalle">—</small>
+            </label>
+            <label class="field field-2">
+              <span>Pegá el bloque (tab-separated, desde Google Sheets)</span>
+              <textarea id="pitec-paste" rows="6" placeholder="Ej:&#10;C217  1746  4977  53  4000  253  119  5  1/9/25&#10;C216  1746  4977  53  4000  251  118  5  1/9/25"></textarea>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" id="pitec-btn-limpiar">Limpiar</button>
+              <button type="button" class="btn-primary" id="pitec-btn-procesar">Procesar paste</button>
+            </div>
+          </div>
+          <div id="pitec-msg" class="form-msg"></div>
+
+          <!-- Vista previa -->
+          <div id="pitec-preview-wrap" style="display:none;margin-top:20px">
+            <h3 style="margin-bottom:8px">Vista previa</h3>
+            <p class="form-sub" id="pitec-preview-stats" style="margin-bottom:10px">—</p>
+            <div class="table-wrapper" style="max-height:340px;overflow:auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>FTO</th>
+                    <th class="num">Mts</th>
+                    <th class="num">Kg</th>
+                    <th class="num">Gramaje</th>
+                    <th>Nº OC</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="pitec-preview-body"></tbody>
+              </table>
+            </div>
+            <div class="form-actions" style="margin-top:12px">
+              <button type="button" class="btn-secondary" onclick="document.getElementById('pitec-preview-wrap').style.display='none'">Cancelar</button>
+              <button type="button" class="btn-aprobar" id="pitec-btn-importar">Importar bobinas</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1823,25 +1882,30 @@
             <input type="hidden" id="lam-form-fecha">
 
             <!-- Tipo de proceso + sub-tipo -->
-            <div class="conv-block field-2">
-              <div class="conv-block-title">⚙️ Tipo de Proceso</div>
-              <div class="proceso-grid" id="lam-tipo-grid">
-                <label><input type="radio" name="tipo" value="Laminado" required> Laminado <small>(1 bobina rafia)</small></label>
-                <label><input type="radio" name="tipo" value="Coating"> Coating <small>(rafia/papel + capa PE)</small></label>
-                <label><input type="radio" name="tipo" value="BioPP"> BioPP <small>(rafia + biopp)</small></label>
-                <label><input type="radio" name="tipo" value="Polipapel"> Polipapel <small>(rafia + papel)</small></label>
-              </div>
-              <div id="lam-subtipo-wrap" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px">
-                <small style="display:block;margin-bottom:6px;color:var(--text-3)">Sub-tipo Coating:</small>
-                <label style="display:inline-block;margin-right:18px"><input type="radio" name="subtipo" value="Externo"> Externo <small>(bobina ya impresa)</small></label>
-                <label><input type="radio" name="subtipo" value="Interno"> Interno <small>(sin imprimir, refuerzo PE)</small></label>
-              </div>
-            </div>
+            <label class="field field-2" id="lam-tipo-grid">
+              <span>⚙️ Tipo de Proceso</span>
+              <select name="tipo" id="lam-tipo-select" required>
+                <option value="">Elegí proceso…</option>
+                <option value="Laminado">Laminado (1 bobina rafia)</option>
+                <option value="Coating">Coating (rafia o papel + capa PE)</option>
+                <option value="BioPP">BioPP (rafia + biopp)</option>
+                <option value="Polipapel">Polipapel (rafia + papel)</option>
+              </select>
+            </label>
+            <label class="field field-2" id="lam-subtipo-wrap" style="display:none">
+              <span id="lam-subtipo-label">Sub-tipo</span>
+              <select name="subtipo" id="lam-subtipo-select">
+                <option value="">Elegí…</option>
+              </select>
+            </label>
 
             <!-- Slots de bobinas padre (dinámicos según tipo) -->
             <div class="conv-block field-2" id="lam-slots-wrap" style="display:none">
               <div class="conv-block-title">🧵 Bobinas Padre</div>
-              <p class="form-sub" style="margin:0 0 10px">Cargá el código de cada bobina. Cada slot tiene su Kg Desperdicio total (se prorratea entre las bobinas del slot al aprobar).</p>
+              <p class="form-sub" style="margin:0 0 10px">
+                Cargá el código de cada bobina. Cada slot tiene su Kg Desperdicio total (se prorratea entre las bobinas del slot al aprobar).
+                ¿No la encontrás? <button type="button" class="btn-link" id="lam-btn-pitec-rapido" style="background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;font:inherit">+ Codificar bobina Pitec rápido</button>
+              </p>
               <div id="lam-slots-list">
                 <!-- slots generados dinámicamente según tipo de proceso -->
               </div>
@@ -1849,68 +1913,42 @@
 
             <!-- Legajos -->
             <label class="field">
-              <span>Maquinista (legajo)</span>
+              <span>Legajo Maquinista</span>
               <input type="text" name="legajo_op" required>
             </label>
             <label class="field">
-              <span>Ayudante (legajo)</span>
+              <span>Legajo Ayudante</span>
               <input type="text" name="legajo_ay" required>
-            </label>
-            <label class="field">
-              <span>Hora Inicio</span>
-              <input type="time" name="hora_in" required>
-            </label>
-            <label class="field">
-              <span>Hora Fin</span>
-              <input type="time" name="hora_fin" required>
             </label>
 
             <!-- Hija generada -->
             <div class="conv-block field-2">
               <div class="conv-block-title">👶 Hija generada (código auto al guardar)</div>
-              <div class="padre-info-grid">
-                <div class="item">
-                  <small>Ancho (cm)</small>
-                  <input type="number" name="hija_ancho" id="lam-hija-ancho" step="1" min="1" required>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                <div class="field">
+                  <span>Ancho (cm)<small> · auto del padre principal</small></span>
+                  <div class="calc-out" id="lam-hija-ancho-display">—</div>
+                  <input type="hidden" name="hija_ancho" id="lam-hija-ancho">
                 </div>
-                <div class="item">
-                  <small>Mts Finales (del contador)</small>
+                <label class="field">
+                  <span>Mts Finales <small>· del contador</small></span>
                   <input type="number" name="hija_mts" id="lam-hija-mts" step="1" min="1" required>
-                </div>
-                <div class="item">
-                  <small>Kg Finales (pesado)</small>
+                </label>
+                <label class="field">
+                  <span>Kg Finales <small>· pesado</small></span>
                   <input type="number" name="hija_kg" id="lam-hija-kg" step="0.1" min="0.1" required>
-                </div>
+                </label>
               </div>
             </div>
 
-            <!-- Material agregado a esta hija (informativo) -->
-            <div class="conv-block field-2">
-              <div class="conv-block-title">⚗️ Material agregado A ESTA HIJA</div>
-              <p class="form-sub" style="margin:0 0 10px">Cuánto del tambor se gastó en esta bobina puntual. <strong>NO descuenta stock</strong> (eso lo hace "Consumo Grumo" al cargar al tambor).</p>
-              <div class="padre-info-grid">
-                <div class="item"><small>Kg PP</small><input type="number" name="kg_pp" step="0.1" min="0" placeholder="0"></div>
-                <div class="item"><small>Kg PE</small><input type="number" name="kg_pe" step="0.1" min="0" placeholder="0"></div>
-                <div class="item"><small>Kg Master</small><input type="number" name="kg_master" step="0.1" min="0" placeholder="0"></div>
-                <div class="item"><small>Kg Reciclado</small><input type="number" name="kg_reciclado" step="0.1" min="0" placeholder="0"></div>
-                <div class="item">
-                  <small>Kg Purgados (desperdicio máquina)</small>
-                  <input type="number" name="kg_purgados" step="0.1" min="0" placeholder="0">
-                </div>
-              </div>
-            </div>
-
-            <!-- Cálculos automáticos -->
+            <!-- Cálculos automáticos (informativos) -->
             <div class="conv-block field-2">
               <div class="conv-block-title">📐 Cálculos automáticos</div>
               <div class="padre-info-grid">
                 <div class="item"><small>Gramaje Promedio hija</small><strong id="lam-calc-gr-prom">—</strong></div>
-                <div class="item"><small>Gramaje Agregado</small><strong id="lam-calc-gr-agr">—</strong></div>
-                <div class="item"><small>Σ Padres + Agregados</small><strong id="lam-calc-suma-in">—</strong></div>
-                <div class="item"><small>Hija + Kg Desp padres</small><strong id="lam-calc-suma-out">—</strong></div>
-                <div class="item"><small>Cuadre</small><strong id="lam-calc-cuadre">—</strong></div>
                 <div class="item"><small>Asignar a OF</small><strong id="lam-calc-of">stock libre</strong></div>
               </div>
+              <p class="form-sub" style="margin:8px 0 0">La fecha y hora se guardan automáticamente cuando se aprueba el parte.</p>
             </div>
 
             <label class="field field-2">
@@ -1968,6 +2006,60 @@
               <button type="submit" class="btn-aprobar">Guardar</button>
             </div>
             <div class="form-msg" id="grm-msg"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL: Codificar bobina Pitec rápido (desde Laminadora) ========== -->
+    <div class="modal-overlay" id="lam-pitec-modal" style="display:none;z-index:1500">
+      <div class="modal-card" style="max-width:520px">
+        <div class="modal-header">
+          <h3>📥 Codificar bobina Pitec rápido</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalLamPitec()">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="form-sub" style="margin:0 0 14px">Se guarda con Origen=Pitec. Después podés tipear el código en el slot del laminado.</p>
+          <form id="form-lam-pitec">
+            <label class="field field-2">
+              <span>Categoría</span>
+              <select name="cat" id="lam-pitec-cat" required>
+                <option value="">— Elegir categoría —</option>
+              </select>
+            </label>
+            <label class="field field-2">
+              <span>Código Pitec (tal cual viene)</span>
+              <input type="text" name="cod" placeholder="Ej: B1693" required>
+            </label>
+            <label class="field">
+              <span>FTO (ancho cm)</span>
+              <input type="number" name="fto" step="0.1" min="1" required>
+            </label>
+            <label class="field">
+              <span>Gramaje (g/m²)</span>
+              <input type="number" name="gramaje" step="0.1" min="0">
+            </label>
+            <label class="field">
+              <span>Mts</span>
+              <input type="number" name="mts" step="1" min="1" required>
+            </label>
+            <label class="field">
+              <span>Kg</span>
+              <input type="number" name="kg" step="0.1" min="0.1" required>
+            </label>
+            <label class="field">
+              <span>Nº OC (opcional)</span>
+              <input type="text" name="oc">
+            </label>
+            <label class="field">
+              <span>Fecha ingreso</span>
+              <input type="date" name="fecha">
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="cerrarModalLamPitec()">Cancelar</button>
+              <button type="submit" class="btn-aprobar">Guardar bobina</button>
+            </div>
+            <div class="form-msg" id="lam-pitec-msg"></div>
           </form>
         </div>
       </div>
@@ -2131,9 +2223,10 @@
         </div>
         <div class="section-head">
           <h3>Stock por familia</h3>
-          <div style="display:flex;align-items:center;gap:12px">
+          <div style="display:flex;align-items:center;gap:8px">
             <span class="section-hint" id="stk-hint"></span>
-            <button type="button" class="btn-imprimir" onclick="imprimirStockBobinas()">🖨️ Imprimir / PDF</button>
+            <button type="button" class="btn-imprimir" onclick="imprimirStockBobinas('resumen')" title="Solo totales por familia">🖨️ Resumen</button>
+            <button type="button" class="btn-imprimir" onclick="imprimirStockBobinas('detalle')" title="Cada bobina con código, mts, kg">🖨️ Detalle</button>
           </div>
         </div>
         <div id="stk-grupos">
@@ -3970,7 +4063,39 @@ ${htmlBody}
   w.document.close();
 }
 
-function imprimirStockBobinas() {
+// Orden de impresión / agrupación por familia (Franco 2026-05-23).
+// Familias NO listadas aparecen al final, ordenadas alfabéticamente.
+// Las bobinas IMPRESAS (origen=Impresión-impresa) van SIEMPRE en sección separada al final,
+// agrupadas por nombre de bolsa, mostradas en detalle (no resumidas).
+const ORDEN_FAMILIAS_STOCK = [
+  'Papel Kraft Blanco',
+  'Papel Kraft Bolsero',
+  'Papel Kraft Natural Polietiliz',
+  'Lamina de Polietileno',
+  'Rafia Tubular Laminada',
+  'Rafia Tubular Convencional',
+  'Rafia Tubular Para Laminar',
+  'Rafia Tubular Cristal',
+  'Rafia Plana',
+  'Rafia Plana Cristal',
+  'Polipapel Blanco',
+  'Polipapel Natural',
+  'Polipapel Transparente',
+  'Siliconado',
+];
+function ordenarFamilias(familias) {
+  return familias.slice().sort((a, b) => {
+    const ia = ORDEN_FAMILIAS_STOCK.indexOf(a);
+    const ib = ORDEN_FAMILIAS_STOCK.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+}
+
+function imprimirStockBobinas(modo) {
+  modo = modo || 'detalle'; // 'detalle' (cada bobina) | 'resumen' (totales por familia)
   if (!bobinasCache || !bobinasCache.length) {
     alert('No hay bobinas cargadas todavía.');
     return;
@@ -3984,38 +4109,138 @@ function imprimirStockBobinas() {
     alert('No hay bobinas en stock para imprimir.');
     return;
   }
-  // Agrupar por Producto
+  // Separar IMPRESAS (van aparte al final, siempre con detalle).
+  const enStockImpresas = enStock.filter(b => String(b['Origen']||'').trim() === ORIGEN_IMPRESION_IMPRESA);
+  const enStockNormales = enStock.filter(b => String(b['Origen']||'').trim() !== ORIGEN_IMPRESION_IMPRESA);
+
+  // Agrupar normales por Producto (familia)
   const grupos = {};
-  enStock.forEach(b => {
+  enStockNormales.forEach(b => {
     const fam = b['Producto'] || 'Sin Producto';
     if (!grupos[fam]) grupos[fam] = [];
     grupos[fam].push(b);
   });
-  const totalKg = enStock.reduce((s, b) => s + (Number(b['Kg']) || 0), 0);
-  let html = `<p><strong>Total:</strong> ${enStock.length} bobina(s) · ${fmtNum(Math.round(totalKg))} kg · ${Object.keys(grupos).length} familia(s)</p>`;
-  for (const fam of Object.keys(grupos).sort()) {
-    const lista = grupos[fam].sort((a, b) => (Number(a['Formato (cm)'])||0) - (Number(b['Formato (cm)'])||0));
-    const subKg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
-    html += `<h2>${fam} — ${lista.length} bobina(s) · ${fmtNum(Math.round(subKg))} kg</h2>`;
-    html += `<table><thead><tr>
-      <th>Código</th><th class="num">Formato (cm)</th><th class="num">Gramaje (g/m²)</th><th class="num">Kg</th><th class="num">Mts</th><th>Origen</th><th>Proveedor</th><th>Fecha</th>
-    </tr></thead><tbody>`;
-    for (const b of lista) {
-      const f = excelDateToJs(b['Fecha Ingreso']);
-      html += `<tr>
-        <td>${b['Código Bobina']||'—'}</td>
-        <td class="num">${b['Formato (cm)']||'—'}</td>
-        <td class="num">${b['Gramaje (g/m²)']||'—'}</td>
-        <td class="num">${fmtNum(b['Kg'])}</td>
-        <td class="num">${fmtNum(b['Mts Totales'])}</td>
-        <td>${b['Origen']||'—'}</td>
-        <td>${b['Proveedor']||'—'}</td>
-        <td>${f ? fmtFechaCorta(f) : '—'}</td>
-      </tr>`;
+  let html = '';
+
+  if (modo === 'resumen') {
+    // RESUMEN limpio (Franco 2026-05-23): sin línea de Total arriba, sin cifras al lado del nombre.
+    // 1 fila por Formato dentro de cada familia.
+    for (const fam of ordenarFamilias(Object.keys(grupos))) {
+      const subgrupos = {};
+      grupos[fam].forEach(b => {
+        const fto = String(b['Formato (cm)'] || '—');
+        if (!subgrupos[fto]) subgrupos[fto] = [];
+        subgrupos[fto].push(b);
+      });
+      html += `<h2>${fam}</h2>`;
+      html += `<table><thead><tr>
+        <th>Formato (cm)</th><th class="num">Bobinas</th><th class="num">Kg</th><th class="num">Mts</th>
+      </tr></thead><tbody>`;
+      const ftos = Object.keys(subgrupos).sort((a,b) => Number(a) - Number(b));
+      for (const fto of ftos) {
+        const lista = subgrupos[fto];
+        const kg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
+        const mts = lista.reduce((s, b) => s + (Number(b['Mts Totales'])||0), 0);
+        html += `<tr>
+          <td>${fto} cm</td>
+          <td class="num">${lista.length}</td>
+          <td class="num">${fmtNum(Math.round(kg))}</td>
+          <td class="num">${fmtNum(Math.round(mts))}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
     }
-    html += '</tbody></table>';
+    // BOBINAS IMPRESAS — una sola tabla agregada por nombre de bolsa (sin código/OF/etc.)
+    if (enStockImpresas.length) {
+      const gruposImp = {};
+      enStockImpresas.forEach(b => {
+        const k = b['Producto'] || 'Sin Tipo Bolsa';
+        if (!gruposImp[k]) gruposImp[k] = [];
+        gruposImp[k].push(b);
+      });
+      html += `<h2>🖨️ Bobinas IMPRESAS</h2>`;
+      html += `<table><thead><tr>
+        <th>Bolsa</th><th class="num">Bobinas</th><th class="num">Kg</th><th class="num">Mts</th>
+      </tr></thead><tbody>`;
+      for (const bolsa of Object.keys(gruposImp).sort()) {
+        const lista = gruposImp[bolsa];
+        const kg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
+        const mts = lista.reduce((s, b) => s + (Number(b['Mts Totales'])||0), 0);
+        html += `<tr>
+          <td>${bolsa}</td>
+          <td class="num">${lista.length}</td>
+          <td class="num">${fmtNum(Math.round(kg))}</td>
+          <td class="num">${fmtNum(Math.round(mts))}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+    }
+  } else {
+    // DETALLE — agrega cabecera de Total como contexto + tablas detalladas
+    const totalKg = enStock.reduce((s, b) => s + (Number(b['Kg']) || 0), 0);
+    const totalMts = enStock.reduce((s, b) => s + (Number(b['Mts Totales']) || 0), 0);
+    html = `<p><strong>Total:</strong> ${enStock.length} bobina(s) · ${fmtNum(Math.round(totalKg))} kg · ${fmtNum(Math.round(totalMts))} m · ${Object.keys(grupos).length} familia(s)`;
+    if (enStockImpresas.length) html += ` · ${enStockImpresas.length} impresa(s)`;
+    html += `</p>`;
+    // Tablas detalladas por familia
+    for (const fam of ordenarFamilias(Object.keys(grupos))) {
+      const lista = grupos[fam].sort((a, b) => (Number(a['Formato (cm)'])||0) - (Number(b['Formato (cm)'])||0));
+      const subKg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
+      html += `<h2>${fam} — ${lista.length} bobina(s) · ${fmtNum(Math.round(subKg))} kg</h2>`;
+      html += `<table><thead><tr>
+        <th>Código</th><th class="num">Formato (cm)</th><th class="num">Gramaje (g/m²)</th><th class="num">Kg</th><th class="num">Mts</th><th>Origen</th><th>Proveedor</th><th>Fecha</th>
+      </tr></thead><tbody>`;
+      for (const b of lista) {
+        const f = excelDateToJs(b['Fecha Ingreso']);
+        html += `<tr>
+          <td>${b['Código Bobina']||'—'}</td>
+          <td class="num">${b['Formato (cm)']||'—'}</td>
+          <td class="num">${b['Gramaje (g/m²)']||'—'}</td>
+          <td class="num">${fmtNum(b['Kg'])}</td>
+          <td class="num">${fmtNum(b['Mts Totales'])}</td>
+          <td>${b['Origen']||'—'}</td>
+          <td>${b['Proveedor']||'—'}</td>
+          <td>${f ? fmtFechaCorta(f) : '—'}</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+    }
+    // Bobinas impresas DETALLADAS al final
+    if (enStockImpresas.length) {
+      const gruposImp = {};
+      enStockImpresas.forEach(b => {
+        const k = b['Producto'] || 'Sin Tipo Bolsa';
+        if (!gruposImp[k]) gruposImp[k] = [];
+        gruposImp[k].push(b);
+      });
+      html += `<hr style="margin:24px 0 16px"><h2 style="color:#888">🖨️ Bobinas IMPRESAS — ${enStockImpresas.length} bobina(s)</h2>`;
+      for (const tipoBolsa of Object.keys(gruposImp).sort()) {
+        const lista = gruposImp[tipoBolsa].sort((a, b) => (Number(a['Formato (cm)'])||0) - (Number(b['Formato (cm)'])||0));
+        const subKg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
+        html += `<h3>${tipoBolsa} — ${lista.length} bob · ${fmtNum(Math.round(subKg))} kg</h3>`;
+        html += `<table><thead><tr>
+          <th>Código</th><th>Nº OF</th><th class="num">Formato (cm)</th><th class="num">Gramaje (g/m²)</th><th class="num">Kg</th><th class="num">Mts</th><th>Fecha</th>
+        </tr></thead><tbody>`;
+        for (const b of lista) {
+          const f = excelDateToJs(b['Fecha Ingreso']);
+          const of = getOFAsignada(b);
+          html += `<tr>
+            <td>${b['Código Bobina']||'—'}</td>
+            <td>${of || '<small style="color:#999">stock libre</small>'}</td>
+            <td class="num">${b['Formato (cm)']||'—'}</td>
+            <td class="num">${b['Gramaje (g/m²)']||'—'}</td>
+            <td class="num">${fmtNum(b['Kg'])}</td>
+            <td class="num">${fmtNum(b['Mts Totales'])}</td>
+            <td>${f ? fmtFechaCorta(f) : '—'}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+      }
+    }
   }
-  _abrirVentanaPrint('Stock de Bobinas', html);
+
+  const titulo = modo === 'resumen' ? 'Stock de Bobinas — Resumen por familia' : 'Stock de Bobinas — Detalle';
+  _abrirVentanaPrint(titulo, html);
 }
 
 // ============================================================
@@ -8398,30 +8623,286 @@ document.querySelectorAll('.cola-toggle[data-tp-vista-partes]').forEach(btn => {
 // ============================================================
 
 const SLOTS_POR_TIPO_LAM = {
-  'Laminado':         [{ slot: 'Rafia', label: '🧵 Slot Rafia',          empalmable: false, principal: true }],
-  'Coating-Externo':  [{ slot: 'Papel', label: '📄 Slot Papel impreso',  empalmable: true,  principal: true,  exigirImpresa: true }],
-  'Coating-Interno':  [{ slot: 'Papel', label: '📄 Slot Papel kraft',    empalmable: true,  principal: true }],
-  'BioPP':            [
+  'Laminado':              [{ slot: 'Rafia', label: '🧵 Slot Rafia',          empalmable: false, principal: true }],
+  'Coating-Externo':       [{ slot: 'Papel', label: '📄 Slot Papel impreso',  empalmable: true,  principal: true,  exigirImpresa: true }],
+  'Coating-Interno':       [{ slot: 'Papel', label: '📄 Slot Papel kraft',    empalmable: true,  principal: true }],
+  'BioPP':                 [
     { slot: 'Rafia', label: '🧵 Slot Rafia',  empalmable: false, principal: true },
     { slot: 'BioPP', label: '🌿 Slot BioPP',  empalmable: true,  principal: false },
   ],
-  'Polipapel':        [
-    { slot: 'Rafia', label: '🧵 Slot Rafia',  empalmable: false, principal: true },
-    { slot: 'Papel', label: '📄 Slot Papel',  empalmable: true,  principal: false },
+  // Polipapel — 3 variantes (Franco 2026-05-23):
+  //   Blanco       = rafia plana + papel kraft blanco
+  //   Natural      = rafia plana + papel kraft natural
+  //   Transparente = rafia plana TRANSPARENTE + papel kraft blanco
+  'Polipapel-Blanco':       [
+    { slot: 'Rafia', label: '🧵 Slot Rafia Plana',         empalmable: false, principal: true },
+    { slot: 'Papel', label: '📄 Slot Papel Kraft Blanco',  empalmable: true,  principal: false },
+  ],
+  'Polipapel-Natural':      [
+    { slot: 'Rafia', label: '🧵 Slot Rafia Plana',          empalmable: false, principal: true },
+    { slot: 'Papel', label: '📄 Slot Papel Kraft Natural',  empalmable: true,  principal: false },
+  ],
+  'Polipapel-Transparente': [
+    { slot: 'Rafia', label: '🧵 Slot Rafia Plana Transparente', empalmable: false, principal: true },
+    { slot: 'Papel', label: '📄 Slot Papel Kraft Blanco',       empalmable: true,  principal: false },
   ],
 };
 
+// Producto resultante para la bobina hija según tipoFull. Si la OF tiene Nombre Bolsa,
+// ese tiene prioridad; sino se usa esta tabla.
+const PRODUCTO_HIJA_POR_TIPO = {
+  'Laminado':               'Rafia Tubular Laminada',
+  'Coating-Externo':        'Coating Externo',
+  'Coating-Interno':        'Coating Interno',
+  'BioPP':                  'BioPP',
+  'Polipapel-Blanco':       'Polipapel Blanco',
+  'Polipapel-Natural':      'Polipapel Natural',
+  'Polipapel-Transparente': 'Polipapel Transparente',
+};
+
 function origenLamPorTipo(tipoFull) {
-  // tipoFull = 'Laminado' | 'Coating-Externo' | 'Coating-Interno' | 'BioPP' | 'Polipapel'
+  // tipoFull = 'Laminado' | 'Coating-Externo' | 'Coating-Interno' | 'BioPP' |
+  //            'Polipapel-Blanco' | 'Polipapel-Natural' | 'Polipapel-Transparente'
   switch (tipoFull) {
     case 'Laminado':         return ORIGEN_LAM_LAMINADO;
     case 'Coating-Externo':  return ORIGEN_LAM_COATING_EXT;
     case 'Coating-Interno':  return ORIGEN_LAM_COATING_INT;
     case 'BioPP':            return ORIGEN_LAM_BIOPP;
-    case 'Polipapel':        return ORIGEN_LAM_POLIPAPEL;
+    case 'Polipapel-Blanco':
+    case 'Polipapel-Natural':
+    case 'Polipapel-Transparente':
+                             return ORIGEN_LAM_POLIPAPEL;
     default: return 'Laminadora';
   }
 }
+
+// Categorías Pitec — 6 tipos según cómo se guardan en stock (Franco 2026-05-22).
+// El operario elige la categoría al pegar las bobinas en el import masivo.
+const CATEGORIAS_PITEC = [
+  { key: 'tub-conv',     nombre: 'Rafia Tubular Convencional', detalle: 'trama 3×3', ftos: [40, 47, 53, 57, 60] },
+  { key: 'tub-paralam',  nombre: 'Rafia Tubular Para Laminar', detalle: 'trama 5×3', ftos: [40, 47, 53, 57, 60] },
+  { key: 'tub-lam',      nombre: 'Rafia Tubular Laminada',     detalle: 'ya laminada (trae L-)', ftos: [40, 47, 53, 57, 60] },
+  { key: 'tub-cristal',  nombre: 'Rafia Tubular Cristal',      detalle: 'trama 5,5', ftos: [40.7, 47.7, 57.7] },
+  { key: 'plana',        nombre: 'Rafia Plana',                detalle: 'trama 5×3', ftos: [71, 82, 120] },
+  { key: 'plana-cristal',nombre: 'Rafia Plana Cristal',        detalle: 'trama 5,5', ftos: [102] },
+];
+
+// Prefijos por proceso (Franco 2026-05-22). El código hija se forma como
+// `${prefijo}-${codigoPadre}/${n}`, donde {n} es el siguiente disponible para ese padre.
+function prefijoHijaLam(tipoFull) {
+  if (tipoFull === 'Laminado') return 'L';
+  if (tipoFull.startsWith('Coating')) return 'C';
+  if (tipoFull === 'BioPP') return 'BP';
+  if (tipoFull.startsWith('Polipapel')) return 'PP';
+  return 'X';
+}
+// Genera el próximo código hija para un padre + proceso, evitando duplicados.
+function generarCodigoHijaLam(tipoFull, codPadre) {
+  const prefijo = prefijoHijaLam(tipoFull);
+  // Escapar caracteres especiales del código padre para usar en regex
+  const esc = String(codPadre).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`^${prefijo}-${esc}/(\\d+)$`);
+  let maxN = 0;
+  bobinasCache.forEach(b => {
+    const m = String(b['Código Bobina']||'').match(re);
+    if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+  });
+  return `${prefijo}-${codPadre}/${maxN + 1}`;
+}
+
+// ============================================================
+// IMPORTACIÓN MASIVA DE BOBINAS DE PITEC (copy/paste desde Sheet de Pitec)
+// (Franco 2026-05-22)
+//
+// Formato esperado del paste (tab-separated, columnas en este orden):
+//   Convencional: Código · OC · Nota · FTO · Mts · Kg · Gramaje · Trama · Fecha
+//   Laminada:     Código · OC · Nota · FTO · Mts · Kg · Gramaje · Fecha
+// Pero como soportamos 6 categorías y la posición de Gramaje puede variar,
+// detectamos "8 o 9 columnas" y asumimos: Gramaje siempre al lado de Kg (pos 7).
+// Si la fila no tiene 7 columnas mínimas, se descarta con aviso.
+// ============================================================
+
+// Estado del import en curso (entre "Procesar paste" y "Importar bobinas")
+let pitecImportPlan = []; // [{cod, oc, nota, fto, mts, kg, gramaje, fecha, duplicada, motivoError}]
+
+// Poblar dropdown de categorías al iniciar
+(function poblarCategoriasPitec() {
+  const sel = document.getElementById('pitec-categoria');
+  if (!sel) return;
+  CATEGORIAS_PITEC.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.key;
+    opt.textContent = `${c.nombre} (${c.detalle})`;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    const cat = CATEGORIAS_PITEC.find(c => c.key === sel.value);
+    document.getElementById('pitec-cat-detalle').textContent = cat
+      ? `FTOs válidos: ${cat.ftos.join(' · ')}`
+      : '—';
+  });
+})();
+
+// Parser del paste — devuelve {filas, errores}
+function parsearPastePitec(texto) {
+  const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const filas = [];
+  const errores = [];
+  lineas.forEach((linea, idx) => {
+    const cols = linea.split(/\t/).map(c => c.trim());
+    // Si la primera línea son headers (no parseable como número), descartar
+    if (idx === 0 && isNaN(Number(cols[3])) && isNaN(Number(cols[4]))) return;
+    if (cols.length < 7) {
+      errores.push(`Línea ${idx + 1}: solo ${cols.length} columnas, necesito mínimo 7 (Código · OC · Nota · FTO · Mts · Kg · Gramaje · [Trama] · Fecha)`);
+      return;
+    }
+    const fto = Number(String(cols[3]).replace(',', '.'));
+    const mts = Number(cols[4]);
+    const kg  = Number(String(cols[5]).replace(',', '.'));
+    const gramaje = Number(String(cols[6]).replace(',', '.'));
+    if (!cols[0] || isNaN(fto) || isNaN(mts) || isNaN(kg)) {
+      errores.push(`Línea ${idx + 1}: datos numéricos inválidos`);
+      return;
+    }
+    // Fecha: última columna (puede ser pos 7 si no hay Trama, o pos 8 si hay)
+    const fecha = cols[cols.length - 1] || '';
+    filas.push({
+      cod: cols[0], oc: cols[1] || '', nota: cols[2] || '',
+      fto, mts, kg, gramaje: isNaN(gramaje) ? '' : gramaje,
+      fecha,
+    });
+  });
+  return { filas, errores };
+}
+
+// Validar y marcar duplicadas contra bobinasCache
+function chequearDuplicadasPitec(filas) {
+  return filas.map(f => {
+    const yaExiste = bobinasCache.some(b => String(b['Código Bobina']||'').toUpperCase() === f.cod.toUpperCase());
+    return { ...f, duplicada: yaExiste };
+  });
+}
+
+// Convertir fecha "1/9/25" o "29/1/26" → "2026-01-29" (ISO)
+function fechaPitecAIso(s) {
+  const m = String(s).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (!m) return new Date().toISOString().slice(0,10);
+  let [_, d, M, y] = m;
+  if (y.length === 2) y = '20' + y;
+  return `${y}-${String(M).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+// Botón "Procesar paste" → arma vista previa
+document.getElementById('pitec-btn-procesar').addEventListener('click', () => {
+  const sel = document.getElementById('pitec-categoria');
+  if (!sel.value) {
+    showFormMsg('pitec-msg', '✗ Elegí primero la categoría.', false);
+    return;
+  }
+  const cat = CATEGORIAS_PITEC.find(c => c.key === sel.value);
+  const txt = document.getElementById('pitec-paste').value.trim();
+  if (!txt) {
+    showFormMsg('pitec-msg', '✗ Pegá un bloque de bobinas primero.', false);
+    return;
+  }
+  const { filas, errores } = parsearPastePitec(txt);
+  if (errores.length) {
+    showFormMsg('pitec-msg', '⚠️ ' + errores.length + ' fila(s) con error:\n' + errores.slice(0,5).join('\n'), false);
+  } else {
+    showFormMsg('pitec-msg', '', true);
+  }
+  // Validar FTOs contra los válidos de la categoría
+  const filasConFlag = filas.map(f => {
+    const ftoOk = cat.ftos.includes(f.fto);
+    return { ...f, ftoInvalido: !ftoOk };
+  });
+  pitecImportPlan = chequearDuplicadasPitec(filasConFlag);
+  renderPitecPreview(cat);
+});
+
+function renderPitecPreview(cat) {
+  const wrap = document.getElementById('pitec-preview-wrap');
+  if (!pitecImportPlan.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  // FTO "fuera de lista" es solo aviso — igual se importa con la categoría elegida.
+  // Solo las duplicadas se excluyen del import.
+  const nuevas = pitecImportPlan.filter(f => !f.duplicada).length;
+  const duplicadas = pitecImportPlan.filter(f => f.duplicada).length;
+  const ftoInusuales = pitecImportPlan.filter(f => f.ftoInvalido && !f.duplicada).length;
+  let stats = `${pitecImportPlan.length} filas · ${nuevas} a importar · ${duplicadas} ya existen`;
+  if (ftoInusuales > 0) stats += ` · ${ftoInusuales} con FTO inusual para "${cat.nombre}" (se importan igual)`;
+  document.getElementById('pitec-preview-stats').textContent = stats;
+  document.getElementById('pitec-preview-body').innerHTML = pitecImportPlan.map(f => {
+    let estado, color;
+    if (f.duplicada) { estado = '⊘ Ya existe en stock'; color = 'var(--text-3)'; }
+    else if (f.ftoInvalido) { estado = `✓ Nueva · ⚠️ FTO ${f.fto} inusual`; color = 'var(--warn,#f5a623)'; }
+    else { estado = '✓ Nueva'; color = 'var(--ok)'; }
+    return `<tr>
+      <td><strong>${f.cod}</strong></td>
+      <td>${f.fto}</td>
+      <td class="num">${fmtNum(f.mts)}</td>
+      <td class="num">${fmtNum(f.kg)}</td>
+      <td class="num">${f.gramaje || '—'}</td>
+      <td>${f.oc || '—'}</td>
+      <td>${f.fecha || '—'}</td>
+      <td style="color:${color}">${estado}</td>
+    </tr>`;
+  }).join('');
+  const btn = document.getElementById('pitec-btn-importar');
+  btn.disabled = (nuevas === 0);
+  btn.textContent = nuevas > 0
+    ? `Importar ${nuevas} bobina${nuevas === 1 ? '' : 's'} a stock`
+    : 'Sin bobinas nuevas (todas duplicadas)';
+}
+
+// Botón "Importar bobinas" → escribe N filas en pestaña Bobinas
+document.getElementById('pitec-btn-importar').addEventListener('click', async () => {
+  const sel = document.getElementById('pitec-categoria');
+  const cat = CATEGORIAS_PITEC.find(c => c.key === sel.value);
+  if (!cat) return;
+  const aImportar = pitecImportPlan.filter(f => !f.duplicada);
+  if (!aImportar.length) return;
+  const btn = document.getElementById('pitec-btn-importar');
+  btn.disabled = true; btn.textContent = 'Importando…';
+  try {
+    for (const f of aImportar) {
+      const fechaIso = fechaPitecAIso(f.fecha);
+      const obs = f.nota ? `Nota envío: ${f.nota}` : '';
+      // Columnas Bobinas (16): Código, Nº OC, Proveedor, Fecha Ingreso, Producto, Formato, Kg, Gramaje,
+      //   Mts, Padre 1, Padre 2, Origen, Estado, Sector Actual, Observaciones, N° de OF Asignada
+      await appendFila('Bobinas', [
+        f.cod, f.oc, 'Pitec', fechaIso, cat.nombre, f.fto, Math.round(f.kg*10)/10,
+        f.gramaje, f.mts, '', '', 'Pitec', 'disponible', '',
+        obs, '',
+      ]);
+      bobinasCache.push({
+        'Código Bobina': f.cod, 'Nº OC': f.oc, 'Proveedor': 'Pitec',
+        'Fecha Ingreso': fechaIso, 'Producto': cat.nombre,
+        'Formato (cm)': f.fto, 'Kg': Math.round(f.kg*10)/10,
+        'Gramaje (g/m²)': f.gramaje, 'Mts Totales': f.mts,
+        'Bobina Padre 1': '', 'Bobina Padre 2': '', 'Origen': 'Pitec',
+        'Estado': 'disponible', 'Sector Actual': '', 'Observaciones': obs,
+        [HEADER_OF_ASIGNADA]: '',
+      });
+    }
+    alert(`✓ Importadas ${aImportar.length} bobina(s) de Pitec.`);
+    document.getElementById('pitec-paste').value = '';
+    document.getElementById('pitec-preview-wrap').style.display = 'none';
+    pitecImportPlan = [];
+    showFormMsg('pitec-msg', '', true);
+  } catch (err) {
+    alert('Error al importar: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('pitec-btn-limpiar').addEventListener('click', () => {
+  document.getElementById('pitec-paste').value = '';
+  document.getElementById('pitec-preview-wrap').style.display = 'none';
+  pitecImportPlan = [];
+  showFormMsg('pitec-msg', '', true);
+});
 
 // claveDeParteLam: agrupa filas hermanas del mismo laminado
 function claveDeParteLam(p) {
@@ -8675,26 +9156,50 @@ function cerrarModalLam() {
 }
 
 // Cambio de tipo de proceso → mostrar slots correctos
-document.querySelectorAll('#lam-tipo-grid input[name="tipo"]').forEach(r => {
-  r.addEventListener('change', () => onTipoLamChange());
-});
-document.querySelectorAll('#lam-subtipo-wrap input[name="subtipo"]').forEach(r => {
-  r.addEventListener('change', () => onTipoLamChange());
-});
+document.getElementById('lam-tipo-select').addEventListener('change', onTipoLamChange);
+document.getElementById('lam-subtipo-select').addEventListener('change', onTipoLamChange);
+
+// Opciones de sub-tipo según tipo principal. Cuando hay variantes, mostrar el dropdown.
+const SUBTIPOS_POR_TIPO = {
+  'Coating': {
+    label: 'Sub-tipo Coating',
+    options: [
+      { value: 'Externo', text: 'Externo (bobina ya impresa)' },
+      { value: 'Interno', text: 'Interno (sin imprimir, refuerzo PE)' },
+    ],
+  },
+  'Polipapel': {
+    label: 'Tipo de Polipapel',
+    options: [
+      { value: 'Blanco',       text: 'Blanco (rafia plana + papel kraft blanco)' },
+      { value: 'Natural',      text: 'Natural (rafia plana + papel kraft natural)' },
+      { value: 'Transparente', text: 'Transparente (rafia plana transparente + papel kraft blanco)' },
+    ],
+  },
+};
 
 function onTipoLamChange() {
   const form = document.getElementById('form-lam');
   const tipo = form.tipo.value;
   const subWrap = document.getElementById('lam-subtipo-wrap');
-  if (tipo === 'Coating') {
-    subWrap.style.display = 'block';
-    const sub = form.subtipo ? form.subtipo.value : '';
+  const subSel = document.getElementById('lam-subtipo-select');
+  const subLabel = document.getElementById('lam-subtipo-label');
+  const cfg = SUBTIPOS_POR_TIPO[tipo];
+  if (cfg) {
+    // Repoblar opciones según tipo
+    const valActual = subSel.value;
+    subSel.innerHTML = '<option value="">Elegí…</option>' +
+      cfg.options.map(o => `<option value="${o.value}">${o.text}</option>`).join('');
+    if (cfg.options.some(o => o.value === valActual)) subSel.value = valActual;
+    subLabel.textContent = cfg.label;
+    subWrap.style.display = '';
+    const sub = subSel.value;
     if (!sub) {
       document.getElementById('lam-slots-wrap').style.display = 'none';
       document.getElementById('lam-slots-list').innerHTML = '';
       return;
     }
-    armarSlotsLam(`Coating-${sub}`);
+    armarSlotsLam(`${tipo}-${sub}`);
   } else {
     subWrap.style.display = 'none';
     if (tipo) armarSlotsLam(tipo);
@@ -8879,86 +9384,28 @@ function recalcLamKPIs() {
   if (!form) return;
   const mtsHija = Number(form.hija_mts.value) || 0;
   const kgHija = Number(form.hija_kg.value) || 0;
-  const anchoHija = Number(form.hija_ancho.value) || 0;
-  const kgPP = Number(form.kg_pp.value) || 0;
-  const kgPE = Number(form.kg_pe.value) || 0;
-  const kgMaster = Number(form.kg_master.value) || 0;
-  const kgRec = Number(form.kg_reciclado.value) || 0;
-  const kgAgregados = kgPP + kgPE + kgMaster + kgRec;
 
-  const grProm = (kgHija && mtsHija && anchoHija) ? (kgHija * 1000000 / (mtsHija * anchoHija)) : 0;
-  const grAgr  = (kgAgregados && mtsHija && anchoHija) ? (kgAgregados * 1000000 / (mtsHija * anchoHija)) : 0;
+  // Ancho hija = SIEMPRE el del slot principal (rafia o papel según tipo). Se mantiene.
+  const principalSlot = document.querySelector('#lam-slots-list .lam-slot[data-principal="1"]');
+  const anchoAuto = principalSlot ? maxAnchoDelSlot(principalSlot) : 0;
+  form.hija_ancho.value = anchoAuto || '';
+  document.getElementById('lam-hija-ancho-display').textContent = anchoAuto ? anchoAuto + ' cm' : '—';
 
-  // Suma kg de todos los padres usando MTS DISPONIBLES (no consumidos — eso se sabrá al aprobar).
-  // Para el cuadre en vivo asumimos que se consume TODO de cada padre — el operario verá si cuadra.
-  // En realidad, lo que necesitamos saber es cuánto se va a CONSUMIR.
-  // Heurística: mts_consumidos_slot = mtsHija + mts_desperdicio_slot (en mts del slot).
-  //   mts_desperdicio_slot = kg_desp_slot × 100.000 / (ancho_slot × gramaje_slot_promedio).
-  // El cuadre real lo calculamos como: Σ kg_consumidos_padres + kg_agregados ≈ kg_hija + kg_desp_padres
-  // donde kg_consumidos_padres = mts_consumidos × ancho × gramaje / 100 / 1000
-  let kgConsumidosPadres = 0;
-  let kgDespPadresTotal = 0;
+  const grProm = (kgHija && mtsHija && anchoAuto) ? (kgHija * 1000000 / (mtsHija * anchoAuto)) : 0;
+
+  // OF heredada: primer padre que tenga OF asignada
   let ofAsignada = '';
   document.querySelectorAll('#lam-slots-list .lam-slot').forEach(slotWrap => {
-    const kgDesp = Number(slotWrap.querySelector('.lam-slot-kgdesp').value) || 0;
-    kgDespPadresTotal += kgDesp;
-    const bobs = Array.from(slotWrap.querySelectorAll('.bob-row')).filter(r => r.dataset.cod && r.dataset.mts);
-    if (!bobs.length) return;
-    // Para cálculo de mts desp del slot: usamos gramaje y ancho promedio (todas las bobinas del slot
-    // suelen ser del mismo material). Tomamos la última bobina como referencia.
-    const ref = bobs[bobs.length - 1];
-    const anchoSlot = Number(ref.dataset.ancho) || 0;
-    const gramajeSlot = Number(ref.dataset.gramaje) || 0;
-    const mtsDespSlot = (kgDesp && anchoSlot && gramajeSlot) ? kgDesp * 100000 / (anchoSlot * gramajeSlot) : 0;
-    const mtsConsSlot = mtsHija + mtsDespSlot;
-    // kg consumidos del slot = mts_consumidos × peso/m del slot
-    bobs.forEach(b => {
-      const a = Number(b.dataset.ancho) || 0;
-      const g = Number(b.dataset.gramaje) || 0;
-      // Cuántos mts toma esta bobina: el operario carga las bobinas en orden, las primeras N-1 completas
-      // y la última con el remanente. Simplificación para cuadre en vivo: contamos su contribución
-      // proporcional al total de mts disponibles del slot.
-    });
-    // Más simple: sumamos los kg consumidos del slot completo
-    kgConsumidosPadres += mtsConsSlot * anchoSlot * gramajeSlot / 100 / 1000;
-    // OF heredada (primer slot con OF)
-    if (!ofAsignada) {
-      const padreConOF = bobs.find(b => b.dataset.ofAsignada);
-      if (padreConOF) ofAsignada = padreConOF.dataset.ofAsignada;
-    }
+    if (ofAsignada) return;
+    const padreConOF = Array.from(slotWrap.querySelectorAll('.bob-row')).find(r => r.dataset.ofAsignada);
+    if (padreConOF) ofAsignada = padreConOF.dataset.ofAsignada;
   });
 
-  const sumaIn = kgConsumidosPadres + kgAgregados;
-  const sumaOut = kgHija + kgDespPadresTotal;
-  const cuadre = sumaIn - sumaOut;
-
   document.getElementById('lam-calc-gr-prom').textContent = grProm ? Math.round(grProm) + ' g/m²' : '—';
-  document.getElementById('lam-calc-gr-agr').textContent = grAgr ? Math.round(grAgr) + ' g/m²' : '—';
-  document.getElementById('lam-calc-suma-in').textContent = sumaIn ? Math.round(sumaIn * 10)/10 + ' kg' : '—';
-  document.getElementById('lam-calc-suma-out').textContent = sumaOut ? Math.round(sumaOut * 10)/10 + ' kg' : '—';
-  let cuadreTxt = '—';
-  let cuadreColor = '';
-  if (sumaIn || sumaOut) {
-    const cuadreR = Math.round(cuadre * 10)/10;
-    if (Math.abs(cuadre) <= 5) { cuadreTxt = `✓ ${cuadreR > 0 ? '+' : ''}${cuadreR} kg (±5)`; cuadreColor = 'var(--ok)'; }
-    else { cuadreTxt = `⚠️ ${cuadreR > 0 ? '+' : ''}${cuadreR} kg fuera de tolerancia`; cuadreColor = 'var(--warn, #f5a623)'; }
-  }
-  const cuadreEl = document.getElementById('lam-calc-cuadre');
-  cuadreEl.textContent = cuadreTxt;
-  cuadreEl.style.color = cuadreColor;
   document.getElementById('lam-calc-of').textContent = ofAsignada || 'stock libre';
-
-  // Sugerir ancho hija = ancho slot principal si está vacío
-  if (!anchoHija) {
-    const principalSlot = document.querySelector('#lam-slots-list .lam-slot[data-principal="1"]');
-    if (principalSlot) {
-      const a = maxAnchoDelSlot(principalSlot);
-      if (a) form.hija_ancho.value = a;
-    }
-  }
 }
 
-['hija_mts','hija_kg','hija_ancho','kg_pp','kg_pe','kg_master','kg_reciclado','kg_purgados'].forEach(name => {
+['hija_mts','hija_kg'].forEach(name => {
   const el = document.querySelector(`#form-lam [name="${name}"]`);
   if (el) el.addEventListener('input', recalcLamKPIs);
 });
@@ -8982,8 +9429,96 @@ document.getElementById('grm-modal').addEventListener('click', (e) => {
 document.getElementById('lam-modal').addEventListener('click', (e) => {
   if (e.target.id === 'lam-modal') cerrarModalLam();
 });
+
+// ============================================================
+// MODAL "Codificar bobina Pitec rápido" (sub-modal sobre Laminado)
+// ============================================================
+function abrirModalLamPitec() {
+  const form = document.getElementById('form-lam-pitec');
+  form.reset();
+  // Poblar categorías
+  const sel = document.getElementById('lam-pitec-cat');
+  if (sel.children.length <= 1) {
+    CATEGORIAS_PITEC.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.key;
+      opt.textContent = `${c.nombre} (${c.detalle})`;
+      sel.appendChild(opt);
+    });
+  }
+  // Fecha default = hoy
+  form.fecha.value = new Date().toISOString().slice(0,10);
+  const msg = document.getElementById('lam-pitec-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('lam-pitec-modal').style.display = 'flex';
+}
+function cerrarModalLamPitec() {
+  document.getElementById('lam-pitec-modal').style.display = 'none';
+}
+document.getElementById('lam-btn-pitec-rapido').addEventListener('click', abrirModalLamPitec);
+document.getElementById('lam-pitec-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'lam-pitec-modal') cerrarModalLamPitec();
+});
+
+document.getElementById('form-lam-pitec').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const cat = CATEGORIAS_PITEC.find(c => c.key === f.cat.value);
+  const cod = f.cod.value.trim();
+  const fto = Number(f.fto.value) || 0;
+  const mts = Number(f.mts.value) || 0;
+  const kg = Number(f.kg.value) || 0;
+  const gramaje = Number(f.gramaje.value) || 0;
+  const oc = f.oc.value.trim();
+  const fecha = f.fecha.value || new Date().toISOString().slice(0,10);
+
+  if (!cat || !cod || !fto || !mts || !kg) {
+    showFormMsg('lam-pitec-msg', '✗ Faltan datos obligatorios.', false);
+    return;
+  }
+  // Verificar que el código no exista ya
+  if (bobinasCache.some(b => String(b['Código Bobina']||'').toUpperCase() === cod.toUpperCase())) {
+    showFormMsg('lam-pitec-msg', `✗ Ya existe una bobina con código "${cod}".`, false);
+    return;
+  }
+  // Avisar si el FTO no es válido para la categoría (no bloquea)
+  if (!cat.ftos.includes(fto)) {
+    if (!confirm(`⚠️ FTO ${fto} no está en la lista de ${cat.nombre} (válidos: ${cat.ftos.join(', ')}).\n\n¿Guardar igual?`)) return;
+  }
+
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    await appendFila('Bobinas', [
+      cod, oc, 'Pitec', fecha, cat.nombre, fto, Math.round(kg*10)/10,
+      gramaje, mts, '', '', 'Pitec', 'disponible', '',
+      '', '',
+    ]);
+    bobinasCache.push({
+      'Código Bobina': cod, 'Nº OC': oc, 'Proveedor': 'Pitec',
+      'Fecha Ingreso': fecha, 'Producto': cat.nombre,
+      'Formato (cm)': fto, 'Kg': Math.round(kg*10)/10,
+      'Gramaje (g/m²)': gramaje, 'Mts Totales': mts,
+      'Bobina Padre 1': '', 'Bobina Padre 2': '', 'Origen': 'Pitec',
+      'Estado': 'disponible', 'Sector Actual': '', 'Observaciones': '',
+      [HEADER_OF_ASIGNADA]: '',
+    });
+    cerrarModalLamPitec();
+    alert(`✓ Bobina ${cod} codificada. Ya podés tipear su código en cualquier slot del laminado.`);
+  } catch (err) {
+    showFormMsg('lam-pitec-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
+  const mp = document.getElementById('lam-pitec-modal');
+  if (mp && mp.style.display === 'flex') { cerrarModalLamPitec(); return; }
   const m1 = document.getElementById('lam-modal');
   if (m1 && m1.style.display === 'flex') cerrarModalLam();
   const m2 = document.getElementById('grm-modal');
@@ -9034,28 +9569,29 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
   if (f.dataset.guardando === '1') return;
   const tipo = f.tipo.value;
   const sub = (f.subtipo && f.subtipo.value) || '';
-  const tipoFull = tipo === 'Coating' ? `Coating-${sub}` : tipo;
+  const requiereSub = !!SUBTIPOS_POR_TIPO[tipo];
+  const tipoFull = requiereSub ? `${tipo}-${sub}` : tipo;
   if (!tipo) { showFormMsg('lam-msg', '✗ Elegí el tipo de proceso.', false); return; }
-  if (tipo === 'Coating' && !sub) { showFormMsg('lam-msg', '✗ Elegí Coating Externo o Interno.', false); return; }
+  if (requiereSub && !sub) {
+    const opts = SUBTIPOS_POR_TIPO[tipo].options.map(o => o.value).join(', ');
+    showFormMsg('lam-msg', `✗ Elegí ${SUBTIPOS_POR_TIPO[tipo].label} (${opts}).`, false);
+    return;
+  }
 
-  const fecha = document.getElementById('lam-form-fecha').value || new Date().toISOString().slice(0,10);
+  // Fecha y Hora Inicio se generan AUTO al guardar el parte. Hora Fin se llena al aprobar.
+  const ahora = new Date();
+  const fecha = ahora.toISOString().slice(0,10);
+  const horaIn = ahora.toTimeString().slice(0,5);
+  const horaFin = ''; // se llena al aprobar
   const legajoOp = f.legajo_op.value.trim();
   const legajoAy = f.legajo_ay.value.trim();
-  const horaIn = f.hora_in.value;
-  const horaFin = f.hora_fin.value;
   const mtsHija = Number(f.hija_mts.value) || 0;
   const kgHija = Number(f.hija_kg.value) || 0;
   const anchoHija = Number(f.hija_ancho.value) || 0;
-  const kgPP = Number(f.kg_pp.value) || 0;
-  const kgPE = Number(f.kg_pe.value) || 0;
-  const kgMaster = Number(f.kg_master.value) || 0;
-  const kgRec = Number(f.kg_reciclado.value) || 0;
-  const kgPurg = Number(f.kg_purgados.value) || 0;
   const obs = (f.obs.value || '').trim();
-  const kgAgregados = kgPP + kgPE + kgMaster + kgRec;
 
-  if (!legajoOp || !legajoAy || !horaIn || !horaFin || !mtsHija || !kgHija || !anchoHija) {
-    showFormMsg('lam-msg', '✗ Faltan datos obligatorios (legajos, horas, datos de la hija).', false);
+  if (!legajoOp || !legajoAy || !mtsHija || !kgHija || !anchoHija) {
+    showFormMsg('lam-msg', '✗ Faltan datos obligatorios (legajos, mts/kg/ancho de la hija).', false);
     return;
   }
 
@@ -9130,16 +9666,17 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
       kgConsumidosTotal += kgConsB;
     }
   }
-  // Validar coherencia ±5 kg
-  const sumaIn = kgConsumidosTotal + kgAgregados;
-  const sumaOut = kgHija + kgDespTotal;
-  if (Math.abs(sumaIn - sumaOut) > 5) {
+  // El "grumo agregado" se infiere = Hija + Kg Desp − Σ Padres consumidos.
+  // Si la diferencia es negativa, algo está mal (la hija pesa menos que los padres − desp,
+  // imposible salvo error en pesos). Avisamos pero permitimos guardar.
+  const grumoInferido = (kgHija + kgDespTotal) - kgConsumidosTotal;
+  if (grumoInferido < -5) {
     if (!confirm(
-      `⚠️ Los kg no cuadran físicamente (fuera de ±5 kg):\n\n` +
-      `Σ Padres consumidos + Agregados: ${Math.round(sumaIn*10)/10} kg\n` +
-      `Hija + Kg Desp padres:           ${Math.round(sumaOut*10)/10} kg\n` +
-      `Diferencia: ${Math.round((sumaIn-sumaOut)*10)/10} kg\n\n` +
-      `¿Guardar igual? (queda Pendiente, el supervisor decide al aprobar)`
+      `⚠️ Los kg no cuadran físicamente:\n\n` +
+      `Σ Padres consumidos:  ${Math.round(kgConsumidosTotal*10)/10} kg\n` +
+      `Hija + Kg Desp padres: ${Math.round((kgHija+kgDespTotal)*10)/10} kg\n` +
+      `Grumo inferido: ${Math.round(grumoInferido*10)/10} kg (no puede ser negativo)\n\n` +
+      `¿Guardar igual? Queda Pendiente para revisión del supervisor.`
     )) return;
   }
 
@@ -9188,13 +9725,7 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
           await actualizarCeldaEnFila('Laminadora', row, 'Mts Finales Hija', mtsHija);
           await actualizarCeldaEnFila('Laminadora', row, 'Kg Finales Hija', kgHija);
           await actualizarCeldaEnFila('Laminadora', row, 'Gramaje Promedio', Math.round(kgHija * 1000000 / (mtsHija * anchoHija)));
-          await actualizarCeldaEnFila('Laminadora', row, 'Gramaje Agregado', kgAgregados ? Math.round(kgAgregados * 1000000 / (mtsHija * anchoHija)) : 0);
-          await actualizarCeldaEnFila('Laminadora', row, 'Kg Agregados', kgAgregados);
-          await actualizarCeldaEnFila('Laminadora', row, 'Kg PP', kgPP);
-          await actualizarCeldaEnFila('Laminadora', row, 'Kg PE', kgPE);
-          await actualizarCeldaEnFila('Laminadora', row, 'Kg Master', kgMaster);
-          await actualizarCeldaEnFila('Laminadora', row, 'Kg Reciclado', kgRec);
-          await actualizarCeldaEnFila('Laminadora', row, 'Kg Purgados', kgPurg);
+          await actualizarCeldaEnFila('Laminadora', row, 'Kg Agregados', Math.max(0, Math.round(grumoInferido*10)/10));
           await actualizarCeldaEnFila('Laminadora', row, 'N° OF Asignada', ofHeredada);
           await actualizarCeldaEnFila('Laminadora', row, 'Observaciones', obs);
         }
@@ -9211,6 +9742,7 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
         //   Slot Padre, Código Bobina Padre, Mts Iniciales Padre, Mts Consumidos Padre, Mts Remanente Padre, Kg Desperdicio Padre,
         //   Código Hija, Ancho Hija (cm), Mts Finales Hija, Kg Finales Hija, Gramaje Promedio, Gramaje Agregado, Kg Agregados,
         //   Kg PP, Kg PE, Kg Master, Kg Reciclado, Kg Purgados, N° OF Asignada, Aprobado Supervisor, Observaciones
+        const kgGrumo = esUltima ? Math.max(0, Math.round(grumoInferido*10)/10) : '';
         const fila = [
           fecha, horaIn, horaFin, legajos, tipo, sub || '',
           pc.slot, pc.bob.dataset.cod, mtsIni, pc.mtsConsumidos, mtsRem, pc.kgDespAsignado,
@@ -9219,10 +9751,10 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
           esUltima ? mtsHija : '',
           esUltima ? kgHija : '',
           esUltima && mtsHija && anchoHija ? Math.round(kgHija * 1000000 / (mtsHija * anchoHija)) : '',
-          esUltima && mtsHija && anchoHija && kgAgregados ? Math.round(kgAgregados * 1000000 / (mtsHija * anchoHija)) : '',
-          esUltima ? kgAgregados : '',
-          esUltima ? kgPP : '', esUltima ? kgPE : '', esUltima ? kgMaster : '', esUltima ? kgRec : '',
-          esUltima ? kgPurg : '',
+          '', // Gramaje Agregado → vacío (no se carga, no se infiere acá)
+          kgGrumo, // Kg Agregados → inferido = hija + desp − padres
+          '', '', '', '', // Kg PP/PE/Master/Reciclado → no se cargan en el parte
+          '', // Kg Purgados → no se carga acá (es info de máquina)
           esUltima ? ofHeredada : '',
           'Pendiente',
           esUltima ? (obs + motivoAncho) : (`Slot ${pc.slot}` + motivoAncho),
@@ -9303,7 +9835,7 @@ async function aprobarParteLam(clave) {
 
   const tipo = ultima['Tipo de Proceso'];
   const sub = ultima['Sub-tipo'];
-  const tipoFull = tipo === 'Coating' ? `Coating-${sub}` : tipo;
+  const tipoFull = SUBTIPOS_POR_TIPO[tipo] ? `${tipo}-${sub}` : tipo;
   const mtsHija = Number(ultima['Mts Finales Hija']) || 0;
   const kgHija = Number(ultima['Kg Finales Hija']) || 0;
   const anchoHija = Number(ultima['Ancho Hija (cm)']) || 0;
@@ -9322,24 +9854,19 @@ async function aprobarParteLam(clave) {
   )) return;
 
   try {
-    // 1. Marcar Aprobado=SI en todas las hermanas
+    // 1. Marcar Aprobado=SI + Hora Fin (timestamp del aprobado) en todas las hermanas
+    const horaFinAhora = new Date().toTimeString().slice(0,5);
     for (const h of hermanas) {
       await actualizarCeldaEnFila('Laminadora', h._rowIndex, 'Aprobado Supervisor', 'SI');
+      await actualizarCeldaEnFila('Laminadora', h._rowIndex, 'Hora Fin', horaFinAhora);
       h['Aprobado Supervisor'] = 'SI';
+      h['Hora Fin'] = horaFinAhora;
     }
 
-    // 2. Helpers para crear bobina + generar código
-    const anio = new Date().getFullYear();
-    const re = new RegExp(`^BOB-${anio}-(\\d+)$`);
-    let maxCounter = 0;
-    bobinasCache.forEach(b => {
-      const m = String(b['Código Bobina']||'').match(re);
-      if (m) maxCounter = Math.max(maxCounter, parseInt(m[1],10));
-    });
-    const siguienteCodHija = () => {
-      maxCounter++;
-      return `BOB-${anio}-${String(maxCounter).padStart(5,'0')}`;
-    };
+    // 2. Generador de código hija — usa el helper global generarCodigoHijaLam
+    //    Formato: L-{padre}/{n} · C-{padre}/{n} · BP-{padre}/{n} · PP-{padre}/{n}
+    //    El padre = código del PRINCIPAL del laminado (slot principal).
+    //    (Franco 2026-05-22)
 
     async function crearBobinaFila(d) {
       // Columnas Bobinas: Código, Nº OC, Proveedor, Fecha Ingreso, Producto, Formato, Kg, Gramaje, Mts,
@@ -9391,15 +9918,21 @@ async function aprobarParteLam(clave) {
       }
     }
 
-    // 4. Generar la bobina hija (1 sola por laminado)
+    // 4. Generar la bobina hija (1 sola por laminado).
+    // Código hija = {prefijo}-{padre principal}/{n}.
+    // El "padre principal" es la primera fila hermana (el slot Rafia en Polipapel/BioPP,
+    // o el único slot en Laminado/Coating).
     const padresCods = hermanas.map(h => h['Código Bobina Padre']).filter(Boolean);
+    const codPadrePrincipal = hermanas.find(h => h['Código Bobina Padre'])['Código Bobina Padre'] || padresCods[0] || '';
     const padre1 = padresCods[0] || '';
     const padre2 = padresCods.slice(1).join(' + ') || '';
     const ofObj = (lamOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(ofAsig).trim());
-    const productoHija = ofObj ? (ofObj['Nombre Bolsa'] || `OF ${ofAsig}`) : tipoFull;
+    const productoHija = ofObj
+      ? (ofObj['Nombre Bolsa'] || `OF ${ofAsig}`)
+      : (PRODUCTO_HIJA_POR_TIPO[tipoFull] || tipoFull);
     const fechaHija = ultima['Fecha'];
     const grPromedio = (mtsHija && anchoHija) ? Math.round(kgHija * 1000000 / (mtsHija * anchoHija)) : 0;
-    const codHija = siguienteCodHija();
+    const codHija = generarCodigoHijaLam(tipoFull, codPadrePrincipal);
     await crearBobinaFila({
       cod: codHija, fecha: fechaHija, producto: productoHija,
       ancho: anchoHija, kg: kgHija, gramaje: grPromedio, mts: mtsHija,
@@ -9446,17 +9979,19 @@ function precargarEdicionLam(hermanas, repr) {
   const form = document.getElementById('form-lam');
   const tipo = repr['Tipo de Proceso'] || '';
   const sub = repr['Sub-tipo'] || '';
-  // Setear tipo y sub-tipo
-  if (tipo) {
-    const r = document.querySelector(`#lam-tipo-grid input[name="tipo"][value="${tipo}"]`);
-    if (r) { r.checked = true; }
-  }
-  if (tipo === 'Coating' && sub) {
-    const r = document.querySelector(`#lam-subtipo-wrap input[name="subtipo"][value="${sub}"]`);
-    if (r) { r.checked = true; }
+  // Setear tipo (select). Si tiene sub-tipo (Coating/Polipapel), poblar y setear el sub-tipo.
+  document.getElementById('lam-tipo-select').value = tipo;
+  const cfg = SUBTIPOS_POR_TIPO[tipo];
+  if (cfg) {
+    const subSel = document.getElementById('lam-subtipo-select');
+    subSel.innerHTML = '<option value="">Elegí…</option>' +
+      cfg.options.map(o => `<option value="${o.value}">${o.text}</option>`).join('');
+    subSel.value = sub;
+    document.getElementById('lam-subtipo-label').textContent = cfg.label;
+    document.getElementById('lam-subtipo-wrap').style.display = '';
   }
   // Armar slots
-  const tipoFull = tipo === 'Coating' ? `Coating-${sub}` : tipo;
+  const tipoFull = cfg ? `${tipo}-${sub}` : tipo;
   armarSlotsLam(tipoFull);
   // Agrupar hermanas por slot
   const porSlot = {};
@@ -9488,20 +10023,12 @@ function precargarEdicionLam(hermanas, repr) {
     const sumKgDesp = items.reduce((a,h) => a + (Number(h['Kg Desperdicio Padre'])||0), 0);
     slotWrap.querySelector('.lam-slot-kgdesp').value = Math.round(sumKgDesp*10)/10 || '';
   });
-  // Datos generales
+  // Datos generales (sin horas — se autogeneran al guardar/aprobar)
   const legs = String(repr['Legajos']||'').split(/[\/+]/).map(s => s.trim());
   form.legajo_op.value = legs[0] || '';
   form.legajo_ay.value = legs[1] || '';
-  form.hora_in.value = excelTimeToHHMM(repr['Hora Inicio']);
-  form.hora_fin.value = excelTimeToHHMM(repr['Hora Fin']);
-  form.hija_ancho.value = Number(repr['Ancho Hija (cm)']) || '';
   form.hija_mts.value = Number(repr['Mts Finales Hija']) || '';
   form.hija_kg.value = Number(repr['Kg Finales Hija']) || '';
-  form.kg_pp.value = Number(repr['Kg PP']) || '';
-  form.kg_pe.value = Number(repr['Kg PE']) || '';
-  form.kg_master.value = Number(repr['Kg Master']) || '';
-  form.kg_reciclado.value = Number(repr['Kg Reciclado']) || '';
-  form.kg_purgados.value = Number(repr['Kg Purgados']) || '';
   const obsClean = String(repr['Observaciones']||'').replace(/\s*·\s*⚠️\s*Ancha:.*$/, '').trim();
   form.obs.value = obsClean;
   recalcLamKPIs();
