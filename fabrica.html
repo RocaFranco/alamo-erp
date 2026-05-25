@@ -1878,7 +1878,7 @@
           <button type="button" class="modal-close" onclick="cerrarModalLam()">✕</button>
         </div>
         <div class="modal-body">
-          <form id="form-lam">
+          <form id="form-lam" class="form-grid">
             <input type="hidden" id="lam-form-fecha">
 
             <!-- Tipo de proceso + sub-tipo -->
@@ -1903,13 +1903,19 @@
             <div class="conv-block field-2" id="lam-slots-wrap" style="display:none">
               <div class="conv-block-title">🧵 Bobinas Padre</div>
               <p class="form-sub" style="margin:0 0 10px">
-                Cargá el código de cada bobina. Cada slot tiene su Kg Desperdicio total (se prorratea entre las bobinas del slot al aprobar).
+                Cargá el código de cada bobina. Las bobinas de todos los slots se procesan juntas — el desperdicio se carga UNA sola vez abajo (se prorratea entre sustratos según gramaje × ancho).
                 ¿No la encontrás? <button type="button" class="btn-link" id="lam-btn-pitec-rapido" style="background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;font:inherit">+ Codificar bobina Pitec rápido</button>
               </p>
               <div id="lam-slots-list">
                 <!-- slots generados dinámicamente según tipo de proceso -->
               </div>
             </div>
+
+            <!-- Kg desperdicio TOTAL del laminado (compartido entre slots) -->
+            <label class="field field-2">
+              <span>Kg Desperdicio TOTAL del laminado <small>· se prorratea entre los sustratos según gr/m² × ancho</small></span>
+              <input type="number" name="kg_desp_total" id="lam-kg-desp-total" step="0.1" min="0" placeholder="0">
+            </label>
 
             <!-- Legajos -->
             <label class="field">
@@ -1923,11 +1929,11 @@
 
             <!-- Hija generada -->
             <div class="conv-block field-2">
-              <div class="conv-block-title">👶 Hija generada (código auto al guardar)</div>
+              <div class="conv-block-title">👶 Hija generada</div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
                 <div class="field">
-                  <span>Ancho (cm)<small> · auto del padre principal</small></span>
-                  <div class="calc-out" id="lam-hija-ancho-display">—</div>
+                  <span>Código bobina hija <small>· anotar en la bobina ANTES de guardar</small></span>
+                  <div class="calc-out" id="lam-hija-cod-preview" style="color:var(--accent);font-weight:bold">—</div>
                   <input type="hidden" name="hija_ancho" id="lam-hija-ancho">
                 </div>
                 <label class="field">
@@ -1946,9 +1952,11 @@
               <div class="conv-block-title">📐 Cálculos automáticos</div>
               <div class="padre-info-grid">
                 <div class="item"><small>Gramaje Promedio hija</small><strong id="lam-calc-gr-prom">—</strong></div>
+                <div class="item"><small>Σ gr/m² padres</small><strong id="lam-calc-gr-sum">—</strong></div>
+                <div class="item"><small>Gramaje Agregado <span style="color:var(--text-3)">(material en el proceso)</span></small><strong id="lam-calc-gr-agr">—</strong></div>
                 <div class="item"><small>Asignar a OF</small><strong id="lam-calc-of">stock libre</strong></div>
               </div>
-              <p class="form-sub" style="margin:8px 0 0">La fecha y hora se guardan automáticamente cuando se aprueba el parte.</p>
+              <p class="form-sub" style="margin:8px 0 0" id="lam-calc-desglose">Cargá las bobinas padre y el peso de la hija para ver el desglose.</p>
             </div>
 
             <label class="field field-2">
@@ -4176,12 +4184,7 @@ function imprimirStockBobinas(modo) {
       html += '</tbody></table>';
     }
   } else {
-    // DETALLE — agrega cabecera de Total como contexto + tablas detalladas
-    const totalKg = enStock.reduce((s, b) => s + (Number(b['Kg']) || 0), 0);
-    const totalMts = enStock.reduce((s, b) => s + (Number(b['Mts Totales']) || 0), 0);
-    html = `<p><strong>Total:</strong> ${enStock.length} bobina(s) · ${fmtNum(Math.round(totalKg))} kg · ${fmtNum(Math.round(totalMts))} m · ${Object.keys(grupos).length} familia(s)`;
-    if (enStockImpresas.length) html += ` · ${enStockImpresas.length} impresa(s)`;
-    html += `</p>`;
+    // DETALLE — tablas detalladas por familia (sin línea de "Total" arriba — Franco 2026-05-24)
     // Tablas detalladas por familia
     for (const fam of ordenarFamilias(Object.keys(grupos))) {
       const lista = grupos[fam].sort((a, b) => (Number(a['Formato (cm)'])||0) - (Number(b['Formato (cm)'])||0));
@@ -8214,7 +8217,9 @@ function renderMaquinaTP(maqCod) {
 function validarBobinasParaArrancarOFTP(maqCod, of) {
   const numOF = String(of['Nº OF']||'').trim();
   const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
-  const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
+  // Renombrado en Sheet (Franco 2026-05-25): 'Lleva PE' → 'Lleva Bolsa PE' (es la bolsa interior
+  // que va en Embutido, no la lámina de tubera ni el coating). Fallback al nombre viejo por retrocompat.
+  const llevaPE = String(of['Lleva Bolsa PE'] || of['Lleva PE'] || '').trim().toUpperCase() === 'SI';
   const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
 
   if (!capasEsperadas) {
@@ -9229,17 +9234,12 @@ function armarSlotsLam(tipoFull) {
       </div>
       <div class="lam-slot-bobs"></div>
       ${cfg.empalmable ? `<button type="button" class="btn-secondary lam-add-empalme" style="margin-top:6px">+ Sumar empalme</button>` : ''}
-      <label class="field" style="margin-top:8px;margin-bottom:0">
-        <span>Kg Desperdicio TOTAL ${cfg.label.replace(/^[^a-zA-Z]+/,'')} (se prorratea entre bobinas del slot)</span>
-        <input type="number" class="lam-slot-kgdesp" step="0.1" min="0" placeholder="0">
-      </label>
     `;
     cont.appendChild(wrap);
     agregarBobinaSlotLam(wrap);
     if (cfg.empalmable) {
       wrap.querySelector('.lam-add-empalme').addEventListener('click', () => agregarBobinaSlotLam(wrap));
     }
-    wrap.querySelector('.lam-slot-kgdesp').addEventListener('input', recalcLamKPIs);
   });
   document.getElementById('lam-slots-wrap').style.display = 'block';
   recalcLamKPIs();
@@ -9385,27 +9385,80 @@ function recalcLamKPIs() {
   const mtsHija = Number(form.hija_mts.value) || 0;
   const kgHija = Number(form.hija_kg.value) || 0;
 
-  // Ancho hija = SIEMPRE el del slot principal (rafia o papel según tipo). Se mantiene.
+  // Ancho hija = SIEMPRE el del slot principal (rafia o papel según tipo). Hidden, no se muestra.
   const principalSlot = document.querySelector('#lam-slots-list .lam-slot[data-principal="1"]');
   const anchoAuto = principalSlot ? maxAnchoDelSlot(principalSlot) : 0;
   form.hija_ancho.value = anchoAuto || '';
-  document.getElementById('lam-hija-ancho-display').textContent = anchoAuto ? anchoAuto + ' cm' : '—';
 
-  const grProm = (kgHija && mtsHija && anchoAuto) ? (kgHija * 1000000 / (mtsHija * anchoAuto)) : 0;
+  const grProm = (kgHija && mtsHija && anchoAuto) ? (kgHija * 100000 / (mtsHija * anchoAuto)) : 0;
 
-  // OF heredada: primer padre que tenga OF asignada
+  // OF heredada + código padre principal + gramajes por slot (para mostrar desglose).
+  // Suma gramajes = Σ gramaje de cada slot (1 gramaje por slot — se asume mismo material por slot).
   let ofAsignada = '';
+  let codPadrePrincipal = '';
+  const slotsInfo = []; // [{slot, label, gramaje, cod}]
   document.querySelectorAll('#lam-slots-list .lam-slot').forEach(slotWrap => {
-    if (ofAsignada) return;
-    const padreConOF = Array.from(slotWrap.querySelectorAll('.bob-row')).find(r => r.dataset.ofAsignada);
-    if (padreConOF) ofAsignada = padreConOF.dataset.ofAsignada;
+    const label = slotWrap.querySelector('strong')?.textContent.replace(/^[^\w]+\s*/, '') || slotWrap.dataset.slot;
+    const primera = Array.from(slotWrap.querySelectorAll('.bob-row')).find(r => r.dataset.cod && r.dataset.gramaje);
+    if (slotWrap.dataset.principal === '1' && !codPadrePrincipal) {
+      const p = Array.from(slotWrap.querySelectorAll('.bob-row')).find(r => r.dataset.cod);
+      if (p) codPadrePrincipal = p.dataset.cod;
+    }
+    if (!ofAsignada) {
+      const padreConOF = Array.from(slotWrap.querySelectorAll('.bob-row')).find(r => r.dataset.ofAsignada);
+      if (padreConOF) ofAsignada = padreConOF.dataset.ofAsignada;
+    }
+    if (primera) {
+      slotsInfo.push({
+        slot: slotWrap.dataset.slot,
+        label,
+        gramaje: Number(primera.dataset.gramaje) || 0,
+        cod: primera.dataset.cod,
+      });
+    }
   });
 
+  const sumaGramajes = slotsInfo.reduce((s, i) => s + i.gramaje, 0);
+  // Gramaje Agregado = lo que aporta el proceso (grumo / capa PE / coating).
+  // Solo tiene sentido cuando ya tenemos grProm calculado.
+  const grAgregado = (grProm && sumaGramajes) ? Math.max(0, grProm - sumaGramajes) : 0;
+
+  // Preview del código hija — se calcula apenas hay padre principal cargado.
+  const tipo = form.tipo.value;
+  const sub = form.subtipo ? form.subtipo.value : '';
+  const tipoFull = SUBTIPOS_POR_TIPO[tipo] ? (sub ? `${tipo}-${sub}` : '') : tipo;
+  const codPreview = (tipoFull && codPadrePrincipal)
+    ? generarCodigoHijaLam(tipoFull, codPadrePrincipal)
+    : '';
+  const previewEl = document.getElementById('lam-hija-cod-preview');
+  if (previewEl) previewEl.textContent = codPreview || '— (cargá el padre principal)';
+
+  // Render del bloque de cálculos
   document.getElementById('lam-calc-gr-prom').textContent = grProm ? Math.round(grProm) + ' g/m²' : '—';
+  document.getElementById('lam-calc-gr-sum').textContent = sumaGramajes ? Math.round(sumaGramajes) + ' g/m²' : '—';
+  const grAgrEl = document.getElementById('lam-calc-gr-agr');
+  if (grProm && sumaGramajes) {
+    grAgrEl.textContent = Math.round(grAgregado) + ' g/m²';
+    grAgrEl.style.color = grAgregado >= 0 ? 'var(--accent)' : 'var(--warn)';
+  } else {
+    grAgrEl.textContent = '—';
+    grAgrEl.style.color = '';
+  }
   document.getElementById('lam-calc-of').textContent = ofAsignada || 'stock libre';
+
+  // Desglose por slot — texto bajo el grid
+  const desglose = document.getElementById('lam-calc-desglose');
+  if (slotsInfo.length) {
+    const partes = slotsInfo.map(i => `${i.label} (${i.cod}): ${Math.round(i.gramaje)} g/m²`);
+    desglose.innerHTML = '<strong>Desglose padres:</strong> ' + partes.join(' + ') +
+      (sumaGramajes ? ` = <strong>${Math.round(sumaGramajes)} g/m²</strong>` : '') +
+      (grProm && sumaGramajes ? ` · Hija: ${Math.round(grProm)} g/m² → <strong>Agregado: ${Math.round(grAgregado)} g/m²</strong>` : '');
+  } else {
+    desglose.textContent = 'Cargá las bobinas padre y el peso de la hija para ver el desglose.';
+  }
 }
 
-['hija_mts','hija_kg'].forEach(name => {
+['hija_mts','hija_kg','kg_desp_total'].forEach(name => {
   const el = document.querySelector(`#form-lam [name="${name}"]`);
   if (el) el.addEventListener('input', recalcLamKPIs);
 });
@@ -9595,13 +9648,17 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
     return;
   }
 
+  // Kg desperdicio TOTAL del laminado (compartido entre slots).
+  // Se prorratea entre slots según peso_por_metro de cada uno (gramaje × ancho).
+  // Modelo TP (Franco 2026-05-24): los sustratos están pegados, el desperdicio es compartido.
+  const kgDespTotal = Number(f.kg_desp_total.value) || 0;
+
   // Recolectar bobinas por slot
   const slots = Array.from(document.querySelectorAll('#lam-slots-list .lam-slot')).map(slotWrap => {
     const bobs = Array.from(slotWrap.querySelectorAll('.bob-row')).filter(r => r.dataset.cod && r.dataset.mts);
     return {
       slot: slotWrap.dataset.slot,
       principal: slotWrap.dataset.principal === '1',
-      kgDesp: Number(slotWrap.querySelector('.lam-slot-kgdesp').value) || 0,
       bobs,
     };
   });
@@ -9620,16 +9677,28 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
     }
   }
 
+  // Prorrateo kg desp global entre slots por peso/m (= ancho × gramaje / 100 / 1000).
+  // Cada slot recibe kgDespSlot = kgDespTotal × (peso/m_slot / Σ peso/m_slots).
+  // Eso se traduce a mts desperdiciados POR SLOT (≠ por slot, pero todos los slots procesan
+  // los MISMOS mts del laminado — el "mts desperdiciado" es el mismo para todos los sustratos
+  // pegados juntos). En realidad: mts_desp_compartido = kgDespTotal / Σ peso/m_slots.
+  const pesoPorMetroPorSlot = slots.map(s => {
+    const ref = s.bobs[s.bobs.length - 1];
+    const a = Number(ref.dataset.ancho) || 0;
+    const g = Number(ref.dataset.gramaje) || 0;
+    return a * g / 100 / 1000; // kg/m
+  });
+  const sumaPesoPorMetro = pesoPorMetroPorSlot.reduce((a, x) => a + x, 0);
+  const mtsDespCompartido = (kgDespTotal && sumaPesoPorMetro) ? kgDespTotal / sumaPesoPorMetro : 0;
+
   // VALIDACIÓN FÍSICA — Σ Padres consumidos + Agregados ≈ Hija + Σ Kg Desp Padres (±5 kg)
-  // Calculamos kg consumidos por slot asumiendo mts_consumidos_slot = mts_hija + mts_desperdicio_slot
+  // Calculamos kg consumidos por slot asumiendo mts_consumidos_slot = mts_hija + mts_desp_compartido
   let kgConsumidosTotal = 0;
-  let kgDespTotal = 0;
   const planConsumo = []; // {slot, bob, mtsConsumidos, kgConsumidos, kgDespAsignado}
-  for (const s of slots) {
-    kgDespTotal += s.kgDesp;
+  for (let si = 0; si < slots.length; si++) {
+    const s = slots[si];
     // Disponible total en el slot
     const mtsDispSlot = s.bobs.reduce((a, b) => a + (Number(b.dataset.mts)||0), 0);
-    // Mts desp en mts del slot (usando última como referencia de gramaje/ancho)
     const ref = s.bobs[s.bobs.length - 1];
     const anchoSlot = Number(ref.dataset.ancho) || 0;
     const gramajeSlot = Number(ref.dataset.gramaje) || 0;
@@ -9637,7 +9706,11 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
       showFormMsg('lam-msg', `✗ Bobina sin ancho/gramaje en slot ${s.slot}.`, false);
       return;
     }
-    const mtsDespSlot = s.kgDesp ? s.kgDesp * 100000 / (anchoSlot * gramajeSlot) : 0;
+    // Mts desp del slot = compartido (todos los slots gastan los mismos mts)
+    const mtsDespSlot = mtsDespCompartido;
+    // Kg desp asignado a este slot = peso/m × mts_desp
+    const kgDespSlot = mtsDespSlot * pesoPorMetroPorSlot[si];
+    s.kgDesp = kgDespSlot; // guardar para el resto del flujo
     const mtsConsSlotTotal = mtsHija + mtsDespSlot;
     if (mtsConsSlotTotal > mtsDispSlot + 5) {
       showFormMsg('lam-msg', `✗ Slot ${s.slot}: necesita ${Math.round(mtsConsSlotTotal)}m pero las bobinas tienen ${Math.round(mtsDispSlot)}m disponibles.`, false);
@@ -9721,10 +9794,19 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
         await actualizarCeldaEnFila('Laminadora', row, 'Mts Remanente Padre', Math.max(0, (Number(pc.bob.dataset.mts)||0) - pc.mtsConsumidos));
         await actualizarCeldaEnFila('Laminadora', row, 'Kg Desperdicio Padre', pc.kgDespAsignado);
         if (esUltima) {
+          const grPromEdit = Math.round(kgHija * 100000 / (mtsHija * anchoHija));
+          // Σ gramajes padres = 1 por slot único
+          const slotsUnicosEdit = {};
+          planConsumo.forEach(p => {
+            if (!slotsUnicosEdit[p.slot]) slotsUnicosEdit[p.slot] = Number(p.bob.dataset.gramaje) || 0;
+          });
+          const sumaGrPadresEdit = Object.values(slotsUnicosEdit).reduce((s, g) => s + g, 0);
+          const grAgrEdit = (grPromEdit && sumaGrPadresEdit) ? Math.max(0, grPromEdit - sumaGrPadresEdit) : 0;
           await actualizarCeldaEnFila('Laminadora', row, 'Ancho Hija (cm)', anchoHija);
           await actualizarCeldaEnFila('Laminadora', row, 'Mts Finales Hija', mtsHija);
           await actualizarCeldaEnFila('Laminadora', row, 'Kg Finales Hija', kgHija);
-          await actualizarCeldaEnFila('Laminadora', row, 'Gramaje Promedio', Math.round(kgHija * 1000000 / (mtsHija * anchoHija)));
+          await actualizarCeldaEnFila('Laminadora', row, 'Gramaje Promedio', grPromEdit);
+          await actualizarCeldaEnFila('Laminadora', row, 'Gramaje Agregado', grAgrEdit);
           await actualizarCeldaEnFila('Laminadora', row, 'Kg Agregados', Math.max(0, Math.round(grumoInferido*10)/10));
           await actualizarCeldaEnFila('Laminadora', row, 'N° OF Asignada', ofHeredada);
           await actualizarCeldaEnFila('Laminadora', row, 'Observaciones', obs);
@@ -9743,6 +9825,15 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
         //   Código Hija, Ancho Hija (cm), Mts Finales Hija, Kg Finales Hija, Gramaje Promedio, Gramaje Agregado, Kg Agregados,
         //   Kg PP, Kg PE, Kg Master, Kg Reciclado, Kg Purgados, N° OF Asignada, Aprobado Supervisor, Observaciones
         const kgGrumo = esUltima ? Math.max(0, Math.round(grumoInferido*10)/10) : '';
+        // Gramaje Promedio hija y Gramaje Agregado (= promedio − Σ gramajes padres)
+        const grPromHija = (mtsHija && anchoHija) ? Math.round(kgHija * 100000 / (mtsHija * anchoHija)) : 0;
+        // Σ gramajes padres: 1 valor por slot, uso el gramaje del primer padre de cada slot único
+        const slotsUnicos = {};
+        planConsumo.forEach(p => {
+          if (!slotsUnicos[p.slot]) slotsUnicos[p.slot] = Number(p.bob.dataset.gramaje) || 0;
+        });
+        const sumaGrPadres = Object.values(slotsUnicos).reduce((s, g) => s + g, 0);
+        const grAgregadoCalc = (grPromHija && sumaGrPadres) ? Math.max(0, grPromHija - sumaGrPadres) : 0;
         const fila = [
           fecha, horaIn, horaFin, legajos, tipo, sub || '',
           pc.slot, pc.bob.dataset.cod, mtsIni, pc.mtsConsumidos, mtsRem, pc.kgDespAsignado,
@@ -9750,8 +9841,8 @@ document.getElementById('form-lam').addEventListener('submit', async (e) => {
           esUltima ? anchoHija : '',
           esUltima ? mtsHija : '',
           esUltima ? kgHija : '',
-          esUltima && mtsHija && anchoHija ? Math.round(kgHija * 1000000 / (mtsHija * anchoHija)) : '',
-          '', // Gramaje Agregado → vacío (no se carga, no se infiere acá)
+          esUltima ? grPromHija : '',
+          esUltima ? grAgregadoCalc : '',
           kgGrumo, // Kg Agregados → inferido = hija + desp − padres
           '', '', '', '', // Kg PP/PE/Master/Reciclado → no se cargan en el parte
           '', // Kg Purgados → no se carga acá (es info de máquina)
@@ -9931,7 +10022,7 @@ async function aprobarParteLam(clave) {
       ? (ofObj['Nombre Bolsa'] || `OF ${ofAsig}`)
       : (PRODUCTO_HIJA_POR_TIPO[tipoFull] || tipoFull);
     const fechaHija = ultima['Fecha'];
-    const grPromedio = (mtsHija && anchoHija) ? Math.round(kgHija * 1000000 / (mtsHija * anchoHija)) : 0;
+    const grPromedio = (mtsHija && anchoHija) ? Math.round(kgHija * 100000 / (mtsHija * anchoHija)) : 0;
     const codHija = generarCodigoHijaLam(tipoFull, codPadrePrincipal);
     await crearBobinaFila({
       cod: codHija, fecha: fechaHija, producto: productoHija,
@@ -10019,10 +10110,10 @@ function precargarEdicionLam(hermanas, repr) {
         autocompletarBobinaLam(rows[idx], slotWrap);
       }
     });
-    // Sumar kg desp del slot
-    const sumKgDesp = items.reduce((a,h) => a + (Number(h['Kg Desperdicio Padre'])||0), 0);
-    slotWrap.querySelector('.lam-slot-kgdesp').value = Math.round(sumKgDesp*10)/10 || '';
   });
+  // Kg desperdicio TOTAL = suma de todos los Kg Desperdicio Padre de las hermanas (modelo nuevo Franco 2026-05-24)
+  const totalKgDesp = hermanas.reduce((a, h) => a + (Number(h['Kg Desperdicio Padre']) || 0), 0);
+  document.getElementById('lam-kg-desp-total').value = Math.round(totalKgDesp * 10) / 10 || '';
   // Datos generales (sin horas — se autogeneran al guardar/aprobar)
   const legs = String(repr['Legajos']||'').split(/[\/+]/).map(s => s.trim());
   form.legajo_op.value = legs[0] || '';
@@ -10379,7 +10470,9 @@ function abrirModalParteTP(numOF, maqCod) {
   // Si una bobina se consumió y salió del slot, el operario puede intentar cargar parte
   // con menos bobinas de las requeridas. Bloquear acá igual que al arrancar OF.
   const cantCapasOF = Number(of['Cantidad Capas']) || Number(of['Cant Capas']) || 0;
-  const llevaPE = String(of['Lleva PE']||'').trim().toUpperCase() === 'SI';
+  // Renombrado en Sheet (Franco 2026-05-25): 'Lleva PE' → 'Lleva Bolsa PE' (es la bolsa interior
+  // que va en Embutido, no la lámina de tubera ni el coating). Fallback al nombre viejo por retrocompat.
+  const llevaPE = String(of['Lleva Bolsa PE'] || of['Lleva PE'] || '').trim().toUpperCase() === 'SI';
   const capasEsperadas = cantCapasOF + (llevaPE ? 1 : 0);
   const bobsEnMaqVal = bobinasEnMaquinaTP(maqCod);
   if (capasEsperadas && bobsEnMaqVal.length !== capasEsperadas) {
