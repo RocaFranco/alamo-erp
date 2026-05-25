@@ -2181,7 +2181,7 @@
     <section class="panel" id="panel-sec-tubera-rafia">
       <div class="page-head">
         <div>
-          <h2 class="page-title">🧵 Tubera Rafia · TUB-RAFIA-1</h2>
+          <h2 class="page-title">🧵 Tubera Rafia</h2>
           <p class="page-sub">1 operario · 1 bobina padre plana → N bobinas hijas tubulares · sin aprobación · cierre por OF</p>
         </div>
       </div>
@@ -2261,7 +2261,7 @@
                 <th>Nº OF</th>
                 <th>Padre</th>
                 <th>Producto</th>
-                <th class="num">Mts Padre</th>
+                <th class="num">Mts Hijas</th>
                 <th class="num">Cant Hijas</th>
                 <th>Códigos hijas</th>
                 <th>Legajo</th>
@@ -2321,11 +2321,13 @@
             <!-- Bobina padre -->
             <div class="conv-block field-2">
               <div class="conv-block-title">🧵 Bobina padre</div>
-              <p class="form-sub" style="margin:0 0 10px">Debe ser Polipapel impreso (Origen=Impresión-impresa) o BioPP laminado (Origen=Laminadora-biopp).</p>
+              <p class="form-sub" style="margin:0 0 10px" id="tr-padre-help">Bobinas disponibles para esta OF (filtradas según tipo + ancho).</p>
               <label class="field" style="margin-bottom:0">
-                <span>Código bobina padre</span>
-                <input type="text" name="padre_cod" id="tr-padre-cod" placeholder="Ej: BOB-2026-00050" autocomplete="off" required>
-                <small class="hint" id="tr-padre-info">Ingresá el código.</small>
+                <span>Elegí bobina padre</span>
+                <select name="padre_cod" id="tr-padre-cod" required>
+                  <option value="">— Elegí bobina padre —</option>
+                </select>
+                <small class="hint" id="tr-padre-info">Elegí una opción del listado.</small>
               </label>
             </div>
 
@@ -4170,6 +4172,39 @@ async function cargarBobinasStock() {
   renderStockTintas();
 }
 
+// Productos con variación natural de gramaje entre bobinas (Franco 2026-05-25):
+// rafias/polipapel/biopp vienen con micro-diferencias (~0.5-1 g/m²) por bobina porque
+// la máquina de Pitec no es perfecta. Para esos, agrupamos SOLO por formato (no gramaje)
+// y mostramos el gramaje promedio + rango. Las bobinas individuales conservan su gramaje real.
+function productoConVariacionGramaje(producto) {
+  const p = String(producto || '').toLowerCase();
+  return p.startsWith('rafia ') || p.startsWith('polipapel') || p === 'biopp';
+}
+
+// Helper: tipo de bolsa de una bobina (cruza con la OF asignada en cualquier cache disponible).
+// Devuelve 'papel'|'polipapel'|'biopp'|'rafia_conv'|'rafia_lam' o '' si no se encuentra.
+function tipoBolsaDeBobina(b) {
+  const ofId = String(getOFAsignada(b) || '').trim();
+  if (!ofId) return '';
+  const caches = [trOFsCache, lamOFsCache, impOFsCache, tpOFsCache, ofsParaTintasCache];
+  for (const c of caches) {
+    if (!Array.isArray(c)) continue;
+    const of = c.find(o => String(o['Nº OF']||'').trim() === ofId);
+    if (of) return String(of['Tipo Bolsa']||'').toLowerCase().trim();
+  }
+  return '';
+}
+
+// Mapea tipo de bolsa → label legible para sub-grupo dentro de Impresas/Tubulares.
+const TIPO_BOLSA_LABEL = {
+  'papel':       'Papel',
+  'polipapel':   'Polipapel',
+  'biopp':       'BioPP',
+  'rafia_conv':  'Rafia conv.',
+  'rafia_lam':   'Rafia lam.',
+  '':            'Sin tipo',
+};
+
 function renderStockGrupos() {
   const cont = document.getElementById('stk-grupos');
   if (!cont) return; // no estamos en el panel Bobinas y Stock
@@ -4178,72 +4213,111 @@ function renderStockGrupos() {
     const e = String(b['Estado'] || '').toLowerCase();
     return e === '' || e === 'disponible' || e === 'lista_pasar';
   });
-  // KPIs
   const totalKg = enStock.reduce((s, b) => s + (Number(b['Kg']) || 0), 0);
-  // Agrupar por Producto.
-  // Excepción (Franco 2026-05-17): las bobinas IMPRESAS o con REMANENTE IMPRESO
-  // se agrupan todas en una sola familia "Bobinas Impresas" (no una por Nombre Bolsa).
-  // Su Producto real (ej. "Bolsa 25 kg") queda como variante dentro de esa familia.
-  const FAM_IMPRESAS = '🖨️ Bobinas Impresas';
+
+  // Estructura jerárquica (Franco 2026-05-25):
+  //   📦 Bobinas (materias primas): familias por Producto (Papel Kraft, Rafia, etc.)
+  //   🏭 Stock en Proceso: 2 familias:
+  //     🧵 Tubulares (TR)  → sub-grupo por tipo de bolsa (Polipapel/BioPP)
+  //     🖨️ Impresas        → sub-grupo por tipo de bolsa (Papel/Polipapel/BioPP) + Coating Exterior
   const esImpresa = (b) => {
     const o = String(b['Origen']||'').trim();
     return o === ORIGEN_IMPRESION_IMPRESA || o === ORIGEN_TP_REMANENTE;
   };
-  const grupos = {};
-  enStock.forEach(b => {
-    const fam = esImpresa(b) ? FAM_IMPRESAS : (b['Producto'] || 'Sin Producto');
-    if (!grupos[fam]) grupos[fam] = { bobinas: [], kg: 0 };
-    grupos[fam].bobinas.push(b);
-    grupos[fam].kg += Number(b['Kg']) || 0;
-  });
-  // KPIs cards
-  setKpi('stk-kpi-bobinas', enStock.length,    enStock.length === 0 ? 'sin bobinas codificadas' : `disponibles hoy`, enStock.length === 0);
-  setKpi('stk-kpi-kg',      fmtNum(Math.round(totalKg)),    enStock.length === 0 ? 'sin stock' : 'kg en planta', enStock.length === 0);
-  setKpi('stk-kpi-fam',     Object.keys(grupos).length || '0', '', Object.keys(grupos).length === 0);
-  document.getElementById('stk-hint').textContent = enStock.length ? `${Object.keys(grupos).length} familia(s) · ${enStock.length} bobina(s)` : '';
+  const esTubularTR = (b) => String(b['Origen']||'').trim() === ORIGEN_TR_TUBULAR;
+  const esCoatingExt = (b) => String(b['Origen']||'').trim() === ORIGEN_LAM_COATING_EXT;
 
-  // Render grupos (2 niveles: familia → variante → bobinas)
-  if (!Object.keys(grupos).length) {
+  // Datasets: materias = familias normales; tr = bobinas TR; imp = bobinas impresas
+  const matFamilias = {}; // { 'Papel Kraft Blanco': { bobinas, kg } }
+  const trSubgrupos = {}; // { 'Polipapel': [bobinas] }
+  const impSubgrupos = {}; // { 'Papel': [bobinas], 'Coating Exterior': [...] }
+  enStock.forEach(b => {
+    if (esTubularTR(b)) {
+      const tipo = tipoBolsaDeBobina(b);
+      const sub = TIPO_BOLSA_LABEL[tipo] || 'Sin tipo';
+      if (!trSubgrupos[sub]) trSubgrupos[sub] = [];
+      trSubgrupos[sub].push(b);
+    } else if (esCoatingExt(b)) {
+      if (!impSubgrupos['Coating Exterior']) impSubgrupos['Coating Exterior'] = [];
+      impSubgrupos['Coating Exterior'].push(b);
+    } else if (esImpresa(b)) {
+      const tipo = tipoBolsaDeBobina(b);
+      const sub = TIPO_BOLSA_LABEL[tipo] || 'Sin tipo';
+      if (!impSubgrupos[sub]) impSubgrupos[sub] = [];
+      impSubgrupos[sub].push(b);
+    } else {
+      const fam = b['Producto'] || 'Sin Producto';
+      if (!matFamilias[fam]) matFamilias[fam] = { bobinas: [], kg: 0 };
+      matFamilias[fam].bobinas.push(b);
+      matFamilias[fam].kg += Number(b['Kg']) || 0;
+    }
+  });
+
+  // KPIs
+  const totalFamilias = Object.keys(matFamilias).length
+    + (Object.keys(trSubgrupos).length ? 1 : 0)
+    + (Object.keys(impSubgrupos).length ? 1 : 0);
+  setKpi('stk-kpi-bobinas', enStock.length, enStock.length === 0 ? 'sin bobinas codificadas' : 'disponibles hoy', enStock.length === 0);
+  setKpi('stk-kpi-kg', fmtNum(Math.round(totalKg)), enStock.length === 0 ? 'sin stock' : 'kg en planta', enStock.length === 0);
+  setKpi('stk-kpi-fam', totalFamilias || '0', '', totalFamilias === 0);
+  document.getElementById('stk-hint').textContent = enStock.length ? `${enStock.length} bobina(s)` : '';
+
+  if (!enStock.length) {
     cont.innerHTML = `<div class="empty-block">No hay bobinas en stock todavía. Codificá la primera en <strong>Sectores → Recepción Bobinas + Convertir → + Codificar Bobina</strong>.</div>`;
     return;
   }
-  // Ordenar familias: alfabético, pero "Bobinas Impresas" SIEMPRE al final.
-  const familiasOrden = Object.keys(grupos).sort((a, b) => {
-    if (a === FAM_IMPRESAS) return 1;
-    if (b === FAM_IMPRESAS) return -1;
-    return a.localeCompare(b);
-  });
-  cont.innerHTML = familiasOrden.map(fam => {
-    const g = grupos[fam];
-    // Sub-agrupar por variante.
-    // Para kraft → Formato + Gramaje.
-    // Para impresas → Producto (Nombre Bolsa) + Formato + Gramaje (necesario porque
-    // todas comparten familia pero pueden ser de distintos clientes/bolsas).
+
+  // Helper: render de UNA familia (con variantes adentro).
+  // Reglas de agrupación de variantes:
+  //   - esEnProceso=true (Tubulares/Impresas): Producto + Formato + Gramaje (varias bolsas)
+  //   - Producto con variación de gramaje (Rafia/Polipapel/BioPP): SOLO Formato
+  //     (Franco 2026-05-25: gramaje promedio + rango en header)
+  //   - Resto (Papel Kraft, Lámina PE, Siliconado): Formato + Gramaje
+  function renderFamilia(fam, bobinas, esEnProceso) {
+    const kg = bobinas.reduce((s, b) => s + (Number(b['Kg']) || 0), 0);
     const variantes = {};
-    g.bobinas.forEach(b => {
+    bobinas.forEach(b => {
       const fto = b['Formato (cm)'] || '?';
       const gr  = b['Gramaje (g/m²)'] || '?';
       const prod = b['Producto'] || '—';
-      const key = (fam === FAM_IMPRESAS)
-        ? `${prod} · ${fto} cm · ${gr} g/m²`
-        : `${fto} cm · ${gr} g/m²`;
+      let key;
+      if (esEnProceso) {
+        key = `${prod} · ${fto} cm · ${gr} g/m²`;
+      } else if (productoConVariacionGramaje(prod)) {
+        key = `${fto} cm`; // sin gramaje — se agrupa todo el formato
+      } else {
+        key = `${fto} cm · ${gr} g/m²`;
+      }
       if (!variantes[key]) variantes[key] = { bobinas: [], kg: 0, gr, fto, prod };
       variantes[key].bobinas.push(b);
       variantes[key].kg += Number(b['Kg']) || 0;
     });
-    // Ordenar variantes por formato (ancho), después por gramaje
     const variantesOrden = Object.keys(variantes).sort((a, b) => {
       const va = variantes[a], vb = variantes[b];
-      const ftoDiff = (Number(va.fto) || 0) - (Number(vb.fto) || 0);
-      if (ftoDiff !== 0) return ftoDiff;
-      return (Number(va.gr) || 0) - (Number(vb.gr) || 0);
+      const d = (Number(va.fto)||0) - (Number(vb.fto)||0);
+      if (d !== 0) return d;
+      return (Number(va.gr)||0) - (Number(vb.gr)||0);
     });
     const variantesHTML = variantesOrden.map(vk => {
       const v = variantes[vk];
+      // Si la familia es de variación de gramaje y la key no incluye gramaje, calculamos
+      // promedio + rango para mostrar en el header.
+      let labelExtra = '';
+      if (!esEnProceso && productoConVariacionGramaje(v.prod) && v.bobinas.length > 0) {
+        const grs = v.bobinas.map(b => Number(b['Gramaje (g/m²)']) || 0).filter(g => g > 0);
+        if (grs.length) {
+          const prom = grs.reduce((s, x) => s + x, 0) / grs.length;
+          const min = Math.min(...grs);
+          const max = Math.max(...grs);
+          const promTxt = (Math.round(prom * 10) / 10).toFixed(1);
+          labelExtra = ` · <strong>${promTxt} g/m² prom</strong>`;
+          if (max - min > 1) labelExtra += ` <small style="color:var(--text-3)">(rango ${min.toFixed(2)}-${max.toFixed(2)})</small>`;
+        }
+      }
       const bobinasHTML = v.bobinas.map(b => `
         <div class="bobina-row">
           <span class="of-num">${b['Código Bobina'] || '—'}</span>
-          <span class="bobina-meta">${b['Origen'] || '—'}${b['Proveedor'] ? ' · '+b['Proveedor'] : ''}</span>
+          <span class="bobina-meta">${b['Origen'] || '—'}${b['Proveedor'] ? ' · '+b['Proveedor'] : ''}${b['Gramaje (g/m²)'] ? ' · ' + b['Gramaje (g/m²)'] + ' g/m²' : ''}</span>
           <span class="bobina-kg">${fmtNum(b['Kg'])} kg</span>
         </div>
       `).join('');
@@ -4251,7 +4325,7 @@ function renderStockGrupos() {
         <div class="variante-card">
           <div class="variante-head" onclick="this.parentElement.classList.toggle('open')">
             <span class="caret">▸</span>
-            <span class="variante-label">${vk}</span>
+            <span class="variante-label">${vk}${labelExtra}</span>
             <span class="variante-meta"><strong>${v.bobinas.length}</strong> bob · <strong>${fmtNum(Math.round(v.kg))}</strong> kg</span>
           </div>
           <div class="variante-detalle">${bobinasHTML}</div>
@@ -4266,15 +4340,74 @@ function renderStockGrupos() {
             <span class="grupo-nombre">${fam}</span>
           </div>
           <div class="grupo-meta">
-            <span><strong>${g.bobinas.length}</strong> bobina(s)</span>
-            <span><strong>${fmtNum(Math.round(g.kg))}</strong> kg</span>
+            <span><strong>${bobinas.length}</strong> bobina(s)</span>
+            <span><strong>${fmtNum(Math.round(kg))}</strong> kg</span>
             <span><strong>${variantesOrden.length}</strong> variante(s)</span>
           </div>
         </div>
         <div class="grupo-detalle">${variantesHTML}</div>
       </div>
     `;
-  }).join('');
+  }
+
+  // Orden meta: las materias primas según ORDEN_FAMILIAS_STOCK (mismo orden del print).
+  const familiasMatOrden = ordenarFamilias(Object.keys(matFamilias));
+  let html = '';
+
+  // ========== 📦 META: BOBINAS (materias primas) ==========
+  if (familiasMatOrden.length) {
+    const totalMatBob = Object.values(matFamilias).reduce((s, g) => s + g.bobinas.length, 0);
+    const totalMatKg = Object.values(matFamilias).reduce((s, g) => s + g.kg, 0);
+    html += `<div class="meta-section">
+      <h3 style="font-family:'Syne',sans-serif;font-size:18px;color:var(--accent);margin:0 0 14px;letter-spacing:0.5px">
+        📦 Bobinas <span style="color:var(--text-3);font-size:13px;font-weight:400;letter-spacing:0">· ${totalMatBob} bob · ${fmtNum(Math.round(totalMatKg))} kg · ${familiasMatOrden.length} familia(s)</span>
+      </h3>
+      ${familiasMatOrden.map(fam => renderFamilia(fam, matFamilias[fam].bobinas, false)).join('')}
+    </div>`;
+  }
+
+  // ========== 🏭 META: STOCK EN PROCESO ==========
+  const totalProcBob =
+    Object.values(trSubgrupos).reduce((s, l) => s + l.length, 0) +
+    Object.values(impSubgrupos).reduce((s, l) => s + l.length, 0);
+  if (totalProcBob > 0) {
+    const totalProcKg =
+      Object.values(trSubgrupos).flat().reduce((s, b) => s + (Number(b['Kg'])||0), 0) +
+      Object.values(impSubgrupos).flat().reduce((s, b) => s + (Number(b['Kg'])||0), 0);
+    html += `<div class="meta-section" style="margin-top:24px">
+      <h3 style="font-family:'Syne',sans-serif;font-size:18px;color:var(--accent);margin:0 0 14px;letter-spacing:0.5px">
+        🏭 Bobinas Stock en Proceso <span style="color:var(--text-3);font-size:13px;font-weight:400;letter-spacing:0">· ${totalProcBob} bob · ${fmtNum(Math.round(totalProcKg))} kg</span>
+      </h3>`;
+
+    // 🧵 Tubulares (TR) — sub-grupos por tipo de bolsa
+    if (Object.keys(trSubgrupos).length) {
+      const subsOrden = Object.keys(trSubgrupos).sort();
+      const subsHTML = subsOrden.map(sub => renderFamilia(sub, trSubgrupos[sub], true)).join('');
+      html += `<div style="margin-bottom:16px">
+        <h4 style="font-family:'Syne',sans-serif;font-size:15px;color:var(--text-2);margin:0 0 10px">🧵 Tubulares (TR)</h4>
+        ${subsHTML}
+      </div>`;
+    }
+
+    // 🖨️ Impresas — sub-grupos por tipo de bolsa + Coating Exterior
+    if (Object.keys(impSubgrupos).length) {
+      // Orden: Papel, Polipapel, BioPP, otros, Coating Exterior último
+      const subsOrden = Object.keys(impSubgrupos).sort((a, b) => {
+        const peso = (s) => s === 'Coating Exterior' ? 99 : (s === 'Papel' ? 1 : (s === 'Polipapel' ? 2 : (s === 'BioPP' ? 3 : 5)));
+        const pa = peso(a), pb = peso(b);
+        if (pa !== pb) return pa - pb;
+        return a.localeCompare(b);
+      });
+      const subsHTML = subsOrden.map(sub => renderFamilia(sub, impSubgrupos[sub], true)).join('');
+      html += `<div>
+        <h4 style="font-family:'Syne',sans-serif;font-size:15px;color:var(--text-2);margin:0 0 10px">🖨️ Impresas</h4>
+        ${subsHTML}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  cont.innerHTML = html;
 }
 
 // ============================================================
@@ -4362,9 +4495,13 @@ function imprimirStockBobinas(modo) {
     alert('No hay bobinas en stock para imprimir.');
     return;
   }
-  // Separar IMPRESAS (van aparte al final, siempre con detalle).
+  // Separar IMPRESAS y TUBULARES (TR) — van aparte al final, agregadas por Nombre Bolsa.
   const enStockImpresas = enStock.filter(b => String(b['Origen']||'').trim() === ORIGEN_IMPRESION_IMPRESA);
-  const enStockNormales = enStock.filter(b => String(b['Origen']||'').trim() !== ORIGEN_IMPRESION_IMPRESA);
+  const enStockTubulares = enStock.filter(b => String(b['Origen']||'').trim() === ORIGEN_TR_TUBULAR);
+  const enStockNormales = enStock.filter(b => {
+    const o = String(b['Origen']||'').trim();
+    return o !== ORIGEN_IMPRESION_IMPRESA && o !== ORIGEN_TR_TUBULAR;
+  });
 
   // Agrupar normales por Producto (familia)
   const grupos = {};
@@ -4376,26 +4513,52 @@ function imprimirStockBobinas(modo) {
   let html = '';
 
   if (modo === 'resumen') {
-    // RESUMEN limpio (Franco 2026-05-23): sin línea de Total arriba, sin cifras al lado del nombre.
-    // 1 fila por Formato dentro de cada familia.
+    // RESUMEN limpio: sin Total arriba, sin cifras al lado del nombre. 1 fila por variante.
+    // - Productos con variación de gramaje (Rafia/Polipapel/BioPP): 1 fila por Formato,
+    //   se muestra gramaje promedio + rango. (Franco 2026-05-25)
+    // - Resto: 1 fila por Formato + Gramaje (Papel Kraft tiene gramaje estable, distingue).
     for (const fam of ordenarFamilias(Object.keys(grupos))) {
+      const conVariacion = productoConVariacionGramaje(fam);
       const subgrupos = {};
       grupos[fam].forEach(b => {
         const fto = String(b['Formato (cm)'] || '—');
-        if (!subgrupos[fto]) subgrupos[fto] = [];
-        subgrupos[fto].push(b);
+        const gr = String(b['Gramaje (g/m²)'] || '?');
+        const key = conVariacion ? fto : `${fto}|${gr}`;
+        if (!subgrupos[key]) subgrupos[key] = { bobinas: [], fto, gr };
+        subgrupos[key].bobinas.push(b);
       });
       html += `<h2>${fam}</h2>`;
       html += `<table><thead><tr>
-        <th>Formato (cm)</th><th class="num">Bobinas</th><th class="num">Kg</th><th class="num">Mts</th>
+        <th>Formato (cm)</th>
+        <th>Gramaje (g/m²)</th>
+        <th class="num">Bobinas</th><th class="num">Kg</th><th class="num">Mts</th>
       </tr></thead><tbody>`;
-      const ftos = Object.keys(subgrupos).sort((a,b) => Number(a) - Number(b));
-      for (const fto of ftos) {
-        const lista = subgrupos[fto];
+      const keysOrden = Object.keys(subgrupos).sort((a, b) => {
+        const fa = Number(subgrupos[a].fto) || 0;
+        const fb = Number(subgrupos[b].fto) || 0;
+        if (fa !== fb) return fa - fb;
+        return (Number(subgrupos[a].gr) || 0) - (Number(subgrupos[b].gr) || 0);
+      });
+      for (const key of keysOrden) {
+        const sg = subgrupos[key];
+        const lista = sg.bobinas;
         const kg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
         const mts = lista.reduce((s, b) => s + (Number(b['Mts Totales'])||0), 0);
+        // Texto gramaje: si conVariacion, promedio + rango (si > 1 g/m² de diferencia)
+        let gramajeTxt = sg.gr;
+        if (conVariacion) {
+          const grs = lista.map(b => Number(b['Gramaje (g/m²)']) || 0).filter(g => g > 0);
+          if (grs.length) {
+            const prom = grs.reduce((s, x) => s + x, 0) / grs.length;
+            const min = Math.min(...grs);
+            const max = Math.max(...grs);
+            gramajeTxt = (Math.round(prom * 10) / 10).toFixed(1) + ' prom';
+            if (max - min > 1) gramajeTxt += ` (${min.toFixed(2)}–${max.toFixed(2)})`;
+          }
+        }
         html += `<tr>
-          <td>${fto} cm</td>
+          <td>${sg.fto} cm</td>
+          <td>${gramajeTxt}</td>
           <td class="num">${lista.length}</td>
           <td class="num">${fmtNum(Math.round(kg))}</td>
           <td class="num">${fmtNum(Math.round(mts))}</td>
@@ -4403,20 +4566,21 @@ function imprimirStockBobinas(modo) {
       }
       html += '</tbody></table>';
     }
-    // BOBINAS IMPRESAS — una sola tabla agregada por nombre de bolsa (sin código/OF/etc.)
-    if (enStockImpresas.length) {
-      const gruposImp = {};
-      enStockImpresas.forEach(b => {
+    // Helper para imprimir una sección (tubulares/impresas) — misma estructura agregada por bolsa.
+    const renderSeccionPorBolsa = (titulo, bobs) => {
+      if (!bobs.length) return;
+      const g = {};
+      bobs.forEach(b => {
         const k = b['Producto'] || 'Sin Tipo Bolsa';
-        if (!gruposImp[k]) gruposImp[k] = [];
-        gruposImp[k].push(b);
+        if (!g[k]) g[k] = [];
+        g[k].push(b);
       });
-      html += `<h2>🖨️ Bobinas IMPRESAS</h2>`;
+      html += `<h2>${titulo}</h2>`;
       html += `<table><thead><tr>
         <th>Bolsa</th><th class="num">Bobinas</th><th class="num">Kg</th><th class="num">Mts</th>
       </tr></thead><tbody>`;
-      for (const bolsa of Object.keys(gruposImp).sort()) {
-        const lista = gruposImp[bolsa];
+      for (const bolsa of Object.keys(g).sort()) {
+        const lista = g[bolsa];
         const kg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
         const mts = lista.reduce((s, b) => s + (Number(b['Mts Totales'])||0), 0);
         html += `<tr>
@@ -4427,7 +4591,9 @@ function imprimirStockBobinas(modo) {
         </tr>`;
       }
       html += '</tbody></table>';
-    }
+    };
+    renderSeccionPorBolsa('🧵 Bobinas TUBULARES (TR)', enStockTubulares);
+    renderSeccionPorBolsa('🖨️ Bobinas IMPRESAS', enStockImpresas);
   } else {
     // DETALLE — tablas detalladas por familia (sin línea de "Total" arriba — Franco 2026-05-24)
     // Tablas detalladas por familia
@@ -4453,17 +4619,18 @@ function imprimirStockBobinas(modo) {
       }
       html += '</tbody></table>';
     }
-    // Bobinas impresas DETALLADAS al final
-    if (enStockImpresas.length) {
-      const gruposImp = {};
-      enStockImpresas.forEach(b => {
+    // Helper para sección detallada (tubulares / impresas) por nombre de bolsa
+    const renderSeccionDetallePorBolsa = (titulo, bobs) => {
+      if (!bobs.length) return;
+      const g = {};
+      bobs.forEach(b => {
         const k = b['Producto'] || 'Sin Tipo Bolsa';
-        if (!gruposImp[k]) gruposImp[k] = [];
-        gruposImp[k].push(b);
+        if (!g[k]) g[k] = [];
+        g[k].push(b);
       });
-      html += `<hr style="margin:24px 0 16px"><h2 style="color:#888">🖨️ Bobinas IMPRESAS — ${enStockImpresas.length} bobina(s)</h2>`;
-      for (const tipoBolsa of Object.keys(gruposImp).sort()) {
-        const lista = gruposImp[tipoBolsa].sort((a, b) => (Number(a['Formato (cm)'])||0) - (Number(b['Formato (cm)'])||0));
+      html += `<hr style="margin:24px 0 16px"><h2 style="color:#888">${titulo} — ${bobs.length} bobina(s)</h2>`;
+      for (const tipoBolsa of Object.keys(g).sort()) {
+        const lista = g[tipoBolsa].sort((a, b) => (Number(a['Formato (cm)'])||0) - (Number(b['Formato (cm)'])||0));
         const subKg = lista.reduce((s, b) => s + (Number(b['Kg'])||0), 0);
         html += `<h3>${tipoBolsa} — ${lista.length} bob · ${fmtNum(Math.round(subKg))} kg</h3>`;
         html += `<table><thead><tr>
@@ -4484,7 +4651,9 @@ function imprimirStockBobinas(modo) {
         }
         html += '</tbody></table>';
       }
-    }
+    };
+    renderSeccionDetallePorBolsa('🧵 Bobinas TUBULARES (TR)', enStockTubulares);
+    renderSeccionDetallePorBolsa('🖨️ Bobinas IMPRESAS', enStockImpresas);
   }
 
   const titulo = modo === 'resumen' ? 'Stock de Bobinas — Resumen por familia' : 'Stock de Bobinas — Detalle';
@@ -4519,11 +4688,13 @@ function splitPantoneViejo(str) {
 
 // Devuelve mapa { 'COLOR|Pantone|Categoría': kgEnStock }
 function calcularStockTintas() {
-  // 1. Sumar entradas (compras) por Color+Pantone+Categoría
+  // 1. Sumar entradas (compras) por Color+Pantone+Categoría.
+  // (Franco 2026-05-25): Pantone también a UPPERCASE para evitar que "foto" y "FOTO"
+  // se traten como pantones distintos. Bug histórico que dejaba stock fantasma.
   const map = {};
   (entradasTintasCache || []).forEach(e => {
     const color = String(e['Color']||'').trim().toUpperCase();
-    const pant = String(e['Pantone']||'').trim();
+    const pant = String(e['Pantone']||'').trim().toUpperCase();
     const cat = getCategoria(e);
     const kg = Number(e['Kg']) || 0;
     if (!color || !pant || !cat) return;
@@ -4540,20 +4711,18 @@ function calcularStockTintas() {
   (tintasConsumosCache || []).forEach(t => {
     const claveT = `${t['Fecha']}|${t['Nº OF']}|${t['Nº Impresora']}`;
     if (!aprobadosSet.has(claveT)) return;
-    // Color: leer columna directa (formato nuevo). Fallback silencioso al split del Pantone
-    // por si quedan filas viejas (no debería).
     let color = String(t['Color']||'').trim().toUpperCase();
-    let pantone = String(t['Pantone']||'').trim();
+    let pantone = String(t['Pantone']||'').trim().toUpperCase();
     if (!color && pantone) {
       const sp = splitPantoneViejo(pantone);
       color = sp.color;
-      pantone = sp.pantone;
+      pantone = String(sp.pantone || '').toUpperCase();
     }
     const numOF = t['Nº OF'];
     const of = (ofsParaTintasCache || []).find(o => o['Nº OF'] === numOF);
     const cat = of ? tipoBolsaACategoriaTinta(of['Tipo Bolsa']) : '';
     const kg = Number(t['Kg Consumidos']) || 0;
-    if (!color || !pantone || !cat) return; // sin color no se contabiliza
+    if (!color || !pantone || !cat) return;
     const k = `${color}|${pantone}|${cat}`;
     map[k] = (map[k] || 0) - kg;
   });
@@ -4574,7 +4743,7 @@ function renderStockTintas() {
   // Recorrer catálogo (es la fuente de Color+Pantone disponibles)
   (tintasCatalogoCache || []).forEach(c => {
     const color = String(c['Color']||'').trim().toUpperCase();
-    const pant = String(c['Pantone']||'').trim();
+    const pant = String(c['Pantone']||'').trim().toUpperCase();
     const cat = getCategoria(c);
     if (!color || !pant || !cats.includes(cat)) return;
     const kg = stockMap[`${color}|${pant}|${cat}`] || 0;
@@ -4668,7 +4837,7 @@ function imprimirStockTintas() {
   const porCat = { 'Papel': [], 'Tubo': [], 'BioPP': [] };
   (tintasCatalogoCache || []).forEach(c => {
     const color = String(c['Color']||'').trim().toUpperCase();
-    const pant = String(c['Pantone']||'').trim();
+    const pant = String(c['Pantone']||'').trim().toUpperCase();
     const cat = getCategoria(c);
     if (!color || !pant || !cats.includes(cat)) return;
     const kg = stockMap[`${color}|${pant}|${cat}`] || 0;
@@ -6171,7 +6340,22 @@ function puedeTrabajarseEnSector(of, sector, eventosPorSector) {
       String(b['Estado']||'').trim().toLowerCase() === 'disponible'
     );
   }
-  // Por defecto (Tubera Rafia / Laminadora / Embutido / Costura): regla antigua
+  if (sector === 'Tubera Rafia') {
+    // Misma lógica que TP pero con orígenes según tipo de bolsa.
+    // Polipapel impreso → bobina con Origen=Impresión-impresa asignada a la OF
+    // BioPP impreso → bobina con Origen=Laminadora-biopp asignada a la OF
+    // Si no imprime → aparece directo
+    const imprime = cadena.includes('Impresión');
+    if (!imprime) return true;
+    const tipo = String(of['Tipo Bolsa']||'').toLowerCase().trim();
+    const origenEsperado = (tipo === 'biopp') ? ORIGEN_LAM_BIOPP : ORIGEN_IMPRESION_IMPRESA;
+    return (bobinasCache || []).some(b =>
+      getOFAsignada(b) === numOF &&
+      String(b['Origen']||'').trim() === origenEsperado &&
+      String(b['Estado']||'').trim().toLowerCase() === 'disponible'
+    );
+  }
+  // Por defecto (Laminadora / Embutido / Costura): regla antigua
   // de "anterior cerrado". Cuando refinemos esos sectores, los movemos a su propia rama.
   for (let i = 0; i < idx; i++) {
     const sec = cadena[i];
@@ -6689,6 +6873,56 @@ async function aprobarParteImp(rowIndex, numOf) {
       `\n\nRechazá el parte y volvé a cargarlo con los valores correctos.`
     );
     return;
+  }
+
+  // === VALIDACIÓN STOCK TINTAS (Franco 2026-05-25) ===
+  // Si los kg de tinta del parte dejarían stock negativo → bloquear y pedir motivo
+  // obligatorio para forzar la aprobación. Sin motivo no aprueba.
+  const stockTintaActual = calcularStockTintas();
+  const tintasDelParte = (tintasConsumosCache || []).filter(t =>
+    t['Fecha'] === p['Fecha'] &&
+    t['Nº OF'] === p['Nº OF'] &&
+    t['Nº Impresora'] === p['Nº Impresora']
+  );
+  const tintasNegativas = [];
+  for (const t of tintasDelParte) {
+    let color = String(t['Color']||'').trim().toUpperCase();
+    let pantone = String(t['Pantone']||'').trim().toUpperCase();
+    if (!color && pantone) {
+      const sp = splitPantoneViejo(pantone);
+      color = sp.color; pantone = String(sp.pantone || '').toUpperCase();
+    }
+    const ofObj = (ofsParaTintasCache || []).find(o => o['Nº OF'] === t['Nº OF']);
+    const cat = ofObj ? tipoBolsaACategoriaTinta(ofObj['Tipo Bolsa']) : '';
+    const kg = Number(t['Kg Consumidos']) || 0;
+    if (!color || !pantone || !cat || !kg) continue;
+    const k = `${color}|${pantone}|${cat}`;
+    const stockAct = stockTintaActual[k] || 0;
+    const stockPost = stockAct - kg;
+    if (stockPost < 0) {
+      tintasNegativas.push({
+        label: `${color} ${pantone} (${cat})`,
+        stockAct, kg, stockPost,
+      });
+    }
+  }
+  let motivoStockNeg = '';
+  if (tintasNegativas.length) {
+    const lines = tintasNegativas.map(t =>
+      `• ${t.label}: ${fmtNum(Math.round(t.stockAct*10)/10)} kg − ${fmtNum(t.kg)} kg = ${fmtNum(Math.round(t.stockPost*10)/10)} kg`
+    ).join('\n');
+    motivoStockNeg = prompt(
+      `⚠️ El stock de estas tintas quedaría NEGATIVO al aprobar:\n\n${lines}\n\n` +
+      `Esto suele indicar:\n` +
+      `· Falta cargar una recepción de tinta (Stock Tintas → + Cargar Recepción)\n` +
+      `· Los kg consumidos están mal cargados en el parte\n\n` +
+      `Si querés aprobar igual, escribí el MOTIVO obligatorio (queda registrado).\n` +
+      `Si cancelás, podés cargar la recepción faltante o rechazar el parte.`
+    );
+    if (!motivoStockNeg || !motivoStockNeg.trim()) {
+      alert('Aprobación cancelada — el stock no puede quedar negativo sin motivo.');
+      return;
+    }
   }
 
   if (!confirm(`¿Aprobar parte de la OF ${numOf}?\n\n· ${hermanas.length} bobina(s) madre en el turno\n· Bolsas impresas: ${bolsasDeFila(ultima)}\n· Esto va a generar bobinas hijas IMPRESAS asignadas a la OF, listas para Tubera Papel.\n· Las bobinas con remanente ≥ ${UMBRAL_REMANENTE_MTS}m vuelven a stock con el mismo código.`)) return;
@@ -10492,9 +10726,10 @@ function renderColaTR() {
     if (!cadena.includes('Tubera Rafia')) return false;
     const numOF = String(of['Nº OF']||'').trim();
     const cerradaAca = cierres.some(c => String(c['Nº OF']||'').trim() === numOF && String(c['Sector']||'').trim() === 'Tubera Rafia');
-    // Activas: no cerrada acá. Terminadas: SÍ cerrada acá.
-    if (trColaVista === 'activas') return !cerradaAca;
-    return cerradaAca;
+    if (trColaVista === 'terminadas') return cerradaAca;
+    // Activas: no cerrada acá Y los sectores anteriores ya están listos.
+    // puedeTrabajarseEnSector chequea: sector NO cerrado + bobina impresa lista (según tipo).
+    return !cerradaAca && puedeTrabajarseEnSector(of, 'Tubera Rafia', eventosPorSectorCache);
   });
 
   // KPIs (con la vista actual)
@@ -10555,8 +10790,8 @@ function renderColaTR() {
     if (trColaVista === 'activas') {
       const claseCierre = (hechas >= objetivo) ? 'btn-aprobar' : 'btn-rechazar';
       acciones = `
-        <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTR('${num.replace(/'/g, "\\'")}')">Cargar Parte</button>
-        <button type="button" class="${claseCierre}" title="Cerrar OF en TR" onclick="abrirModalCierreTR('${num.replace(/'/g, "\\'")}')">🏁 Cerrar OF</button>
+        <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTR('${num.replace(/'/g, "\\'")}')">Cargar</button>
+        <button type="button" class="${claseCierre}" title="Cerrar OF en TR" onclick="abrirModalCierreTR('${num.replace(/'/g, "\\'")}')">🏁 Cerrar</button>
       `;
     } else {
       acciones = '<span style="color:var(--ok)">✓ Cerrada</span>';
@@ -10569,7 +10804,7 @@ function renderColaTR() {
       <td class="num">${fmtNum(cant)}</td>
       <td class="num">${fmtNum(hechas)}</td>
       <td class="num">${pct}%</td>
-      <td class="num" style="overflow:visible;white-space:nowrap;min-width:280px">${acciones}</td>
+      <td class="num" style="overflow:visible;white-space:nowrap">${acciones}</td>
     </tr>`;
   }).join('');
 }
@@ -10602,7 +10837,7 @@ function renderTablaPartesTR() {
       <td><span class="of-num">${p['Nº OF']||'—'}</span></td>
       <td>${p['Código Bobina Padre']||'—'}</td>
       <td>${p['Producto Padre']||'—'}</td>
-      <td class="num">${fmtNum(Number(p['Mts Padre Consumidos'])||0)}</td>
+      <td class="num">${fmtNum(Number(p['Total Mts Hijas'])||0)}</td>
       <td class="num">${Number(p['Cant Hijas Generadas'])||0}</td>
       <td><small>${p['Códigos Hijas']||'—'}</small></td>
       <td>${p['Legajo']||'—'}</td>
@@ -10631,10 +10866,10 @@ function abrirModalParteTR(numOF) {
   document.getElementById('tr-hijas-list').innerHTML = '';
   trHijaIdx = 0;
   agregarHijaTR();
-  // Reset padre info
-  document.getElementById('tr-padre-info').textContent = 'Ingresá el código.';
+  // Poblar dropdown de bobinas padre filtradas por OF
+  poblarBobinasPadreTR(of);
+  document.getElementById('tr-padre-info').textContent = 'Elegí una opción del listado.';
   document.getElementById('tr-padre-info').style.color = '';
-  document.getElementById('tr-padre-cod').dataset.cod = '';
   recalcTR();
   const msg = document.getElementById('tr-msg');
   if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
@@ -10647,46 +10882,86 @@ document.getElementById('tr-modal-parte').addEventListener('click', (e) => {
   if (e.target.id === 'tr-modal-parte') cerrarModalParteTR();
 });
 
-// Autocomplete padre — valida que sea Polipapel impreso o BioPP laminado
-document.getElementById('tr-padre-cod').addEventListener('input', () => {
-  const input = document.getElementById('tr-padre-cod');
+// Poblar dropdown de bobinas padre filtradas por OF (Franco 2026-05-25):
+// - Si OF imprime → bobinas con Origen=Impresión-impresa (polipapel) o
+//   Laminadora-biopp (biopp) ASIGNADAS a esta OF
+// - Si OF NO imprime → bobinas en stock libre del producto correspondiente
+//   (Polipapel Blanco/Natural/Transparente o BioPP) con el ANCHO de la OF
+function poblarBobinasPadreTR(of) {
+  const sel = document.getElementById('tr-padre-cod');
+  const help = document.getElementById('tr-padre-help');
+  sel.innerHTML = '<option value="">— Elegí bobina padre —</option>';
+  if (!of) return;
+  const tipo = String(of['Tipo Bolsa']||'').toLowerCase().trim();
+  const cadena = String(of['Cadena Sectores']||'').split('→').map(s => s.trim()).filter(Boolean);
+  const imprime = cadena.includes('Impresión');
+  const numOF = String(of['Nº OF']||'').trim();
+  const anchoOF = Number(of['Ancho (cm)']) || 0;
+  let candidatas;
+  if (imprime) {
+    const origenEsperado = (tipo === 'biopp') ? ORIGEN_LAM_BIOPP : ORIGEN_IMPRESION_IMPRESA;
+    candidatas = (bobinasCache || []).filter(b =>
+      getOFAsignada(b) === numOF &&
+      String(b['Origen']||'').trim() === origenEsperado &&
+      String(b['Estado']||'').trim().toLowerCase() === 'disponible'
+    );
+    help.textContent = `Bobinas ${tipo === 'biopp' ? 'BioPP laminadas' : 'Polipapel impresas'} asignadas a esta OF.`;
+  } else {
+    const productosValidos = tipo === 'biopp'
+      ? ['BioPP']
+      : ['Polipapel Blanco', 'Polipapel Natural', 'Polipapel Transparente'];
+    candidatas = (bobinasCache || []).filter(b =>
+      productosValidos.includes(b['Producto']) &&
+      String(b['Estado']||'').trim().toLowerCase() === 'disponible' &&
+      !getOFAsignada(b) &&
+      (!anchoOF || Number(b['Formato (cm)']) === anchoOF)
+    );
+    help.textContent = anchoOF
+      ? `Bobinas en stock libre de ${productosValidos.join(' / ')} con ancho ${anchoOF}cm (orden creciente por mts).`
+      : `Bobinas en stock libre de ${productosValidos.join(' / ')}.`;
+  }
+  candidatas.sort((a, b) => (Number(a['Mts Totales'])||0) - (Number(b['Mts Totales'])||0));
+  for (const b of candidatas) {
+    const opt = document.createElement('option');
+    opt.value = b['Código Bobina'];
+    opt.textContent = `${b['Código Bobina']} · ${b['Producto']||''} · ${b['Formato (cm)']||'?'}cm · ${fmtNum(b['Mts Totales']||0)}m`;
+    sel.appendChild(opt);
+  }
+  if (!candidatas.length) {
+    const opt = document.createElement('option');
+    opt.value = ''; opt.disabled = true;
+    opt.textContent = imprime
+      ? `Sin bobinas disponibles para OF ${numOF}`
+      : `Sin bobinas en stock libre con ancho ${anchoOF}cm`;
+    sel.appendChild(opt);
+  }
+}
+
+// Al elegir una bobina del dropdown → setear datasets + mostrar info
+document.getElementById('tr-padre-cod').addEventListener('change', () => {
+  const sel = document.getElementById('tr-padre-cod');
   const info = document.getElementById('tr-padre-info');
-  const cod = String(input.value || '').trim().toUpperCase();
-  delete input.dataset.cod;
-  delete input.dataset.mts;
-  delete input.dataset.ancho;
-  delete input.dataset.gramaje;
-  delete input.dataset.producto;
-  delete input.dataset.rowindex;
-  delete input.dataset.ofAsignada;
-  if (cod.length < 5) { info.textContent = 'Ingresá el código.'; info.style.color=''; recalcTR(); return; }
+  const cod = String(sel.value || '').trim().toUpperCase();
+  delete sel.dataset.cod;
+  delete sel.dataset.mts;
+  delete sel.dataset.ancho;
+  delete sel.dataset.gramaje;
+  delete sel.dataset.producto;
+  delete sel.dataset.rowindex;
+  delete sel.dataset.ofAsignada;
+  if (!cod) { info.textContent = 'Elegí una opción del listado.'; info.style.color=''; recalcTR(); return; }
   const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
-  if (!bob) { info.textContent = '✗ Bobina no encontrada'; info.style.color='var(--danger)'; recalcTR(); return; }
-  const estado = String(bob['Estado']||'').toLowerCase();
-  if (['transformada','consumida','desperdicio'].includes(estado)) {
-    info.textContent = `✗ Bobina ya está ${estado}`; info.style.color='var(--danger)'; recalcTR(); return;
-  }
-  const origen = String(bob['Origen']||'').trim();
-  const validOrigen = origen === ORIGEN_IMPRESION_IMPRESA || origen === ORIGEN_LAM_BIOPP;
-  if (!validOrigen) {
-    info.textContent = `✗ Origen "${origen||'desconocido'}" no es válido. TR acepta Polipapel impreso (Origen=Impresión-impresa) o BioPP (Origen=Laminadora-biopp).`;
-    info.style.color = 'var(--danger)'; recalcTR(); return;
-  }
-  // Validar OF
-  const numOF = document.getElementById('tr-form-of').value;
+  if (!bob) { info.textContent = '✗ Bobina no encontrada en stock.'; info.style.color='var(--danger)'; recalcTR(); return; }
   const ofAsig = getOFAsignada(bob);
-  if (ofAsig && ofAsig !== numOF) {
-    info.textContent = `✗ Esta bobina está asignada a OF ${ofAsig}, no a ${numOF}.`;
-    info.style.color = 'var(--danger)'; recalcTR(); return;
-  }
-  input.dataset.cod = cod;
-  input.dataset.mts = String(Number(bob['Mts Totales']) || 0);
-  input.dataset.ancho = String(Number(bob['Formato (cm)']) || 0);
-  input.dataset.gramaje = String(Number(bob['Gramaje (g/m²)']) || 0);
-  input.dataset.producto = bob['Producto'] || '';
-  input.dataset.rowindex = String(bob._rowIndex || '');
-  input.dataset.ofAsignada = ofAsig;
-  info.textContent = `✓ ${bob['Producto']||''} · ${bob['Formato (cm)']||'?'}cm · ${fmtNum(bob['Mts Totales']||0)}m disp${ofAsig?` · OF ${ofAsig}`:''}`;
+  sel.dataset.cod = cod;
+  sel.dataset.mts = String(Number(bob['Mts Totales']) || 0);
+  sel.dataset.ancho = String(Number(bob['Formato (cm)']) || 0);
+  sel.dataset.gramaje = String(Number(bob['Gramaje (g/m²)']) || 0);
+  sel.dataset.producto = bob['Producto'] || '';
+  sel.dataset.rowindex = String(bob._rowIndex || '');
+  sel.dataset.ofAsignada = ofAsig;
+  const gramaje = Number(bob['Gramaje (g/m²)']) || 0;
+  info.textContent = `✓ ${bob['Producto']||''} · ${bob['Formato (cm)']||'?'}cm · ${gramaje ? gramaje + ' g/m² · ' : ''}${fmtNum(bob['Mts Totales']||0)}m disp${ofAsig?` · OF ${ofAsig}`:''}`;
   info.style.color = 'var(--ok)';
   recalcTR();
 });
@@ -10711,15 +10986,14 @@ function agregarHijaTR() {
         <span>Mts</span>
         <input type="number" name="hija-mts" class="tr-hija-mts" step="1" min="1" required>
       </label>
-      <label class="field" style="margin-bottom:0">
-        <span>Kg</span>
-        <input type="number" name="hija-kg" class="tr-hija-kg" step="0.1" min="0.1" required>
-      </label>
+      <div class="field" style="margin-bottom:0">
+        <span>Kg <small>· auto</small></span>
+        <div class="calc-out tr-hija-kg-display">—</div>
+      </div>
       <button type="button" class="btn-tinta-del tr-hija-del" title="Quitar hija" style="align-self:end;margin-bottom:4px">✕</button>
     </div>
   `;
   div.querySelector('.tr-hija-mts').addEventListener('input', recalcTR);
-  div.querySelector('.tr-hija-kg').addEventListener('input', recalcTR);
   div.querySelector('.tr-hija-del').addEventListener('click', () => {
     if (cont.querySelectorAll('.tr-hija-row').length <= 1) return;
     div.remove();
@@ -10753,8 +11027,20 @@ function recalcTR() {
   const anchoPadre = Number(padreInput.dataset.ancho) || 0;
   const gramajePadre = Number(padreInput.dataset.gramaje) || 0;
 
-  const sumaMtsHijas = Array.from(document.querySelectorAll('.tr-hija-mts'))
-    .reduce((s, i) => s + (Number(i.value)||0), 0);
+  // Kg de cada hija = mts × ancho × gramaje / 100.000 (mismo gramaje/ancho que el padre,
+  // TR casi no agrega material — solo cola en el sellado). Auto-calculado y guardado
+  // en dataset.kg para usarlo en el submit (Franco 2026-05-25).
+  let sumaMtsHijas = 0;
+  document.querySelectorAll('.tr-hija-row').forEach(row => {
+    const mts = Number(row.querySelector('.tr-hija-mts').value) || 0;
+    sumaMtsHijas += mts;
+    const kg = (mts && anchoPadre && gramajePadre)
+      ? Math.round(mts * anchoPadre * gramajePadre / 100000 * 10) / 10
+      : 0;
+    row.dataset.kg = String(kg);
+    const disp = row.querySelector('.tr-hija-kg-display');
+    if (disp) disp.textContent = kg ? fmtNum(kg) + ' kg' : '—';
+  });
 
   const kgDesp = Number(document.getElementById('tr-kg-desp').value) || 0;
   // Mts desperdicio = kg desp × 100.000 / (ancho × gramaje)
@@ -10804,9 +11090,9 @@ document.getElementById('form-tr').addEventListener('submit', async (e) => {
   const hijasRows = Array.from(document.querySelectorAll('.tr-hija-row'));
   const hijas = hijasRows.map(r => ({
     mts: Number(r.querySelector('.tr-hija-mts').value) || 0,
-    kg: Number(r.querySelector('.tr-hija-kg').value) || 0,
-  })).filter(h => h.mts > 0 && h.kg > 0);
-  if (!hijas.length) { showFormMsg('tr-msg', '✗ Cargá al menos 1 hija con mts y kg.', false); return; }
+    kg: Number(r.dataset.kg) || 0, // calculado auto en recalcTR
+  })).filter(h => h.mts > 0);
+  if (!hijas.length) { showFormMsg('tr-msg', '✗ Cargá al menos 1 hija con mts.', false); return; }
 
   // Validación física
   const mtsPadre = Number(padreInput.dataset.mts) || 0;
