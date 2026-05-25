@@ -2179,8 +2179,247 @@
       </div>
     </section>
     <section class="panel" id="panel-sec-tubera-rafia">
-      <div class="wip"><div class="wip-icon">🧵</div><h2>Tubera Rafia</h2><p>BioPP / Polipapel. Da forma de tubo al plano de Laminadora.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">🧵 Tubera Rafia · TUB-RAFIA-1</h2>
+          <p class="page-sub">1 operario · 1 bobina padre plana → N bobinas hijas tubulares · sin aprobación · cierre por OF</p>
+        </div>
+      </div>
+
+      <!-- Sub-tabs OFs en cola / Partes cargados -->
+      <div class="subtabs">
+        <button type="button" class="subtab-btn active" data-tr-tab="cola">📋 OFs en cola</button>
+        <button type="button" class="subtab-btn" data-tr-tab="partes">📝 Partes cargados</button>
+      </div>
+
+      <!-- ========== SUBPANEL: OFs en cola ========== -->
+      <div class="tr-subpanel" id="tr-sub-cola" style="display:block">
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">OFs en cola</div>
+            <div class="kpi-value" id="tr-kpi-cola">0</div>
+            <div class="kpi-sub">listas para tubular</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">OFs en proceso</div>
+            <div class="kpi-value" id="tr-kpi-proc">0</div>
+            <div class="kpi-sub">con al menos 1 parte</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Mts tubulizados (mes)</div>
+            <div class="kpi-value" id="tr-kpi-mts">0</div>
+            <div class="kpi-sub">acumulado</div>
+          </div>
+        </div>
+
+        <div class="mnt-toggles">
+          <button type="button" class="cola-toggle active" data-tr-cola-vista="activas">🟡 Activas <span class="badge-num" id="tr-cola-tg-act">0</span></button>
+          <button type="button" class="cola-toggle" data-tr-cola-vista="terminadas">✅ Terminadas en TR <span class="badge-num" id="tr-cola-tg-ter">0</span></button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nº OF</th>
+                <th>Cliente</th>
+                <th>Nombre Bolsa</th>
+                <th>Tipo</th>
+                <th class="num">Cant Bolsas</th>
+                <th class="num">Bolsas hechas</th>
+                <th class="num">% Cumplido</th>
+                <th class="num">Acciones</th>
+              </tr>
+              <tr class="filter-row">
+                <th><input type="text" class="col-filter" id="tr-cola-filt-of" placeholder="Nº OF…"></th>
+                <th><input type="text" class="col-filter" id="tr-cola-filt-cli" placeholder="Cliente…"></th>
+                <th></th>
+                <th><select class="col-filter" id="tr-cola-filt-tipo">
+                  <option value="">Todos</option>
+                  <option value="polipapel">Polipapel</option>
+                  <option value="biopp">BioPP</option>
+                </select></th>
+                <th colspan="4" class="filter-actions">
+                  <button type="button" class="btn-clear-filt" id="tr-cola-btn-clear">Limpiar filtros</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tr-cola-body">
+              <tr><td colspan="8" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========== SUBPANEL: Partes cargados ========== -->
+      <div class="tr-subpanel" id="tr-sub-partes" style="display:none">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nº OF</th>
+                <th>Padre</th>
+                <th>Producto</th>
+                <th class="num">Mts Padre</th>
+                <th class="num">Cant Hijas</th>
+                <th>Códigos hijas</th>
+                <th>Legajo</th>
+                <th class="num">Acciones</th>
+              </tr>
+              <tr class="filter-row">
+                <th></th>
+                <th><input type="text" class="col-filter" id="tr-filt-of" placeholder="Nº OF…"></th>
+                <th><input type="text" class="col-filter" id="tr-filt-padre" placeholder="Padre…"></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th><input type="text" class="col-filter" id="tr-filt-leg" placeholder="Legajo…"></th>
+                <th class="filter-actions">
+                  <button type="button" class="btn-clear-filt" id="tr-btn-clear">Limpiar filtros</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="tr-partes-body">
+              <tr><td colspan="9" class="empty">Sin partes cargados todavía.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
+
+    <!-- ========== MODAL: Cargar Parte Tubera Rafia ========== -->
+    <div class="modal-overlay" id="tr-modal-parte" style="display:none">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="tr-modal-titulo">🧵 Cargar Parte Tubera Rafia</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalParteTR()">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-tr" class="form-grid">
+            <input type="hidden" id="tr-form-of">
+            <input type="hidden" id="tr-form-fecha">
+
+            <!-- Info OF (auto) -->
+            <div class="conv-block field-2" id="tr-of-info" style="background:rgba(232,255,71,0.04);border-color:rgba(232,255,71,0.3)">
+              <div class="padre-info-grid">
+                <div class="item"><small>Nº OF</small><strong id="tr-info-of">—</strong></div>
+                <div class="item"><small>Cliente</small><strong id="tr-info-cliente">—</strong></div>
+                <div class="item"><small>Nombre Bolsa</small><strong id="tr-info-bolsa">—</strong></div>
+                <div class="item"><small>Tipo</small><strong id="tr-info-tipo">—</strong></div>
+                <div class="item"><small>Cant Bolsas</small><strong id="tr-info-cant">—</strong></div>
+              </div>
+            </div>
+
+            <label class="field">
+              <span>Legajo Operario</span>
+              <input type="text" name="legajo" required>
+            </label>
+
+            <!-- Bobina padre -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">🧵 Bobina padre</div>
+              <p class="form-sub" style="margin:0 0 10px">Debe ser Polipapel impreso (Origen=Impresión-impresa) o BioPP laminado (Origen=Laminadora-biopp).</p>
+              <label class="field" style="margin-bottom:0">
+                <span>Código bobina padre</span>
+                <input type="text" name="padre_cod" id="tr-padre-cod" placeholder="Ej: BOB-2026-00050" autocomplete="off" required>
+                <small class="hint" id="tr-padre-info">Ingresá el código.</small>
+              </label>
+            </div>
+
+            <!-- Hijas tubulares -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">🎯 Hijas tubulares generadas</div>
+              <p class="form-sub" style="margin:0 0 10px">Una bobina padre plana puede generar varias hijas tubulares (por el diámetro al enrollar). Códigos auto: <strong>TR-{padre}/{N}</strong>.</p>
+              <div id="tr-hijas-list">
+                <!-- filas dinámicas -->
+              </div>
+              <button type="button" class="btn-secondary" id="tr-hija-add" style="margin-top:8px">+ Sumar hija</button>
+            </div>
+
+            <label class="field field-2">
+              <span>Kg Desperdicio TOTAL del parte</span>
+              <input type="number" name="kg_desp" id="tr-kg-desp" step="0.1" min="0" placeholder="0">
+            </label>
+
+            <!-- Cálculos auto -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">📐 Cálculos automáticos</div>
+              <div class="padre-info-grid">
+                <div class="item"><small>Mts Padre disponibles</small><strong id="tr-calc-mts-padre">—</strong></div>
+                <div class="item"><small>Σ Mts hijas</small><strong id="tr-calc-mts-hijas">—</strong></div>
+                <div class="item"><small>Mts desperdicio</small><strong id="tr-calc-mts-desp">—</strong></div>
+                <div class="item"><small>Mts padre consumidos</small><strong id="tr-calc-mts-cons">—</strong></div>
+                <div class="item"><small>Mts padre remanente</small><strong id="tr-calc-mts-rem">—</strong></div>
+                <div class="item"><small>Destino padre</small><strong id="tr-calc-destino">—</strong></div>
+              </div>
+              <p class="form-sub" style="margin:8px 0 0">Sin aprobación supervisor — al guardar se ejecuta directo sobre stock. La fecha y hora se guardan automáticamente.</p>
+            </div>
+
+            <label class="field field-2">
+              <span>Observaciones (opcional)</span>
+              <input type="text" name="obs" placeholder="Notas, motivos…">
+            </label>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="cerrarModalParteTR()">Cancelar</button>
+              <button type="submit" class="btn-aprobar">Guardar parte</button>
+            </div>
+            <div class="form-msg" id="tr-msg"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL: Cerrar OF en Tubera Rafia ========== -->
+    <div class="modal-overlay" id="tr-modal-cierre" style="display:none">
+      <div class="modal-card" style="max-width:520px">
+        <div class="modal-header">
+          <h3 id="tr-cierre-titulo">🏁 Cerrar OF en Tubera Rafia</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalCierreTR()">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-tr-cierre" class="form-grid">
+            <input type="hidden" id="tr-cierre-of">
+            <div class="conv-block field-2">
+              <div class="padre-info-grid">
+                <div class="item"><small>Cliente</small><strong id="tr-cierre-cli">—</strong></div>
+                <div class="item"><small>Nombre Bolsa</small><strong id="tr-cierre-bolsa">—</strong></div>
+                <div class="item"><small>Cant Pedida</small><strong id="tr-cierre-cant">—</strong></div>
+                <div class="item"><small>% Excedente</small><strong id="tr-cierre-exc">—</strong></div>
+                <div class="item"><small>Objetivo</small><strong id="tr-cierre-obj">—</strong></div>
+                <div class="item"><small>Bolsas hechas</small><strong id="tr-cierre-hechas">—</strong></div>
+                <div class="item"><small>% Cumplido</small><strong id="tr-cierre-pct">—</strong></div>
+                <div class="item"><small>Estado</small><strong id="tr-cierre-estado">—</strong></div>
+              </div>
+            </div>
+            <p class="form-sub field-2">Al confirmar, esta OF sale de la cola de Tubera Rafia y pasa a Costura Rafia.</p>
+
+            <!-- Motivo (solo si no cumple) -->
+            <div class="conv-block field-2" id="tr-cierre-motivo-wrap" style="display:none;background:rgba(245,166,35,0.06);border-color:rgba(245,166,35,0.4)">
+              <p class="form-sub" style="margin:0 0 8px;color:var(--warn,#f5a623)"><strong>⚠️ Esta OF no cumple el objetivo.</strong> Para cerrarla igual, indicá el motivo (queda registrado).</p>
+              <label class="field" style="margin-bottom:0">
+                <span>Motivo (obligatorio)</span>
+                <input type="text" id="tr-cierre-motivo" placeholder="Ej: cliente canceló parte, máquina rota, etc.">
+              </label>
+            </div>
+
+            <label class="field field-2">
+              <span>Legajo del que cierra</span>
+              <input type="text" id="tr-cierre-legajo" placeholder="Ej: 499" required>
+            </label>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="cerrarModalCierreTR()">Cancelar</button>
+              <button type="submit" class="btn-aprobar">Confirmar cierre</button>
+            </div>
+            <div class="form-msg" id="tr-cierre-msg"></div>
+          </form>
+        </div>
+      </div>
+    </div>
     <section class="panel" id="panel-sec-costura-papel">
       <div class="wip"><div class="wip-icon">🪡</div><h2>Costura Papel</h2><p>Cierre + Disposición + Nº Pallet (PAP-2026-XXXXX).</p><div class="tag">EN CONSTRUCCIÓN</div></div>
     </section>
@@ -3345,6 +3584,7 @@ function abrirSector(secKey) {
   if (secKey === 'impresion')      cargarImpresion();
   if (secKey === 'tubera-papel')   cargarTuberaPapel();
   if (secKey === 'laminadora')     cargarLaminadora();
+  if (secKey === 'tubera-rafia')   cargarTuberaRafia();
 }
 
 // Dropdown de sectores
@@ -3887,6 +4127,11 @@ let lamOFsCache = [];           // alias OFs para Laminadora
 let grumoConsumosCache = [];    // pestaña "Consumo Grumo" — descuentos al tambor
 let lamVista = 'pendiente';     // toggle Pendientes/Aprobados en sub-tab Laminados
 let lamBobIdx = 0;              // contador para IDs de fila bobina en el modal
+
+// Caches para Tubera Rafia (Franco 2026-05-25)
+let trPartesCache = [];         // pestaña "Tubera Rafia" — 1 fila por parte
+let trOFsCache = [];            // alias OFs para TR
+let trHijaIdx = 0;              // contador para IDs de fila hija en el modal
 
 // Helper: lee 'Categoría' o 'Categoria' del cache (tolerancia tilde)
 function getCategoria(row) {
@@ -7082,6 +7327,11 @@ const ORIGEN_LAM_COATING_EXT    = 'Laminadora-coating-ext';
 const ORIGEN_LAM_COATING_INT    = 'Laminadora-coating-int';
 const ORIGEN_LAM_BIOPP          = 'Laminadora-biopp';
 const ORIGEN_LAM_POLIPAPEL      = 'Laminadora-polipapel';
+// Origen marker para bobinas hijas tubulares generadas en Tubera Rafia (Franco 2026-05-25)
+const ORIGEN_TR_TUBULAR         = 'TuberaRafia-tubular';
+// Umbral remanente específico de Tubera Rafia: 10 mts (no 100 como los otros sectores).
+// Es prácticamente producto terminado — desperdicio de 100m sería excesivo.
+const UMBRAL_REMANENTE_MTS_TR   = 10;
 // Umbral en mts por debajo del cual el remanente va a DESCARTE (no se genera hija).
 // Franco 2026-05-17: bobinas con < 100 mts son inviables operativamente, mejor desperdicio.
 //
@@ -10124,6 +10374,623 @@ function precargarEdicionLam(hermanas, repr) {
   form.obs.value = obsClean;
   recalcLamKPIs();
 }
+
+// ============================================================
+// PANTALLA TUBERA RAFIA (Franco 2026-05-25)
+//
+// Modelo SIMPLE: 1 operario · 1 bobina padre por parte → N bobinas hijas tubulares.
+// SIN aprobación supervisor (la máquina es simple). Al guardar se ejecuta directo
+// sobre Bobinas: hijas con código TR-{padre}/{n}, padre marcada según Regla 2 con
+// umbral propio de 10mts (no 100 como en otros sectores — es producto casi terminado).
+//
+// 1 fila por parte en pestaña Tubera Rafia (no por hija). Trazabilidad de hijas
+// está en pestaña Bobinas con Padre 1 = código padre.
+//
+// Cadena: TR aparece en cadena de OFs Polipapel (impreso o no) y BioPP (impreso).
+// ============================================================
+
+async function cargarTuberaRafia() {
+  try {
+    const sectoresParaFlujo = ['Clisé','Impresión','Laminadora','Tubera Papel','Tubera Rafia','Costura Papel','Costura Rafia','Embutido'];
+    const [ofs, partes, bobinas, cierres, ...secs] = await Promise.all([
+      leerPestana('OF').catch(() => []),
+      leerPestana('Tubera Rafia').catch(() => []),
+      leerPestana('Bobinas').catch(() => []),
+      leerPestana('Cierres de OF por Sector').catch(() => []),
+      ...sectoresParaFlujo.map(s => leerPestana(s).catch(() => [])),
+    ]);
+    trOFsCache = ofs || [];
+    trPartesCache = partes || [];
+    if (bobinas && bobinas.length) bobinasCache = bobinas;
+    cierresPorSectorCache = (cierres || []).map(c => ({
+      ...c,
+      'Nº OF': c['Nº OF'] || c['N° OF'] || '',
+      'N° OF': c['N° OF'] || c['Nº OF'] || '',
+    }));
+    eventosPorSectorCache = {};
+    sectoresParaFlujo.forEach((s, i) => { eventosPorSectorCache[s] = secs[i]; });
+  } catch (err) {
+    console.error('Error cargando Tubera Rafia:', err);
+    document.getElementById('tr-cola-body').innerHTML = `<tr><td colspan="8" class="empty">Error: ${err.message}</td></tr>`;
+    return;
+  }
+  renderColaTR();
+  renderTablaPartesTR();
+}
+
+// ============================================================
+// Sub-tabs + toggle vista cola
+// ============================================================
+let trColaVista = 'activas';
+document.querySelectorAll('.subtab-btn[data-tr-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.subtab-btn[data-tr-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tr-subpanel').forEach(p => p.style.display = 'none');
+    const tab = btn.dataset.trTab;
+    if (tab === 'cola')   document.getElementById('tr-sub-cola').style.display = 'block';
+    if (tab === 'partes') document.getElementById('tr-sub-partes').style.display = 'block';
+  });
+});
+document.querySelectorAll('.cola-toggle[data-tr-cola-vista]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    trColaVista = btn.dataset.trColaVista;
+    document.querySelectorAll('.cola-toggle[data-tr-cola-vista]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderColaTR();
+  });
+});
+
+// Filtros cola
+['tr-cola-filt-of','tr-cola-filt-cli','tr-cola-filt-tipo'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) { el.addEventListener('input', renderColaTR); el.addEventListener('change', renderColaTR); }
+});
+document.getElementById('tr-cola-btn-clear').addEventListener('click', () => {
+  ['tr-cola-filt-of','tr-cola-filt-cli','tr-cola-filt-tipo'].forEach(id => document.getElementById(id).value = '');
+  renderColaTR();
+});
+
+// Filtros partes
+['tr-filt-of','tr-filt-padre','tr-filt-leg'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderTablaPartesTR);
+});
+document.getElementById('tr-btn-clear').addEventListener('click', () => {
+  ['tr-filt-of','tr-filt-padre','tr-filt-leg'].forEach(id => document.getElementById(id).value = '');
+  renderTablaPartesTR();
+});
+
+// ============================================================
+// Cuenta bolsas hechas para una OF (suma de Total Mts Hijas / Largo Bolsa)
+// Acá NO hay "bolsas" — TR genera bobinas tubulares. La métrica de avance es Mts.
+// Pero para "% cumplido" usamos: bolsas equivalentes = mts hijas / (largo bolsa en m).
+// ============================================================
+function bolsasHechasTRPorOF(numOF, of) {
+  const largoCm = of ? Number(of['Largo (cm)']) || 0 : 0;
+  if (!largoCm) return 0;
+  const mts = (trPartesCache || []).filter(p => String(p['Nº OF']||'').trim() === String(numOF).trim())
+    .reduce((s, p) => s + (Number(p['Total Mts Hijas'])||0), 0);
+  return Math.round(mts * 100 / largoCm);
+}
+function mtsHijasPorOF(numOF) {
+  return (trPartesCache || []).filter(p => String(p['Nº OF']||'').trim() === String(numOF).trim())
+    .reduce((s, p) => s + (Number(p['Total Mts Hijas'])||0), 0);
+}
+
+// ============================================================
+// RENDER cola OFs en TR
+// ============================================================
+function renderColaTR() {
+  const hoy = new Date();
+  // OFs cuya cadena pasa por Tubera Rafia + sectores anteriores cerrados + no cerrada acá
+  const todasOFs = trOFsCache || [];
+  const cierres = cierresPorSectorCache || [];
+
+  const aplicables = todasOFs.filter(of => {
+    const cadena = String(of['Cadena Sectores']||'').split('→').map(s => s.trim()).filter(Boolean);
+    if (!cadena.includes('Tubera Rafia')) return false;
+    const numOF = String(of['Nº OF']||'').trim();
+    const cerradaAca = cierres.some(c => String(c['Nº OF']||'').trim() === numOF && String(c['Sector']||'').trim() === 'Tubera Rafia');
+    // Activas: no cerrada acá. Terminadas: SÍ cerrada acá.
+    if (trColaVista === 'activas') return !cerradaAca;
+    return cerradaAca;
+  });
+
+  // KPIs (con la vista actual)
+  const conParte = aplicables.filter(of => mtsHijasPorOF(of['Nº OF']) > 0).length;
+  const sinParte = aplicables.length - conParte;
+  const mtsMes = (trPartesCache || []).filter(p => {
+    const f = excelDateToJs(p['Fecha']);
+    return f && f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear();
+  }).reduce((s, p) => s + (Number(p['Total Mts Hijas'])||0), 0);
+  setKpi('tr-kpi-cola', sinParte, '', sinParte === 0);
+  setKpi('tr-kpi-proc', conParte, '', conParte === 0);
+  setKpi('tr-kpi-mts', fmtNum(Math.round(mtsMes)), '', mtsMes === 0);
+
+  // Toggles count (recalcular sobre el total)
+  const activas = todasOFs.filter(of => {
+    const cadena = String(of['Cadena Sectores']||'').split('→').map(s => s.trim()).filter(Boolean);
+    if (!cadena.includes('Tubera Rafia')) return false;
+    const numOF = String(of['Nº OF']||'').trim();
+    return !cierres.some(c => String(c['Nº OF']||'').trim() === numOF && String(c['Sector']||'').trim() === 'Tubera Rafia');
+  }).length;
+  const terminadas = todasOFs.filter(of => {
+    const cadena = String(of['Cadena Sectores']||'').split('→').map(s => s.trim()).filter(Boolean);
+    if (!cadena.includes('Tubera Rafia')) return false;
+    const numOF = String(of['Nº OF']||'').trim();
+    return cierres.some(c => String(c['Nº OF']||'').trim() === numOF && String(c['Sector']||'').trim() === 'Tubera Rafia');
+  }).length;
+  document.getElementById('tr-cola-tg-act').textContent = activas;
+  document.getElementById('tr-cola-tg-ter').textContent = terminadas;
+
+  // Filtros
+  const fOf = (document.getElementById('tr-cola-filt-of').value || '').toLowerCase().trim();
+  const fCli = (document.getElementById('tr-cola-filt-cli').value || '').toLowerCase().trim();
+  const fTipo = document.getElementById('tr-cola-filt-tipo').value || '';
+  let lista = aplicables.filter(of => {
+    if (fOf && !String(of['Nº OF']||'').toLowerCase().includes(fOf)) return false;
+    if (fCli && !String(of['Cliente']||'').toLowerCase().includes(fCli)) return false;
+    if (fTipo && String(of['Tipo Bolsa']||'').toLowerCase() !== fTipo) return false;
+    return true;
+  });
+  lista.sort((a, b) => {
+    const fa = excelDateToJs(a['Fecha Entrega']) || new Date(8640000000000000);
+    const fb = excelDateToJs(b['Fecha Entrega']) || new Date(8640000000000000);
+    return fa - fb;
+  });
+
+  const tbody = document.getElementById('tr-cola-body');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">No hay OFs ${trColaVista === 'activas' ? 'activas' : 'terminadas'} en Tubera Rafia.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(of => {
+    const num = String(of['Nº OF']||'').trim();
+    const cant = Number(of['Cant Bolsas']) || 0;
+    const hechas = bolsasHechasTRPorOF(num, of);
+    const objetivo = objetivoBolsasOF(of);
+    const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+    let acciones;
+    if (trColaVista === 'activas') {
+      const claseCierre = (hechas >= objetivo) ? 'btn-aprobar' : 'btn-rechazar';
+      acciones = `
+        <button type="button" class="btn-cargar-parte" onclick="abrirModalParteTR('${num.replace(/'/g, "\\'")}')">Cargar Parte</button>
+        <button type="button" class="${claseCierre}" title="Cerrar OF en TR" onclick="abrirModalCierreTR('${num.replace(/'/g, "\\'")}')">🏁 Cerrar OF</button>
+      `;
+    } else {
+      acciones = '<span style="color:var(--ok)">✓ Cerrada</span>';
+    }
+    return `<tr>
+      <td><span class="of-num">${num}</span></td>
+      <td title="${of['Cliente']||''}">${of['Cliente']||'—'}</td>
+      <td title="${of['Nombre Bolsa']||''}">${of['Nombre Bolsa']||'—'}</td>
+      <td>${of['Tipo Bolsa']||'—'}</td>
+      <td class="num">${fmtNum(cant)}</td>
+      <td class="num">${fmtNum(hechas)}</td>
+      <td class="num">${pct}%</td>
+      <td class="num" style="overflow:visible;white-space:nowrap;min-width:280px">${acciones}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// RENDER tabla Partes
+// ============================================================
+function renderTablaPartesTR() {
+  const fOf = (document.getElementById('tr-filt-of').value || '').toLowerCase().trim();
+  const fPadre = (document.getElementById('tr-filt-padre').value || '').toLowerCase().trim();
+  const fLeg = (document.getElementById('tr-filt-leg').value || '').toLowerCase().trim();
+  let lista = (trPartesCache || []).filter(p => {
+    if (fOf && !String(p['Nº OF']||'').toLowerCase().includes(fOf)) return false;
+    if (fPadre && !String(p['Código Bobina Padre']||'').toLowerCase().includes(fPadre)) return false;
+    if (fLeg && !String(p['Legajo']||'').toLowerCase().includes(fLeg)) return false;
+    return true;
+  });
+  lista.sort((a, b) => (excelDateToJs(b['Fecha'])||0) - (excelDateToJs(a['Fecha'])||0));
+  const tbody = document.getElementById('tr-partes-body');
+  if (!lista.length) {
+    tbody.innerHTML = !trPartesCache.length
+      ? `<tr><td colspan="9" class="empty">Sin partes cargados. El primero se carga desde <strong>📋 OFs en cola → Cargar Parte</strong>.</td></tr>`
+      : `<tr><td colspan="9" class="empty">Ningún parte cumple los filtros.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(p => {
+    const f = excelDateToJs(p['Fecha']);
+    return `<tr>
+      <td>${f ? fmtFechaCorta(f) : '—'}</td>
+      <td><span class="of-num">${p['Nº OF']||'—'}</span></td>
+      <td>${p['Código Bobina Padre']||'—'}</td>
+      <td>${p['Producto Padre']||'—'}</td>
+      <td class="num">${fmtNum(Number(p['Mts Padre Consumidos'])||0)}</td>
+      <td class="num">${Number(p['Cant Hijas Generadas'])||0}</td>
+      <td><small>${p['Códigos Hijas']||'—'}</small></td>
+      <td>${p['Legajo']||'—'}</td>
+      <td class="num">—</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// MODAL Cargar Parte TR
+// ============================================================
+function abrirModalParteTR(numOF) {
+  const of = (trOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada: ' + numOF); return; }
+  const form = document.getElementById('form-tr');
+  form.reset();
+  document.getElementById('tr-form-of').value = numOF;
+  document.getElementById('tr-form-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('tr-modal-titulo').textContent = `🧵 Cargar Parte TR — ${numOF}`;
+  document.getElementById('tr-info-of').textContent = numOF;
+  document.getElementById('tr-info-cliente').textContent = of['Cliente'] || '—';
+  document.getElementById('tr-info-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('tr-info-tipo').textContent = of['Tipo Bolsa'] || '—';
+  document.getElementById('tr-info-cant').textContent = fmtNum(Number(of['Cant Bolsas'])||0);
+  // Reset hijas
+  document.getElementById('tr-hijas-list').innerHTML = '';
+  trHijaIdx = 0;
+  agregarHijaTR();
+  // Reset padre info
+  document.getElementById('tr-padre-info').textContent = 'Ingresá el código.';
+  document.getElementById('tr-padre-info').style.color = '';
+  document.getElementById('tr-padre-cod').dataset.cod = '';
+  recalcTR();
+  const msg = document.getElementById('tr-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('tr-modal-parte').style.display = 'flex';
+}
+function cerrarModalParteTR() {
+  document.getElementById('tr-modal-parte').style.display = 'none';
+}
+document.getElementById('tr-modal-parte').addEventListener('click', (e) => {
+  if (e.target.id === 'tr-modal-parte') cerrarModalParteTR();
+});
+
+// Autocomplete padre — valida que sea Polipapel impreso o BioPP laminado
+document.getElementById('tr-padre-cod').addEventListener('input', () => {
+  const input = document.getElementById('tr-padre-cod');
+  const info = document.getElementById('tr-padre-info');
+  const cod = String(input.value || '').trim().toUpperCase();
+  delete input.dataset.cod;
+  delete input.dataset.mts;
+  delete input.dataset.ancho;
+  delete input.dataset.gramaje;
+  delete input.dataset.producto;
+  delete input.dataset.rowindex;
+  delete input.dataset.ofAsignada;
+  if (cod.length < 5) { info.textContent = 'Ingresá el código.'; info.style.color=''; recalcTR(); return; }
+  const bob = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === cod);
+  if (!bob) { info.textContent = '✗ Bobina no encontrada'; info.style.color='var(--danger)'; recalcTR(); return; }
+  const estado = String(bob['Estado']||'').toLowerCase();
+  if (['transformada','consumida','desperdicio'].includes(estado)) {
+    info.textContent = `✗ Bobina ya está ${estado}`; info.style.color='var(--danger)'; recalcTR(); return;
+  }
+  const origen = String(bob['Origen']||'').trim();
+  const validOrigen = origen === ORIGEN_IMPRESION_IMPRESA || origen === ORIGEN_LAM_BIOPP;
+  if (!validOrigen) {
+    info.textContent = `✗ Origen "${origen||'desconocido'}" no es válido. TR acepta Polipapel impreso (Origen=Impresión-impresa) o BioPP (Origen=Laminadora-biopp).`;
+    info.style.color = 'var(--danger)'; recalcTR(); return;
+  }
+  // Validar OF
+  const numOF = document.getElementById('tr-form-of').value;
+  const ofAsig = getOFAsignada(bob);
+  if (ofAsig && ofAsig !== numOF) {
+    info.textContent = `✗ Esta bobina está asignada a OF ${ofAsig}, no a ${numOF}.`;
+    info.style.color = 'var(--danger)'; recalcTR(); return;
+  }
+  input.dataset.cod = cod;
+  input.dataset.mts = String(Number(bob['Mts Totales']) || 0);
+  input.dataset.ancho = String(Number(bob['Formato (cm)']) || 0);
+  input.dataset.gramaje = String(Number(bob['Gramaje (g/m²)']) || 0);
+  input.dataset.producto = bob['Producto'] || '';
+  input.dataset.rowindex = String(bob._rowIndex || '');
+  input.dataset.ofAsignada = ofAsig;
+  info.textContent = `✓ ${bob['Producto']||''} · ${bob['Formato (cm)']||'?'}cm · ${fmtNum(bob['Mts Totales']||0)}m disp${ofAsig?` · OF ${ofAsig}`:''}`;
+  info.style.color = 'var(--ok)';
+  recalcTR();
+});
+
+// Hijas dinámicas
+function agregarHijaTR() {
+  trHijaIdx++;
+  const cont = document.getElementById('tr-hijas-list');
+  const padreCod = document.getElementById('tr-padre-cod').dataset.cod || '{padre}';
+  const n = cont.querySelectorAll('.tr-hija-row').length + 1;
+  const codPreview = `TR-${padreCod}/${n}`;
+  const div = document.createElement('div');
+  div.className = 'tr-hija-row';
+  div.dataset.idx = trHijaIdx;
+  div.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 140px 140px auto;gap:10px;align-items:start;margin-bottom:8px">
+      <div class="field" style="margin-bottom:0">
+        <span>Código auto Hija ${n}</span>
+        <div class="calc-out tr-hija-cod" style="color:var(--accent);font-weight:bold">${codPreview}</div>
+      </div>
+      <label class="field" style="margin-bottom:0">
+        <span>Mts</span>
+        <input type="number" name="hija-mts" class="tr-hija-mts" step="1" min="1" required>
+      </label>
+      <label class="field" style="margin-bottom:0">
+        <span>Kg</span>
+        <input type="number" name="hija-kg" class="tr-hija-kg" step="0.1" min="0.1" required>
+      </label>
+      <button type="button" class="btn-tinta-del tr-hija-del" title="Quitar hija" style="align-self:end;margin-bottom:4px">✕</button>
+    </div>
+  `;
+  div.querySelector('.tr-hija-mts').addEventListener('input', recalcTR);
+  div.querySelector('.tr-hija-kg').addEventListener('input', recalcTR);
+  div.querySelector('.tr-hija-del').addEventListener('click', () => {
+    if (cont.querySelectorAll('.tr-hija-row').length <= 1) return;
+    div.remove();
+    renumerarHijasTR();
+    recalcTR();
+  });
+  cont.appendChild(div);
+}
+document.getElementById('tr-hija-add').addEventListener('click', () => { agregarHijaTR(); recalcTR(); });
+
+function renumerarHijasTR() {
+  const padreCod = document.getElementById('tr-padre-cod').dataset.cod || '{padre}';
+  document.querySelectorAll('.tr-hija-row').forEach((row, i) => {
+    const n = i + 1;
+    const codEl = row.querySelector('.tr-hija-cod');
+    if (codEl) codEl.textContent = `TR-${padreCod}/${n}`;
+    const labelEl = row.querySelector('.field span');
+    if (labelEl) labelEl.textContent = `Código auto Hija ${n}`;
+  });
+}
+
+// Cálculos en vivo
+document.getElementById('tr-kg-desp').addEventListener('input', recalcTR);
+
+function recalcTR() {
+  // Re-render códigos de hijas con el padre actual
+  renumerarHijasTR();
+
+  const padreInput = document.getElementById('tr-padre-cod');
+  const mtsPadre = Number(padreInput.dataset.mts) || 0;
+  const anchoPadre = Number(padreInput.dataset.ancho) || 0;
+  const gramajePadre = Number(padreInput.dataset.gramaje) || 0;
+
+  const sumaMtsHijas = Array.from(document.querySelectorAll('.tr-hija-mts'))
+    .reduce((s, i) => s + (Number(i.value)||0), 0);
+
+  const kgDesp = Number(document.getElementById('tr-kg-desp').value) || 0;
+  // Mts desperdicio = kg desp × 100.000 / (ancho × gramaje)
+  const mtsDesp = (kgDesp && anchoPadre && gramajePadre)
+    ? kgDesp * 100000 / (anchoPadre * gramajePadre)
+    : 0;
+  const mtsConsumidos = sumaMtsHijas + mtsDesp;
+  const mtsRem = Math.max(0, mtsPadre - mtsConsumidos);
+
+  document.getElementById('tr-calc-mts-padre').textContent = mtsPadre ? fmtNum(mtsPadre) + ' m' : '—';
+  document.getElementById('tr-calc-mts-hijas').textContent = sumaMtsHijas ? fmtNum(Math.round(sumaMtsHijas)) + ' m' : '—';
+  document.getElementById('tr-calc-mts-desp').textContent = mtsDesp ? fmtNum(Math.round(mtsDesp)) + ' m' : '—';
+  document.getElementById('tr-calc-mts-cons').textContent = mtsConsumidos ? fmtNum(Math.round(mtsConsumidos)) + ' m' : '—';
+  document.getElementById('tr-calc-mts-rem').textContent = mtsPadre ? fmtNum(Math.round(mtsRem)) + ' m' : '—';
+  const destEl = document.getElementById('tr-calc-destino');
+  if (!mtsPadre || !sumaMtsHijas) {
+    destEl.textContent = '—'; destEl.style.color = '';
+  } else if (mtsConsumidos > mtsPadre + 5) {
+    destEl.textContent = `⚠️ Faltan ${fmtNum(Math.round(mtsConsumidos - mtsPadre))}m en el padre`;
+    destEl.style.color = 'var(--danger)';
+  } else if (mtsRem >= UMBRAL_REMANENTE_MTS_TR) {
+    destEl.textContent = `🟢 Padre vuelve a stock con remanente`;
+    destEl.style.color = 'var(--ok)';
+  } else {
+    destEl.textContent = `⚫ Padre queda consumido (descarte < ${UMBRAL_REMANENTE_MTS_TR}m)`;
+    destEl.style.color = 'var(--text-3)';
+  }
+}
+
+// SUBMIT — ejecuta directo sobre stock (sin aprobación)
+document.getElementById('form-tr').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOF = document.getElementById('tr-form-of').value;
+  const fecha = document.getElementById('tr-form-fecha').value || new Date().toISOString().slice(0,10);
+  const horaIn = new Date().toTimeString().slice(0,5);
+  const legajo = f.legajo.value.trim();
+  const obs = (f.obs.value || '').trim();
+  const kgDesp = Number(f.kg_desp.value) || 0;
+  const padreInput = document.getElementById('tr-padre-cod');
+  const padreCod = padreInput.dataset.cod || '';
+
+  if (!legajo) { showFormMsg('tr-msg', '✗ Falta el legajo.', false); return; }
+  if (!padreCod) { showFormMsg('tr-msg', '✗ Cargá un código de bobina padre válido.', false); return; }
+
+  const hijasRows = Array.from(document.querySelectorAll('.tr-hija-row'));
+  const hijas = hijasRows.map(r => ({
+    mts: Number(r.querySelector('.tr-hija-mts').value) || 0,
+    kg: Number(r.querySelector('.tr-hija-kg').value) || 0,
+  })).filter(h => h.mts > 0 && h.kg > 0);
+  if (!hijas.length) { showFormMsg('tr-msg', '✗ Cargá al menos 1 hija con mts y kg.', false); return; }
+
+  // Validación física
+  const mtsPadre = Number(padreInput.dataset.mts) || 0;
+  const anchoPadre = Number(padreInput.dataset.ancho) || 0;
+  const gramajePadre = Number(padreInput.dataset.gramaje) || 0;
+  const mtsDesp = (kgDesp && anchoPadre && gramajePadre) ? kgDesp * 100000 / (anchoPadre * gramajePadre) : 0;
+  const sumaMtsHijas = hijas.reduce((s, h) => s + h.mts, 0);
+  const mtsConsumidos = sumaMtsHijas + mtsDesp;
+  if (mtsConsumidos > mtsPadre + 5) {
+    showFormMsg('tr-msg', `✗ Σ Mts hijas (${Math.round(sumaMtsHijas)}m) + desperdicio (${Math.round(mtsDesp)}m) = ${Math.round(mtsConsumidos)}m supera los ${Math.round(mtsPadre)}m disponibles en el padre.`, false);
+    return;
+  }
+  const mtsRem = Math.max(0, mtsPadre - mtsConsumidos);
+
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+  try {
+    const ofObj = (trOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+    const productoHija = ofObj ? (ofObj['Nombre Bolsa'] || `OF ${numOF}`) : 'Tubular';
+    const ofAsig = padreInput.dataset.ofAsignada || numOF;
+
+    // Generar códigos de hijas: TR-{padre}/{n} con n incremental sobre cache
+    const re = new RegExp(`^TR-${padreCod.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}/(\\d+)$`);
+    let maxN = 0;
+    bobinasCache.forEach(b => {
+      const m = String(b['Código Bobina']||'').match(re);
+      if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+    });
+    const codigosHijas = [];
+
+    // Crear hijas en pestaña Bobinas
+    // Columnas Bobinas: Código, Nº OC, Proveedor, Fecha Ingreso, Producto, Formato, Kg, Gramaje, Mts,
+    //                   Padre 1, Padre 2, Origen, Estado, Sector Actual, Observaciones, N° de OF Asignada
+    for (const h of hijas) {
+      maxN++;
+      const codHija = `TR-${padreCod}/${maxN}`;
+      codigosHijas.push(codHija);
+      await appendFila('Bobinas', [
+        codHija, '', '', fecha, productoHija, anchoPadre, Math.round(h.kg*10)/10,
+        gramajePadre, h.mts, padreCod, '', ORIGEN_TR_TUBULAR, 'disponible', '',
+        `Tubular generado en TR (parte ${fmtFechaCorta(excelDateToJs(fecha))})`,
+        ofAsig,
+      ]);
+      bobinasCache.push({
+        'Código Bobina': codHija, 'Fecha Ingreso': fecha, 'Producto': productoHija,
+        'Formato (cm)': anchoPadre, 'Kg': Math.round(h.kg*10)/10, 'Gramaje (g/m²)': gramajePadre,
+        'Mts Totales': h.mts, 'Bobina Padre 1': padreCod, 'Origen': ORIGEN_TR_TUBULAR,
+        'Estado': 'disponible', 'Sector Actual': '',
+        'Observaciones': `Tubular TR ${fecha}`, [HEADER_OF_ASIGNADA]: ofAsig,
+      });
+    }
+
+    // Actualizar padre — Regla 2 con umbral TR (10m)
+    if (padreInput.dataset.rowindex) {
+      const padreRow = Number(padreInput.dataset.rowindex);
+      if (mtsRem >= UMBRAL_REMANENTE_MTS_TR) {
+        const kgRem = (anchoPadre && gramajePadre) ? Math.round(mtsRem * (gramajePadre * anchoPadre / 100) / 1000 * 10) / 10 : 0;
+        await actualizarCeldaEnFila('Bobinas', padreRow, 'Mts Totales', Math.round(mtsRem));
+        await actualizarCeldaEnFila('Bobinas', padreRow, 'Kg', kgRem);
+        await actualizarCeldaEnFila('Bobinas', padreRow, 'Estado', 'disponible');
+        const bobPadre = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === padreCod);
+        if (bobPadre) { bobPadre['Mts Totales'] = Math.round(mtsRem); bobPadre['Kg'] = kgRem; bobPadre['Estado'] = 'disponible'; }
+      } else {
+        await actualizarCeldaEnFila('Bobinas', padreRow, 'Estado', 'consumida');
+        const bobPadre = bobinasCache.find(b => String(b['Código Bobina']||'').toUpperCase() === padreCod);
+        if (bobPadre) { bobPadre['Estado'] = 'consumida'; }
+      }
+    }
+
+    // Escribir fila en Tubera Rafia (1 fila por parte)
+    // Columnas (16): Fecha, Hora Inicio, Hora Fin, Legajo, Nº OF, Código Bobina Padre, Producto Padre,
+    //   Mts Padre Iniciales, Mts Padre Consumidos, Mts Padre Remanente, Kg Desperdicio,
+    //   Cant Hijas Generadas, Códigos Hijas, Total Mts Hijas, Total Kg Hijas, Observaciones
+    const horaFin = new Date().toTimeString().slice(0,5);
+    const totalKgHijas = hijas.reduce((s, h) => s + h.kg, 0);
+    const fila = [
+      fecha, horaIn, horaFin, legajo, numOF, padreCod, padreInput.dataset.producto || '',
+      Math.round(mtsPadre), Math.round(mtsConsumidos), Math.round(mtsRem), kgDesp,
+      hijas.length, codigosHijas.join(', '), Math.round(sumaMtsHijas), Math.round(totalKgHijas*10)/10, obs,
+    ];
+    await appendFila('Tubera Rafia', fila);
+    trPartesCache.push({
+      'Fecha': fecha, 'Hora Inicio': horaIn, 'Hora Fin': horaFin, 'Legajo': legajo,
+      'Nº OF': numOF, 'Código Bobina Padre': padreCod, 'Producto Padre': padreInput.dataset.producto || '',
+      'Mts Padre Iniciales': Math.round(mtsPadre), 'Mts Padre Consumidos': Math.round(mtsConsumidos),
+      'Mts Padre Remanente': Math.round(mtsRem), 'Kg Desperdicio': kgDesp,
+      'Cant Hijas Generadas': hijas.length, 'Códigos Hijas': codigosHijas.join(', '),
+      'Total Mts Hijas': Math.round(sumaMtsHijas), 'Total Kg Hijas': Math.round(totalKgHijas*10)/10,
+      'Observaciones': obs,
+    });
+
+    cerrarModalParteTR();
+    renderColaTR();
+    renderTablaPartesTR();
+    alert(`✓ Parte guardado · ${hijas.length} hija(s) tubular(es) generada(s): ${codigosHijas.join(', ')}`);
+  } catch (err) {
+    showFormMsg('tr-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
+
+// ============================================================
+// MODAL Cerrar OF en TR
+// ============================================================
+function abrirModalCierreTR(numOF) {
+  const of = (trOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada: ' + numOF); return; }
+  document.getElementById('tr-cierre-of').value = numOF;
+  document.getElementById('tr-cierre-titulo').textContent = `🏁 Cerrar OF en Tubera Rafia — ${numOF}`;
+  document.getElementById('tr-cierre-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('tr-cierre-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  const cant = Number(of['Cant Bolsas']) || 0;
+  const exc = Number(of['% Excedente']) || 0;
+  const objetivo = objetivoBolsasOF(of);
+  const hechas = bolsasHechasTRPorOF(numOF, of);
+  const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+  const cumple = hechas >= objetivo;
+  document.getElementById('tr-cierre-cant').textContent = fmtNum(cant);
+  document.getElementById('tr-cierre-exc').textContent = exc + '%';
+  document.getElementById('tr-cierre-obj').textContent = fmtNum(objetivo);
+  document.getElementById('tr-cierre-hechas').textContent = fmtNum(hechas);
+  document.getElementById('tr-cierre-pct').textContent = pct + '%';
+  const estadoEl = document.getElementById('tr-cierre-estado');
+  if (cumple) { estadoEl.textContent = '✓ Cumple objetivo'; estadoEl.style.color = 'var(--ok)'; }
+  else { estadoEl.textContent = `⚠️ Faltan ${fmtNum(objetivo - hechas)} bolsas`; estadoEl.style.color = 'var(--warn,#f5a623)'; }
+  // Mostrar motivo si no cumple
+  document.getElementById('tr-cierre-motivo-wrap').style.display = cumple ? 'none' : 'block';
+  document.getElementById('tr-cierre-motivo').required = !cumple;
+  document.getElementById('tr-cierre-motivo').value = '';
+  document.getElementById('tr-cierre-legajo').value = '';
+  const msg = document.getElementById('tr-cierre-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('tr-modal-cierre').style.display = 'flex';
+}
+function cerrarModalCierreTR() {
+  document.getElementById('tr-modal-cierre').style.display = 'none';
+}
+document.getElementById('tr-modal-cierre').addEventListener('click', (e) => {
+  if (e.target.id === 'tr-modal-cierre') cerrarModalCierreTR();
+});
+
+document.getElementById('form-tr-cierre').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOF = document.getElementById('tr-cierre-of').value;
+  const legajo = document.getElementById('tr-cierre-legajo').value.trim();
+  const motivoEl = document.getElementById('tr-cierre-motivo');
+  const motivoRequired = motivoEl.required;
+  const motivo = motivoEl.value.trim();
+  if (!legajo) { showFormMsg('tr-cierre-msg', '✗ Cargá el legajo.', false); return; }
+  if (motivoRequired && !motivo) { showFormMsg('tr-cierre-msg', '✗ Indicá el motivo del cierre (OF no cumple objetivo).', false); return; }
+  const of = (trOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  const objetivo = objetivoBolsasOF(of);
+  const hechas = bolsasHechasTRPorOF(numOF, of);
+  const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Cerrando…'; }
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    await appendFila('Cierres de OF por Sector', [
+      numOF, 'Tubera Rafia', fecha, hechas, pct, motivo, legajo,
+    ]);
+    cierresPorSectorCache.push({
+      'Nº OF': numOF, 'N° OF': numOF, 'Sector': 'Tubera Rafia', 'Fecha Cierre': fecha,
+      'Bolsas Cumplidas': hechas, '% Cumplido': pct, 'Motivo (si no cumple)': motivo, 'Legajo': legajo,
+    });
+    cerrarModalCierreTR();
+    renderColaTR();
+    alert(`✓ OF ${numOF} cerrada en Tubera Rafia.`);
+  } catch (err) {
+    showFormMsg('tr-cierre-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
 
 async function cargarTuberaPapel() {
   try {
