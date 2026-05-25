@@ -2429,8 +2429,229 @@
       <div class="wip"><div class="wip-icon">🪢</div><h2>Costura Rafia</h2><p>Último eslabón. Bolsas Fabricadas · Kg Recuperado · Nº Pallet (RAF/RAL/BIO/POL).</p><div class="tag">EN CONSTRUCCIÓN</div></div>
     </section>
     <section class="panel" id="panel-sec-embutido">
-      <div class="wip"><div class="wip-icon">🛍️</div><h2>Embutido</h2><p>Hasta 8 personas en simultáneo, cada una su parte. Bolsa PE Medida + Nº Lote Proveedor.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
+      <div class="page-head">
+        <div>
+          <h2 class="page-title">🛍️ Embutido</h2>
+          <p class="page-sub">Hasta 8 personas en simultáneo · 1 parte por operario · aprobación supervisor · cierre por OF</p>
+        </div>
+      </div>
+
+      <div class="subtabs">
+        <button type="button" class="subtab-btn active" data-emb-tab="cola">📋 OFs en cola</button>
+        <button type="button" class="subtab-btn" data-emb-tab="partes">📝 Partes cargados</button>
+      </div>
+
+      <!-- ========== SUBPANEL: OFs en cola ========== -->
+      <div class="emb-subpanel" id="emb-sub-cola" style="display:block">
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">OFs en cola</div>
+            <div class="kpi-value" id="emb-kpi-cola">0</div>
+            <div class="kpi-sub">listas para embutir</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">OFs en proceso</div>
+            <div class="kpi-value" id="emb-kpi-proc">0</div>
+            <div class="kpi-sub">con al menos 1 parte</div>
+          </div>
+          <div class="kpi-card kpi-warn">
+            <div class="kpi-label">Pendientes aprobación</div>
+            <div class="kpi-value" id="emb-kpi-pend">0</div>
+            <div class="kpi-sub">esperando supervisor</div>
+          </div>
+        </div>
+
+        <div class="mnt-toggles">
+          <button type="button" class="cola-toggle active" data-emb-cola-vista="activas">🟡 Activas <span class="badge-num" id="emb-cola-tg-act">0</span></button>
+          <button type="button" class="cola-toggle" data-emb-cola-vista="terminadas">✅ Terminadas en Embutido <span class="badge-num" id="emb-cola-tg-ter">0</span></button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nº OF</th>
+                <th>Cliente</th>
+                <th>Nombre Bolsa</th>
+                <th class="num">Cant Bolsas</th>
+                <th class="num">Embutidas</th>
+                <th class="num">%</th>
+                <th class="num">Acciones</th>
+              </tr>
+              <tr class="filter-row">
+                <th><input type="text" class="col-filter" id="emb-cola-filt-of" placeholder="Nº OF…"></th>
+                <th><input type="text" class="col-filter" id="emb-cola-filt-cli" placeholder="Cliente…"></th>
+                <th colspan="4"></th>
+                <th class="filter-actions">
+                  <button type="button" class="btn-clear-filt" id="emb-cola-btn-clear">Limpiar</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="emb-cola-body">
+              <tr><td colspan="7" class="empty">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========== SUBPANEL: Partes cargados ========== -->
+      <div class="emb-subpanel" id="emb-sub-partes" style="display:none">
+        <div class="mnt-toggles">
+          <button type="button" class="imp-toggle active" data-emb-vista="pendiente">🟠 Pendientes <span class="badge-num" id="emb-tg-pend">0</span></button>
+          <button type="button" class="imp-toggle" data-emb-vista="aprobado">✓ Aprobados <span class="badge-num" id="emb-tg-apr">0</span></button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nº OF</th>
+                <th>Cliente</th>
+                <th>Legajo</th>
+                <th>Hr In</th>
+                <th>Hr Fin</th>
+                <th class="num">Bolsas</th>
+                <th>PE Medida</th>
+                <th>Lote PE</th>
+                <th class="num">Acciones</th>
+              </tr>
+              <tr class="filter-row">
+                <th></th>
+                <th><input type="text" class="col-filter" id="emb-filt-of" placeholder="Nº OF…"></th>
+                <th><input type="text" class="col-filter" id="emb-filt-cli" placeholder="Cliente…"></th>
+                <th><input type="text" class="col-filter" id="emb-filt-leg" placeholder="Legajo…"></th>
+                <th colspan="5"></th>
+                <th class="filter-actions">
+                  <button type="button" class="btn-clear-filt" id="emb-btn-clear">Limpiar</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="emb-partes-body">
+              <tr><td colspan="10" class="empty">Sin partes cargados todavía.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
+
+    <!-- ========== MODAL: Cargar Parte Embutido ========== -->
+    <div class="modal-overlay" id="emb-modal-parte" style="display:none">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="emb-modal-titulo">🛍️ Cargar Parte Embutido</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalParteEmb()">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-emb" class="form-grid">
+            <input type="hidden" id="emb-form-of">
+            <input type="hidden" id="emb-form-fecha">
+
+            <!-- Info OF auto -->
+            <div class="conv-block field-2" style="background:rgba(232,255,71,0.04);border-color:rgba(232,255,71,0.3)">
+              <div class="padre-info-grid">
+                <div class="item"><small>Nº OF</small><strong id="emb-info-of">—</strong></div>
+                <div class="item"><small>Cliente</small><strong id="emb-info-cliente">—</strong></div>
+                <div class="item"><small>Nombre Bolsa</small><strong id="emb-info-bolsa">—</strong></div>
+                <div class="item"><small>Cant Bolsas</small><strong id="emb-info-cant">—</strong></div>
+                <div class="item"><small>Embutidas hasta ahora</small><strong id="emb-info-hechas">—</strong></div>
+              </div>
+            </div>
+
+            <label class="field">
+              <span>Legajo Operario</span>
+              <input type="text" name="legajo" required>
+            </label>
+
+            <label class="field">
+              <span>Cant Bolsas Embutidas <small>· producidas en este turno</small></span>
+              <input type="number" name="bolsas" id="emb-form-bolsas" step="1" min="1" required>
+            </label>
+
+            <!-- Datos PE (por ahora texto libre — stock propio a futuro) -->
+            <div class="conv-block field-2">
+              <div class="conv-block-title">🛍️ Bolsa PE interior</div>
+              <p class="form-sub" style="margin:0 0 10px">Por ahora texto libre. Cuando exista la pestaña Stock Bolsas PE se conecta a un dropdown que descuenta stock.</p>
+              <div class="padre-info-grid">
+                <div class="item">
+                  <small>PE Medida</small>
+                  <input type="text" name="pe_medida" placeholder="Ej: 20x35">
+                </div>
+                <div class="item">
+                  <small>PE Gramaje (g/m²)</small>
+                  <input type="number" name="pe_gramaje" step="0.1" min="0">
+                </div>
+                <div class="item">
+                  <small>Lote Proveedor PE</small>
+                  <input type="text" name="pe_lote" placeholder="Lote del bolsón">
+                </div>
+              </div>
+            </div>
+
+            <label class="field field-2">
+              <span>Observaciones (opcional)</span>
+              <input type="text" name="obs" placeholder="Notas para el supervisor…">
+            </label>
+
+            <div class="conv-block field-2">
+              <p class="form-sub" style="margin:0">La fecha y horas se autogeneran al guardar/aprobar el parte. Sin aprobación supervisor las bolsas no se contabilizan ni se puede cerrar la OF.</p>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="cerrarModalParteEmb()">Cancelar</button>
+              <button type="submit" class="btn-aprobar">Guardar parte</button>
+            </div>
+            <div class="form-msg" id="emb-msg"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== MODAL: Cerrar OF en Embutido ========== -->
+    <div class="modal-overlay" id="emb-modal-cierre" style="display:none">
+      <div class="modal-card" style="max-width:520px">
+        <div class="modal-header">
+          <h3 id="emb-cierre-titulo">🏁 Cerrar OF en Embutido</h3>
+          <button type="button" class="modal-close" onclick="cerrarModalCierreEmb()">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-emb-cierre" class="form-grid">
+            <input type="hidden" id="emb-cierre-of">
+            <div class="conv-block field-2">
+              <div class="padre-info-grid">
+                <div class="item"><small>Cliente</small><strong id="emb-cierre-cli">—</strong></div>
+                <div class="item"><small>Nombre Bolsa</small><strong id="emb-cierre-bolsa">—</strong></div>
+                <div class="item"><small>Cant Pedida</small><strong id="emb-cierre-cant">—</strong></div>
+                <div class="item"><small>% Excedente</small><strong id="emb-cierre-exc">—</strong></div>
+                <div class="item"><small>Objetivo</small><strong id="emb-cierre-obj">—</strong></div>
+                <div class="item"><small>Bolsas embutidas</small><strong id="emb-cierre-hechas">—</strong></div>
+                <div class="item"><small>% Cumplido</small><strong id="emb-cierre-pct">—</strong></div>
+                <div class="item"><small>Estado</small><strong id="emb-cierre-estado">—</strong></div>
+              </div>
+            </div>
+            <p class="form-sub field-2">Al confirmar, esta OF sale de la cola de Embutido y pasa a Costura Papel.</p>
+
+            <div class="conv-block field-2" id="emb-cierre-motivo-wrap" style="display:none;background:rgba(245,166,35,0.06);border-color:rgba(245,166,35,0.4)">
+              <p class="form-sub" style="margin:0 0 8px;color:var(--warn,#f5a623)"><strong>⚠️ Esta OF no cumple el objetivo.</strong> Para cerrarla igual, indicá el motivo (queda registrado).</p>
+              <label class="field" style="margin-bottom:0">
+                <span>Motivo (obligatorio)</span>
+                <input type="text" id="emb-cierre-motivo" placeholder="Ej: bolsas defectuosas, falta de PE, etc.">
+              </label>
+            </div>
+
+            <label class="field field-2">
+              <span>Legajo del que cierra</span>
+              <input type="text" id="emb-cierre-legajo" placeholder="Ej: 499" required>
+            </label>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" onclick="cerrarModalCierreEmb()">Cancelar</button>
+              <button type="submit" class="btn-aprobar">Confirmar cierre</button>
+            </div>
+            <div class="form-msg" id="emb-cierre-msg"></div>
+          </form>
+        </div>
+      </div>
+    </div>
     <section class="panel" id="panel-sec-todos">
       <div class="wip"><div class="wip-icon">🏭</div><h2>Sectores — Vista Todos</h2><p>Resumen global: Máquinas activas · Maquinistas trabajando · Bolsas fabricadas · Rendimiento %.</p><div class="tag">EN CONSTRUCCIÓN</div></div>
     </section>
@@ -3587,6 +3808,7 @@ function abrirSector(secKey) {
   if (secKey === 'tubera-papel')   cargarTuberaPapel();
   if (secKey === 'laminadora')     cargarLaminadora();
   if (secKey === 'tubera-rafia')   cargarTuberaRafia();
+  if (secKey === 'embutido')       cargarEmbutido();
 }
 
 // Dropdown de sectores
@@ -4134,6 +4356,11 @@ let lamBobIdx = 0;              // contador para IDs de fila bobina en el modal
 let trPartesCache = [];         // pestaña "Tubera Rafia" — 1 fila por parte
 let trOFsCache = [];            // alias OFs para TR
 let trHijaIdx = 0;              // contador para IDs de fila hija en el modal
+
+// Caches para Embutido (Franco 2026-05-25)
+let embPartesCache = [];        // pestaña "Embutido" — 1 fila por parte
+let embOFsCache = [];           // alias OFs para Embutido
+let embVista = 'pendiente';     // toggle Pendientes/Aprobados
 
 // Helper: lee 'Categoría' o 'Categoria' del cache (tolerancia tilde)
 function getCategoria(row) {
@@ -11272,6 +11499,467 @@ document.getElementById('form-tr-cierre').addEventListener('submit', async (e) =
     alert(`✓ OF ${numOF} cerrada en Tubera Rafia.`);
   } catch (err) {
     showFormMsg('tr-cierre-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
+
+// ============================================================
+// PANTALLA EMBUTIDO (Franco 2026-05-25)
+//
+// Modelo: 1 fila por parte (1 operario por parte). N operarios pueden
+// estar embutiendo la misma OF en paralelo — cada uno carga el suyo.
+// CON aprobación supervisor (Regla 1: Pendientes/Aprobados + bloqueo cierre).
+//
+// Métrica: Cant Bolsas Embutidas. Avanza una OF de Embutido hacia Costura Papel.
+// ============================================================
+
+async function cargarEmbutido() {
+  try {
+    const sectoresParaFlujo = ['Clisé','Impresión','Laminadora','Tubera Papel','Tubera Rafia','Costura Papel','Costura Rafia','Embutido'];
+    const [ofs, partes, cierres, ...secs] = await Promise.all([
+      leerPestana('OF').catch(() => []),
+      leerPestana('Embutido').catch(() => []),
+      leerPestana('Cierres de OF por Sector').catch(() => []),
+      ...sectoresParaFlujo.map(s => leerPestana(s).catch(() => [])),
+    ]);
+    embOFsCache = ofs || [];
+    embPartesCache = partes || [];
+    cierresPorSectorCache = (cierres || []).map(c => ({
+      ...c,
+      'Nº OF': c['Nº OF'] || c['N° OF'] || '',
+      'N° OF': c['N° OF'] || c['Nº OF'] || '',
+    }));
+    eventosPorSectorCache = {};
+    sectoresParaFlujo.forEach((s, i) => { eventosPorSectorCache[s] = secs[i]; });
+  } catch (err) {
+    console.error('Error cargando Embutido:', err);
+    document.getElementById('emb-cola-body').innerHTML = `<tr><td colspan="7" class="empty">Error: ${err.message}</td></tr>`;
+    return;
+  }
+  renderColaEmb();
+  renderTablaPartesEmb();
+}
+
+// Sub-tabs + vistas
+let embColaVista = 'activas';
+document.querySelectorAll('.subtab-btn[data-emb-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.subtab-btn[data-emb-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.emb-subpanel').forEach(p => p.style.display = 'none');
+    const tab = btn.dataset.embTab;
+    if (tab === 'cola')   document.getElementById('emb-sub-cola').style.display = 'block';
+    if (tab === 'partes') document.getElementById('emb-sub-partes').style.display = 'block';
+  });
+});
+document.querySelectorAll('.cola-toggle[data-emb-cola-vista]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    embColaVista = btn.dataset.embColaVista;
+    document.querySelectorAll('.cola-toggle[data-emb-cola-vista]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderColaEmb();
+  });
+});
+document.querySelectorAll('.imp-toggle[data-emb-vista]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    embVista = btn.dataset.embVista;
+    document.querySelectorAll('.imp-toggle[data-emb-vista]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTablaPartesEmb();
+  });
+});
+
+// Filtros
+['emb-cola-filt-of','emb-cola-filt-cli'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderColaEmb);
+});
+document.getElementById('emb-cola-btn-clear').addEventListener('click', () => {
+  ['emb-cola-filt-of','emb-cola-filt-cli'].forEach(id => document.getElementById(id).value = '');
+  renderColaEmb();
+});
+['emb-filt-of','emb-filt-cli','emb-filt-leg'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderTablaPartesEmb);
+});
+document.getElementById('emb-btn-clear').addEventListener('click', () => {
+  ['emb-filt-of','emb-filt-cli','emb-filt-leg'].forEach(id => document.getElementById(id).value = '');
+  renderTablaPartesEmb();
+});
+
+// Bolsas embutidas APROBADAS de una OF (la métrica de avance)
+function bolsasEmbutidasAprobadas(numOF) {
+  return (embPartesCache || [])
+    .filter(p => String(p['Nº OF']||'').trim() === String(numOF).trim() &&
+                 String(p['Aprobado Supervisor']||'').toUpperCase() === 'SI')
+    .reduce((s, p) => s + (Number(p['Cant Bolsas Embutidas'])||0), 0);
+}
+
+// RENDER cola
+function renderColaEmb() {
+  const hoy = new Date();
+  const todasOFs = embOFsCache || [];
+  const cierres = cierresPorSectorCache || [];
+
+  const aplicables = todasOFs.filter(of => {
+    const cadena = String(of['Cadena Sectores']||'').split('→').map(s => s.trim()).filter(Boolean);
+    if (!cadena.includes('Embutido')) return false;
+    const numOF = String(of['Nº OF']||'').trim();
+    const cerradaAca = cierres.some(c => String(c['Nº OF']||'').trim() === numOF && String(c['Sector']||'').trim() === 'Embutido');
+    if (embColaVista === 'terminadas') return cerradaAca;
+    // Activas: no cerrada acá + sectores anteriores cerrados (default puedeTrabajarseEnSector)
+    return !cerradaAca && puedeTrabajarseEnSector(of, 'Embutido', eventosPorSectorCache);
+  });
+
+  // KPIs
+  const conParte = aplicables.filter(of => bolsasEmbutidasAprobadas(of['Nº OF']) > 0).length;
+  const sinParte = aplicables.length - conParte;
+  const pendientes = (embPartesCache || []).filter(p => {
+    const a = String(p['Aprobado Supervisor']||'').toUpperCase();
+    return a !== 'SI' && a !== 'NO';
+  }).length;
+  setKpi('emb-kpi-cola', sinParte, '', sinParte === 0);
+  setKpi('emb-kpi-proc', conParte, '', conParte === 0);
+  setKpi('emb-kpi-pend', pendientes, '', pendientes === 0);
+
+  // Contadores toggle
+  const activas = todasOFs.filter(of => {
+    const cad = String(of['Cadena Sectores']||'').split('→').map(s => s.trim());
+    if (!cad.includes('Embutido')) return false;
+    const numOF = String(of['Nº OF']||'').trim();
+    return !cierres.some(c => String(c['Nº OF']||'').trim() === numOF && String(c['Sector']||'').trim() === 'Embutido');
+  }).length;
+  const terminadas = todasOFs.filter(of => {
+    const cad = String(of['Cadena Sectores']||'').split('→').map(s => s.trim());
+    if (!cad.includes('Embutido')) return false;
+    const numOF = String(of['Nº OF']||'').trim();
+    return cierres.some(c => String(c['Nº OF']||'').trim() === numOF && String(c['Sector']||'').trim() === 'Embutido');
+  }).length;
+  document.getElementById('emb-cola-tg-act').textContent = activas;
+  document.getElementById('emb-cola-tg-ter').textContent = terminadas;
+
+  const fOf = (document.getElementById('emb-cola-filt-of').value || '').toLowerCase().trim();
+  const fCli = (document.getElementById('emb-cola-filt-cli').value || '').toLowerCase().trim();
+  let lista = aplicables.filter(of => {
+    if (fOf && !String(of['Nº OF']||'').toLowerCase().includes(fOf)) return false;
+    if (fCli && !String(of['Cliente']||'').toLowerCase().includes(fCli)) return false;
+    return true;
+  });
+  lista.sort((a, b) => (excelDateToJs(a['Fecha Entrega'])||new Date(8e15)) - (excelDateToJs(b['Fecha Entrega'])||new Date(8e15)));
+
+  const tbody = document.getElementById('emb-cola-body');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">No hay OFs ${embColaVista === 'activas' ? 'activas' : 'terminadas'} en Embutido.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(of => {
+    const num = String(of['Nº OF']||'').trim();
+    const cant = Number(of['Cant Bolsas']) || 0;
+    const hechas = bolsasEmbutidasAprobadas(num);
+    const objetivo = objetivoBolsasOF(of);
+    const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+    let acciones;
+    if (embColaVista === 'activas') {
+      const claseCierre = (hechas >= objetivo) ? 'btn-aprobar' : 'btn-rechazar';
+      acciones = `
+        <button type="button" class="btn-cargar-parte" onclick="abrirModalParteEmb('${num.replace(/'/g, "\\'")}')">Cargar</button>
+        <button type="button" class="${claseCierre}" title="Cerrar OF" onclick="abrirModalCierreEmb('${num.replace(/'/g, "\\'")}')">🏁 Cerrar</button>
+      `;
+    } else {
+      acciones = '<span style="color:var(--ok)">✓ Cerrada</span>';
+    }
+    return `<tr>
+      <td><span class="of-num">${num}</span></td>
+      <td title="${of['Cliente']||''}">${of['Cliente']||'—'}</td>
+      <td title="${of['Nombre Bolsa']||''}">${of['Nombre Bolsa']||'—'}</td>
+      <td class="num">${fmtNum(cant)}</td>
+      <td class="num">${fmtNum(hechas)}</td>
+      <td class="num">${pct}%</td>
+      <td class="num" style="overflow:visible;white-space:nowrap">${acciones}</td>
+    </tr>`;
+  }).join('');
+}
+
+// RENDER tabla partes
+function renderTablaPartesEmb() {
+  const hoy = new Date();
+  const partes = embPartesCache || [];
+  const pendientes = partes.filter(p => {
+    const a = String(p['Aprobado Supervisor']||'').toUpperCase();
+    return a !== 'SI' && a !== 'NO';
+  });
+  const aprobados = partes.filter(p => String(p['Aprobado Supervisor']||'').toUpperCase() === 'SI');
+  document.getElementById('emb-tg-pend').textContent = pendientes.length;
+  document.getElementById('emb-tg-apr').textContent = aprobados.length;
+
+  const fOf = (document.getElementById('emb-filt-of').value || '').toLowerCase().trim();
+  const fCli = (document.getElementById('emb-filt-cli').value || '').toLowerCase().trim();
+  const fLeg = (document.getElementById('emb-filt-leg').value || '').toLowerCase().trim();
+  let lista = partes.filter(p => {
+    const apr = String(p['Aprobado Supervisor']||'').toUpperCase();
+    if (apr === 'NO') return false;
+    if (embVista === 'pendiente' && apr === 'SI') return false;
+    if (embVista === 'aprobado' && apr !== 'SI') return false;
+    // Cliente cruzado con cache OFs
+    if (fOf && !String(p['Nº OF']||'').toLowerCase().includes(fOf)) return false;
+    if (fLeg && !String(p['Legajo']||'').toLowerCase().includes(fLeg)) return false;
+    if (fCli) {
+      const ofObj = (embOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(p['Nº OF']||'').trim());
+      const cli = ofObj ? String(ofObj['Cliente']||'').toLowerCase() : '';
+      if (!cli.includes(fCli)) return false;
+    }
+    return true;
+  });
+  lista.sort((a, b) => (excelDateToJs(b['Fecha'])||0) - (excelDateToJs(a['Fecha'])||0));
+
+  const tbody = document.getElementById('emb-partes-body');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="10" class="empty">Ningún parte cumple los filtros.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(p => {
+    const f = excelDateToJs(p['Fecha']);
+    const apr = String(p['Aprobado Supervisor']||'').toUpperCase();
+    const ofObj = (embOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(p['Nº OF']||'').trim());
+    const cliente = ofObj ? (ofObj['Cliente']||'—') : '—';
+    const acciones = apr === 'SI'
+      ? '<span style="color:var(--ok)">✓ Aprobado</span>'
+      : `<button class="btn-editar" onclick="editarParteEmb(${p._rowIndex})">Editar</button>
+         <button class="btn-rechazar" onclick="rechazarParteEmb(${p._rowIndex})">Rechazar</button>
+         <button class="btn-aprobar" onclick="aprobarParteEmb(${p._rowIndex})">Aprobar</button>`;
+    return `<tr>
+      <td>${f ? fmtFechaCorta(f) : '—'}</td>
+      <td><span class="of-num">${p['Nº OF']||'—'}</span></td>
+      <td>${cliente}</td>
+      <td>${p['Legajo']||'—'}</td>
+      <td>${excelTimeToHHMM(p['Hora Inicio'])}</td>
+      <td>${excelTimeToHHMM(p['Hora Fin'])}</td>
+      <td class="num">${fmtNum(Number(p['Cant Bolsas Embutidas'])||0)}</td>
+      <td>${p['Bolsa PE Medida']||'—'}</td>
+      <td>${p['Lote Proveedor PE']||'—'}</td>
+      <td class="num" style="overflow:visible;white-space:nowrap;min-width:240px">${acciones}</td>
+    </tr>`;
+  }).join('');
+}
+
+// MODAL CARGAR PARTE
+function abrirModalParteEmb(numOF, opts) {
+  const editMode = !!(opts && opts.editMode);
+  const of = (embOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada: ' + numOF); return; }
+  const form = document.getElementById('form-emb');
+  form.reset();
+  delete form.dataset.editMode;
+  delete form.dataset.editRow;
+  document.getElementById('emb-form-of').value = numOF;
+  document.getElementById('emb-form-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('emb-modal-titulo').textContent = `🛍️ Cargar Parte Embutido — ${numOF}` + (editMode ? ' (editando)' : '');
+  document.getElementById('emb-info-of').textContent = numOF;
+  document.getElementById('emb-info-cliente').textContent = of['Cliente'] || '—';
+  document.getElementById('emb-info-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  document.getElementById('emb-info-cant').textContent = fmtNum(Number(of['Cant Bolsas'])||0);
+  document.getElementById('emb-info-hechas').textContent = fmtNum(bolsasEmbutidasAprobadas(numOF));
+  if (editMode) {
+    form.dataset.editMode = 'true';
+    form.dataset.editRow = String(opts.parte._rowIndex);
+    form.legajo.value = opts.parte['Legajo'] || '';
+    form.bolsas.value = Number(opts.parte['Cant Bolsas Embutidas']) || '';
+    form.pe_medida.value = opts.parte['Bolsa PE Medida'] || '';
+    form.pe_gramaje.value = Number(opts.parte['Bolsa PE Gramaje (g/m²)']) || '';
+    form.pe_lote.value = opts.parte['Lote Proveedor PE'] || '';
+    form.obs.value = opts.parte['Observaciones'] || '';
+  }
+  const msg = document.getElementById('emb-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('emb-modal-parte').style.display = 'flex';
+}
+function cerrarModalParteEmb() {
+  const f = document.getElementById('form-emb');
+  delete f.dataset.editMode;
+  delete f.dataset.editRow;
+  document.getElementById('emb-modal-parte').style.display = 'none';
+}
+document.getElementById('emb-modal-parte').addEventListener('click', e => {
+  if (e.target.id === 'emb-modal-parte') cerrarModalParteEmb();
+});
+
+// SUBMIT parte
+document.getElementById('form-emb').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOF = document.getElementById('emb-form-of').value;
+  const ahora = new Date();
+  const fecha = ahora.toISOString().slice(0,10);
+  const horaIn = ahora.toTimeString().slice(0,5);
+  const legajo = f.legajo.value.trim();
+  const bolsas = Number(f.bolsas.value) || 0;
+  const peMedida = f.pe_medida.value.trim();
+  const peGramaje = Number(f.pe_gramaje.value) || '';
+  const peLote = f.pe_lote.value.trim();
+  const obs = (f.obs.value || '').trim();
+  if (!legajo || !bolsas) { showFormMsg('emb-msg', '✗ Faltan datos obligatorios (legajo + bolsas).', false); return; }
+
+  const editMode = f.dataset.editMode === 'true';
+  const editRow = editMode ? Number(f.dataset.editRow) : 0;
+
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = editMode ? 'Guardando cambios…' : 'Guardando…'; }
+  try {
+    if (editMode) {
+      await actualizarCeldaEnFila('Embutido', editRow, 'Legajo', legajo);
+      await actualizarCeldaEnFila('Embutido', editRow, 'Cant Bolsas Embutidas', bolsas);
+      await actualizarCeldaEnFila('Embutido', editRow, 'Bolsa PE Medida', peMedida);
+      await actualizarCeldaEnFila('Embutido', editRow, 'Bolsa PE Gramaje (g/m²)', peGramaje);
+      await actualizarCeldaEnFila('Embutido', editRow, 'Lote Proveedor PE', peLote);
+      await actualizarCeldaEnFila('Embutido', editRow, 'Observaciones', obs);
+      const p = embPartesCache.find(x => x._rowIndex === editRow);
+      if (p) {
+        p['Legajo']=legajo; p['Cant Bolsas Embutidas']=bolsas;
+        p['Bolsa PE Medida']=peMedida; p['Bolsa PE Gramaje (g/m²)']=peGramaje;
+        p['Lote Proveedor PE']=peLote; p['Observaciones']=obs;
+      }
+    } else {
+      // 11 columnas: Fecha, Hora Inicio, Hora Fin, Legajo, Nº OF, Cant Bolsas Embutidas,
+      //              Bolsa PE Medida, Bolsa PE Gramaje (g/m²), Lote Proveedor PE,
+      //              Aprobado Supervisor, Observaciones
+      const fila = [fecha, horaIn, '', legajo, numOF, bolsas, peMedida, peGramaje, peLote, 'Pendiente', obs];
+      await appendFila('Embutido', fila);
+      embPartesCache.push({
+        'Fecha':fecha,'Hora Inicio':horaIn,'Hora Fin':'','Legajo':legajo,'Nº OF':numOF,
+        'Cant Bolsas Embutidas':bolsas,'Bolsa PE Medida':peMedida,
+        'Bolsa PE Gramaje (g/m²)':peGramaje,'Lote Proveedor PE':peLote,
+        'Aprobado Supervisor':'Pendiente','Observaciones':obs,
+      });
+    }
+    cerrarModalParteEmb();
+    renderColaEmb();
+    renderTablaPartesEmb();
+    alert(`✓ Parte ${editMode ? 'editado' : 'guardado'}. Queda Pendiente de aprobación del supervisor.`);
+  } catch (err) {
+    showFormMsg('emb-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
+
+// APROBAR / RECHAZAR / EDITAR
+async function aprobarParteEmb(rowIndex) {
+  const p = embPartesCache.find(x => x._rowIndex === rowIndex);
+  if (!p) { alert('No encontré el parte.'); return; }
+  if (!confirm(`¿Aprobar parte de OF ${p['Nº OF']}?\n\n· Legajo: ${p['Legajo']}\n· ${fmtNum(p['Cant Bolsas Embutidas'])} bolsas embutidas\n\nLas bolsas se contabilizan para la OF.`)) return;
+  try {
+    const horaFin = new Date().toTimeString().slice(0,5);
+    await actualizarCeldaEnFila('Embutido', p._rowIndex, 'Aprobado Supervisor', 'SI');
+    await actualizarCeldaEnFila('Embutido', p._rowIndex, 'Hora Fin', horaFin);
+    p['Aprobado Supervisor'] = 'SI';
+    p['Hora Fin'] = horaFin;
+    renderColaEmb();
+    renderTablaPartesEmb();
+    alert('✓ Parte aprobado.');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+async function rechazarParteEmb(rowIndex) {
+  const p = embPartesCache.find(x => x._rowIndex === rowIndex);
+  if (!p) { alert('No encontré el parte.'); return; }
+  if (!confirm(`¿Rechazar parte de OF ${p['Nº OF']}? Las bolsas no se contabilizan.`)) return;
+  try {
+    await actualizarCeldaEnFila('Embutido', p._rowIndex, 'Aprobado Supervisor', 'NO');
+    p['Aprobado Supervisor'] = 'NO';
+    renderTablaPartesEmb();
+    alert('✗ Parte rechazado.');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+async function editarParteEmb(rowIndex) {
+  const p = embPartesCache.find(x => x._rowIndex === rowIndex);
+  if (!p) { alert('No encontré el parte.'); return; }
+  abrirModalParteEmb(p['Nº OF'], { editMode: true, parte: p });
+}
+
+// MODAL CERRAR OF
+function abrirModalCierreEmb(numOF) {
+  const of = (embOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  if (!of) { alert('OF no encontrada: ' + numOF); return; }
+  // Bloquear si hay partes pendientes
+  const pendientesOF = (embPartesCache || []).filter(p =>
+    String(p['Nº OF']||'').trim() === String(numOF).trim() &&
+    !['SI','NO'].includes(String(p['Aprobado Supervisor']||'').toUpperCase())
+  );
+  if (pendientesOF.length) {
+    alert(`⚠️ No se puede cerrar la OF.\n\nHay ${pendientesOF.length} parte(s) pendiente(s) de aprobación para esta OF.\nAprobá o rechazá los pendientes antes de cerrar.`);
+    return;
+  }
+  document.getElementById('emb-cierre-of').value = numOF;
+  document.getElementById('emb-cierre-titulo').textContent = `🏁 Cerrar OF en Embutido — ${numOF}`;
+  document.getElementById('emb-cierre-cli').textContent = of['Cliente'] || '—';
+  document.getElementById('emb-cierre-bolsa').textContent = of['Nombre Bolsa'] || '—';
+  const cant = Number(of['Cant Bolsas']) || 0;
+  const exc = Number(of['% Excedente']) || 0;
+  const objetivo = objetivoBolsasOF(of);
+  const hechas = bolsasEmbutidasAprobadas(numOF);
+  const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+  const cumple = hechas >= objetivo;
+  document.getElementById('emb-cierre-cant').textContent = fmtNum(cant);
+  document.getElementById('emb-cierre-exc').textContent = exc + '%';
+  document.getElementById('emb-cierre-obj').textContent = fmtNum(objetivo);
+  document.getElementById('emb-cierre-hechas').textContent = fmtNum(hechas);
+  document.getElementById('emb-cierre-pct').textContent = pct + '%';
+  const estadoEl = document.getElementById('emb-cierre-estado');
+  if (cumple) { estadoEl.textContent = '✓ Cumple objetivo'; estadoEl.style.color = 'var(--ok)'; }
+  else { estadoEl.textContent = `⚠️ Faltan ${fmtNum(objetivo - hechas)} bolsas`; estadoEl.style.color = 'var(--warn,#f5a623)'; }
+  document.getElementById('emb-cierre-motivo-wrap').style.display = cumple ? 'none' : 'block';
+  document.getElementById('emb-cierre-motivo').required = !cumple;
+  document.getElementById('emb-cierre-motivo').value = '';
+  document.getElementById('emb-cierre-legajo').value = '';
+  const msg = document.getElementById('emb-cierre-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('emb-modal-cierre').style.display = 'flex';
+}
+function cerrarModalCierreEmb() { document.getElementById('emb-modal-cierre').style.display = 'none'; }
+document.getElementById('emb-modal-cierre').addEventListener('click', e => {
+  if (e.target.id === 'emb-modal-cierre') cerrarModalCierreEmb();
+});
+
+document.getElementById('form-emb-cierre').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const numOF = document.getElementById('emb-cierre-of').value;
+  const legajo = document.getElementById('emb-cierre-legajo').value.trim();
+  const motivoEl = document.getElementById('emb-cierre-motivo');
+  const motivoRequired = motivoEl.required;
+  const motivo = motivoEl.value.trim();
+  if (!legajo) { showFormMsg('emb-cierre-msg', '✗ Cargá el legajo.', false); return; }
+  if (motivoRequired && !motivo) { showFormMsg('emb-cierre-msg', '✗ Indicá el motivo (OF no cumple objetivo).', false); return; }
+  const of = (embOFsCache || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  const objetivo = objetivoBolsasOF(of);
+  const hechas = bolsasEmbutidasAprobadas(numOF);
+  const pct = objetivo ? Math.round(hechas / objetivo * 100) : 0;
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Cerrando…'; }
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    await appendFila('Cierres de OF por Sector', [numOF, 'Embutido', fecha, hechas, pct, motivo, legajo]);
+    cierresPorSectorCache.push({
+      'Nº OF':numOF,'N° OF':numOF,'Sector':'Embutido','Fecha Cierre':fecha,
+      'Bolsas Cumplidas':hechas,'% Cumplido':pct,'Motivo (si no cumple)':motivo,'Legajo':legajo,
+    });
+    cerrarModalCierreEmb();
+    renderColaEmb();
+    alert(`✓ OF ${numOF} cerrada en Embutido.`);
+  } catch (err) {
+    showFormMsg('emb-cierre-msg', '✗ Error: ' + err.message, false);
   } finally {
     delete f.dataset.guardando;
     if (btn) { btn.disabled = false; btn.textContent = txt; }
