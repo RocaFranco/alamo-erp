@@ -2567,23 +2567,30 @@
               <input type="number" name="bolsas" id="emb-form-bolsas" step="1" min="1" required>
             </label>
 
-            <!-- Datos PE (por ahora texto libre — stock propio a futuro) -->
+            <!-- Bolsa PE: dropdown filtrado por densidad del stock disponible -->
             <div class="conv-block field-2">
               <div class="conv-block-title">🛍️ Bolsa PE interior</div>
-              <p class="form-sub" style="margin:0 0 10px">Por ahora texto libre. Cuando exista la pestaña Stock Bolsas PE se conecta a un dropdown que descuenta stock.</p>
-              <div class="padre-info-grid">
-                <div class="item">
-                  <small>PE Medida</small>
-                  <input type="text" name="pe_medida" placeholder="Ej: 20x35">
-                </div>
-                <div class="item">
-                  <small>PE Gramaje (g/m²)</small>
-                  <input type="number" name="pe_gramaje" step="0.1" min="0">
-                </div>
-                <div class="item">
-                  <small>Lote Proveedor PE</small>
+              <p class="form-sub" style="margin:0 0 10px">Elegí del stock disponible. El stock se descuenta al aprobar el parte.</p>
+              <div style="display:grid;grid-template-columns:140px 1fr 1fr;gap:10px">
+                <label class="field" style="margin-bottom:0">
+                  <span>Densidad</span>
+                  <select name="pe_densidad" id="emb-pe-densidad" required>
+                    <option value="">—</option>
+                    <option value="Baja">Baja</option>
+                    <option value="Alta">Alta</option>
+                  </select>
+                </label>
+                <label class="field" style="margin-bottom:0">
+                  <span>Bolsa PE <small>· Ancho × Largo × Gramaje</small></span>
+                  <select name="pe_bolsa" id="emb-pe-bolsa" required>
+                    <option value="">— Elegí densidad primero —</option>
+                  </select>
+                  <small class="hint" id="emb-pe-info">Disp. = bolsas disponibles en stock para esa densidad.</small>
+                </label>
+                <label class="field" style="margin-bottom:0">
+                  <span>Lote Proveedor PE <small>· texto libre</small></span>
                   <input type="text" name="pe_lote" placeholder="Lote del bolsón">
-                </div>
+                </label>
               </div>
             </div>
 
@@ -2668,6 +2675,7 @@
       <div class="subtabs">
         <button type="button" class="subtab-btn active" data-subtab="stock">📦 Stock Bobinas</button>
         <button type="button" class="subtab-btn" data-subtab="stock-tintas">🎨 Stock Tintas</button>
+        <button type="button" class="subtab-btn" data-subtab="stock-bolsas-pe">🛍️ Stock Bolsas PE</button>
         <button type="button" class="subtab-btn" data-subtab="stock-varios">🧰 Stock Varios</button>
         <button type="button" class="subtab-btn" data-subtab="bobinas">🎞️ Lista y Movimiento</button>
       </div>
@@ -2783,6 +2791,40 @@
         </div>
         <div id="tnt-grupos">
           <div class="empty-block">Cargando stock…</div>
+        </div>
+      </div>
+
+      <!-- SUBTAB STOCK BOLSAS PE -->
+      <div class="subpanel" id="subpanel-stock-bolsas-pe">
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-accent">
+            <div class="kpi-label">Total bolsas en stock</div>
+            <div class="kpi-value" id="pe-kpi-total">0</div>
+            <div class="kpi-sub">Baja + Alta densidad</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Variantes con stock</div>
+            <div class="kpi-value" id="pe-kpi-var">0</div>
+            <div class="kpi-sub">medidas distintas</div>
+          </div>
+          <div class="kpi-card kpi-warn">
+            <div class="kpi-label">Variantes agotadas</div>
+            <div class="kpi-value" id="pe-kpi-agot">0</div>
+            <div class="kpi-sub">stock = 0 o negativo</div>
+          </div>
+        </div>
+
+        <div class="section-head">
+          <h3>Stock por densidad</h3>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button type="button" class="btn-cargar-parte" onclick="abrirModalRecepcionPE()">+ Cargar Recepción</button>
+            <button type="button" class="btn-rechazar" onclick="abrirModalRetiroPE()">− Retiro Manual</button>
+            <button type="button" class="btn-imprimir" onclick="imprimirStockBolsasPE()">🖨️ Imprimir / PDF</button>
+          </div>
+        </div>
+
+        <div id="pe-grupos" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- 2 columnas: Baja | Alta -->
         </div>
       </div>
 
@@ -3562,6 +3604,71 @@
         </div>
       </form>
       <div id="tnt-recep-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cargar Recepción de Bolsas PE -->
+<div class="modal-overlay" id="pe-modal-recep" style="display:none">
+  <div class="modal-card" style="max-width:680px">
+    <div class="modal-head">
+      <h3>📥 Cargar Recepción de Bolsas PE</h3>
+      <button class="modal-close" onclick="cerrarModalRecepcionPE()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-sub" style="margin-bottom:14px">Sumá las bolsas que llegaron. Cada fila = un tipo distinto (Ancho × Largo × Gramaje + Densidad).</p>
+      <form id="form-pe-recep" class="form-grid">
+        <label class="field"><span>Fecha</span><input type="date" name="fecha" required></label>
+        <label class="field"><span>Proveedor</span><input type="text" name="proveedor" required></label>
+        <label class="field"><span>Nº Remito / OC (opcional)</span><input type="text" name="remito"></label>
+        <label class="field"><span>Lote Proveedor (opcional)</span><input type="text" name="lote"></label>
+
+        <div class="conv-block field-2">
+          <div class="conv-block-title">🛍️ Bolsas recibidas</div>
+          <div id="pe-recep-list">
+            <!-- filas dinámicas -->
+          </div>
+          <button type="button" class="btn-secondary" id="pe-recep-add" style="margin-top:8px">+ Sumar tipo</button>
+        </div>
+
+        <label class="field field-2"><span>Observaciones (opcional)</span><input type="text" name="obs"></label>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalRecepcionPE()">Cancelar</button>
+          <button type="submit" class="btn-aprobar">Confirmar recepción</button>
+        </div>
+      </form>
+      <div id="pe-recep-msg" class="form-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Retiro Manual de Bolsas PE -->
+<div class="modal-overlay" id="pe-modal-retiro" style="display:none">
+  <div class="modal-card" style="max-width:540px">
+    <div class="modal-head">
+      <h3>− Retiro Manual de Bolsas PE</h3>
+      <button class="modal-close" onclick="cerrarModalRetiroPE()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="form-sub" style="margin-bottom:14px">Para descontar bolsas que se usan para otros fines (no parte de Embutido). Lo registra el encargado de stock.</p>
+      <form id="form-pe-retiro" class="form-grid">
+        <label class="field field-2"><span>Bolsa a retirar (desde el stock)</span>
+          <select name="bolsa" id="pe-retiro-bolsa" required>
+            <option value="">— Elegí bolsa del stock —</option>
+          </select>
+          <small class="hint" id="pe-retiro-info">Solo se listan las que tienen stock > 0.</small>
+        </label>
+        <label class="field"><span>Cantidad a retirar</span><input type="number" name="cantidad" step="1" min="1" required></label>
+        <label class="field"><span>Legajo</span><input type="text" name="legajo" required></label>
+        <label class="field field-2"><span>Motivo / Destino</span><input type="text" name="motivo" required placeholder="Ej: muestras, prueba interna, etc."></label>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="cerrarModalRetiroPE()">Cancelar</button>
+          <button type="submit" class="btn-aprobar">Confirmar retiro</button>
+        </div>
+      </form>
+      <div id="pe-retiro-msg" class="form-msg"></div>
     </div>
   </div>
 </div>
@@ -4362,6 +4469,10 @@ let embPartesCache = [];        // pestaña "Embutido" — 1 fila por parte
 let embOFsCache = [];           // alias OFs para Embutido
 let embVista = 'pendiente';     // toggle Pendientes/Aprobados
 
+// Caches para Stock Bolsas PE (Franco 2026-05-25)
+let bolsasPECache = [];         // pestaña "Stock Bolsas PE" — entradas (recepciones)
+let retirosPECache = [];        // pestaña "Retiros Bolsas PE" — retiros manuales
+
 // Helper: lee 'Categoría' o 'Categoria' del cache (tolerancia tilde)
 function getCategoria(row) {
   return String(row['Categoría'] || row['Categoria'] || '').trim();
@@ -4369,13 +4480,16 @@ function getCategoria(row) {
 
 async function cargarBobinasStock() {
   try {
-    [bobinasCache, materialesCache, tintasCatalogoCache, entradasTintasCache, tintasConsumosCache, ofsParaTintasCache] = await Promise.all([
+    [bobinasCache, materialesCache, tintasCatalogoCache, entradasTintasCache, tintasConsumosCache, ofsParaTintasCache, bolsasPECache, retirosPECache, embPartesCache] = await Promise.all([
       leerPestana('Bobinas').catch(() => []),
       leerPestana('Materiales').catch(() => []),
       leerPestana('Tintas Catálogo').catch(() => []),
       leerPestana('Entradas Tintas').catch(() => []),
       leerPestana('Tintas de Impresión').catch(() => []),
       leerPestana('OF').catch(() => []),
+      leerPestana('Stock Bolsas PE').catch(() => []),
+      leerPestana('Retiros Bolsas PE').catch(() => []),
+      leerPestana('Embutido').catch(() => []),
     ]);
     // Normalizar headers de Tintas Catálogo y Entradas Tintas (puede ser "Categoría" o "Categoria")
     tintasCatalogoCache = (tintasCatalogoCache || []).map(c => ({
@@ -4397,6 +4511,7 @@ async function cargarBobinasStock() {
   renderStockGrupos();
   renderTablaBobinas();
   renderStockTintas();
+  if (typeof renderStockBolsasPE === 'function') renderStockBolsasPE();
 }
 
 // Productos con variación natural de gramaje entre bobinas (Franco 2026-05-25):
@@ -4914,6 +5029,288 @@ function splitPantoneViejo(str) {
 }
 
 // Devuelve mapa { 'COLOR|Pantone|Categoría': kgEnStock }
+// ============================================================
+// STOCK BOLSAS PE (Franco 2026-05-25)
+// Stock = Σ recepciones − Σ consumos partes Embutido APROBADOS − Σ retiros manuales
+// Key = `${Densidad}|${Ancho}|${Largo}|${Gramaje}` (todo trim + uppercase para densidad)
+// ============================================================
+function keyBolsaPE(densidad, ancho, largo, gramaje) {
+  const d = String(densidad||'').trim().toUpperCase();
+  const a = Number(ancho) || 0;
+  const l = Number(largo) || 0;
+  const g = Number(gramaje) || 0;
+  return `${d}|${a}|${l}|${g}`;
+}
+function calcularStockBolsasPE() {
+  const map = {};
+  // 1. Entradas (recepciones)
+  (bolsasPECache || []).forEach(e => {
+    const k = keyBolsaPE(e['Densidad'], e['Ancho (cm)'], e['Largo (cm)'], e['Gramaje (g/m²)']);
+    const cant = Number(e['Cantidad']) || 0;
+    if (!cant) return;
+    map[k] = (map[k] || 0) + cant;
+  });
+  // 2. Restar consumos del parte Embutido (solo APROBADOS).
+  // El parte Embutido tiene: Densidad PE · Bolsa PE Medida (texto libre histórico) ·
+  // Bolsa PE Gramaje. Cuando el modal pase a dropdown, también va a guardar Ancho y Largo
+  // por separado — por ahora intentamos parsear "AnchoxLargo" del campo Bolsa PE Medida.
+  (embPartesCache || []).forEach(p => {
+    if (String(p['Aprobado Supervisor']||'').toUpperCase() !== 'SI') return;
+    const dens = String(p['Densidad PE']||'').trim().toUpperCase();
+    const gram = Number(p['Bolsa PE Gramaje (g/m²)']) || 0;
+    const medida = String(p['Bolsa PE Medida']||'').trim();
+    // Parsear "AnchoxLargo" (ej "20x35"). Si no matchea, no descuenta.
+    const m = medida.match(/^(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)/);
+    if (!m || !dens || !gram) return;
+    const ancho = Number(m[1].replace(',', '.'));
+    const largo = Number(m[2].replace(',', '.'));
+    const cant = Number(p['Cant Bolsas Embutidas']) || 0;
+    if (!cant) return;
+    const k = keyBolsaPE(dens, ancho, largo, gram);
+    map[k] = (map[k] || 0) - cant;
+  });
+  // 3. Restar retiros manuales
+  (retirosPECache || []).forEach(r => {
+    const k = keyBolsaPE(r['Densidad'], r['Ancho (cm)'], r['Largo (cm)'], r['Gramaje (g/m²)']);
+    const cant = Number(r['Cantidad']) || 0;
+    if (!cant) return;
+    map[k] = (map[k] || 0) - cant;
+  });
+  return map;
+}
+
+// RENDER pantalla Stock Bolsas PE (2 columnas: Baja | Alta)
+function renderStockBolsasPE() {
+  const cont = document.getElementById('pe-grupos');
+  if (!cont) return;
+  const stock = calcularStockBolsasPE();
+  // Construir lista de variantes por densidad
+  const baja = {}, alta = {};
+  Object.keys(stock).forEach(k => {
+    const [dens, a, l, g] = k.split('|');
+    const cant = stock[k];
+    const target = dens === 'BAJA' ? baja : (dens === 'ALTA' ? alta : null);
+    if (!target) return;
+    target[`${a}x${l}x${g}`] = { ancho: Number(a), largo: Number(l), gramaje: Number(g), cantidad: cant };
+  });
+  // KPIs
+  const totalAll = Object.values(baja).concat(Object.values(alta)).reduce((s, v) => s + Math.max(0, v.cantidad), 0);
+  const conStock = Object.values(baja).concat(Object.values(alta)).filter(v => v.cantidad > 0).length;
+  const agotadas = Object.values(baja).concat(Object.values(alta)).filter(v => v.cantidad <= 0).length;
+  setKpi('pe-kpi-total', fmtNum(totalAll), '', totalAll === 0);
+  setKpi('pe-kpi-var', conStock, '', conStock === 0);
+  setKpi('pe-kpi-agot', agotadas, '', agotadas === 0);
+
+  const renderCol = (titulo, icono, color, items) => {
+    const keys = Object.keys(items).sort((a, b) => {
+      const va = items[a], vb = items[b];
+      return va.ancho - vb.ancho || va.largo - vb.largo || va.gramaje - vb.gramaje;
+    });
+    let html = `<div class="grupo-card open"><div class="grupo-head" onclick="this.parentElement.classList.toggle('open')">
+      <div class="grupo-titulo"><span class="caret">▶</span><span class="grupo-nombre">${icono} ${titulo}</span></div>
+      <div class="grupo-meta"><span><strong>${keys.length}</strong> variante(s)</span></div>
+    </div><div class="grupo-detalle">`;
+    if (!keys.length) {
+      html += `<div class="empty-block" style="padding:14px">Sin bolsas registradas en ${titulo}.</div>`;
+    } else {
+      html += keys.map(k => {
+        const v = items[k];
+        const cantTxt = v.cantidad < 0 ? `<span style="color:var(--danger);font-weight:700">${fmtNum(v.cantidad)} ⚠️</span>` :
+                        v.cantidad === 0 ? `<span style="color:var(--text-3)">${fmtNum(v.cantidad)}</span>` :
+                        `<strong>${fmtNum(v.cantidad)}</strong>`;
+        return `<div class="variante-card open">
+          <div class="variante-head" style="cursor:default">
+            <span></span>
+            <span class="variante-label" style="font-size:16px;font-weight:600">${v.ancho}×${v.largo}×${v.gramaje}</span>
+            <span class="variante-meta" style="font-size:13px">${cantTxt} bolsas</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    html += `</div></div>`;
+    return html;
+  };
+  cont.innerHTML = renderCol('BAJA DENSIDAD', '📦', '', baja) + renderCol('ALTA DENSIDAD', '📦', '', alta);
+}
+
+// MODAL Cargar Recepción de Bolsas PE
+let peRecepIdx = 0;
+function abrirModalRecepcionPE() {
+  const form = document.getElementById('form-pe-recep');
+  form.reset();
+  form.fecha.value = new Date().toISOString().slice(0,10);
+  const cont = document.getElementById('pe-recep-list');
+  cont.innerHTML = '';
+  peRecepIdx = 0;
+  agregarFilaRecepPE();
+  const msg = document.getElementById('pe-recep-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('pe-modal-recep').style.display = 'flex';
+}
+function cerrarModalRecepcionPE() { document.getElementById('pe-modal-recep').style.display = 'none'; }
+document.getElementById('pe-modal-recep').addEventListener('click', e => {
+  if (e.target.id === 'pe-modal-recep') cerrarModalRecepcionPE();
+});
+function agregarFilaRecepPE() {
+  peRecepIdx++;
+  const cont = document.getElementById('pe-recep-list');
+  const div = document.createElement('div');
+  div.className = 'pe-recep-row';
+  div.dataset.idx = peRecepIdx;
+  div.innerHTML = `
+    <div style="display:grid;grid-template-columns:120px 90px 90px 100px 100px 90px auto;gap:8px;align-items:end;margin-bottom:8px">
+      <label class="field" style="margin-bottom:0"><span>Densidad</span>
+        <select name="densidad" required>
+          <option value="">—</option>
+          <option value="Baja">Baja</option>
+          <option value="Alta">Alta</option>
+        </select>
+      </label>
+      <label class="field" style="margin-bottom:0"><span>Ancho cm</span><input type="number" name="ancho" step="0.1" min="0.1" required></label>
+      <label class="field" style="margin-bottom:0"><span>Largo cm</span><input type="number" name="largo" step="0.1" min="0.1" required></label>
+      <label class="field" style="margin-bottom:0"><span>Gramaje g/m²</span><input type="number" name="gramaje" step="0.1" min="0.1" required></label>
+      <label class="field" style="margin-bottom:0"><span>Cantidad</span><input type="number" name="cantidad" step="1" min="1" required></label>
+      <label class="field" style="margin-bottom:0"><span>Kg (opc)</span><input type="number" name="kg" step="0.1" min="0"></label>
+      <button type="button" class="btn-tinta-del pe-recep-del" title="Quitar" style="margin-bottom:4px">✕</button>
+    </div>
+  `;
+  div.querySelector('.pe-recep-del').addEventListener('click', () => {
+    if (cont.querySelectorAll('.pe-recep-row').length <= 1) return;
+    div.remove();
+  });
+  cont.appendChild(div);
+}
+document.getElementById('pe-recep-add').addEventListener('click', agregarFilaRecepPE);
+
+document.getElementById('form-pe-recep').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const fecha = f.fecha.value;
+  const proveedor = f.proveedor.value.trim();
+  const lote = f.lote.value.trim();
+  const remito = f.remito.value.trim();
+  const obs = (f.obs.value || '').trim();
+  if (!fecha || !proveedor) { showFormMsg('pe-recep-msg', '✗ Faltan datos.', false); return; }
+  const filas = Array.from(document.querySelectorAll('.pe-recep-row')).map(r => ({
+    densidad: r.querySelector('[name="densidad"]').value,
+    ancho: Number(r.querySelector('[name="ancho"]').value) || 0,
+    largo: Number(r.querySelector('[name="largo"]').value) || 0,
+    gramaje: Number(r.querySelector('[name="gramaje"]').value) || 0,
+    cantidad: Number(r.querySelector('[name="cantidad"]').value) || 0,
+    kg: Number(r.querySelector('[name="kg"]').value) || '',
+  })).filter(x => x.densidad && x.ancho && x.largo && x.gramaje && x.cantidad);
+  if (!filas.length) { showFormMsg('pe-recep-msg', '✗ Cargá al menos 1 fila completa.', false); return; }
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    // Columnas Stock Bolsas PE (11): Fecha · Densidad · Ancho · Largo · Gramaje · Cantidad · Kg · Proveedor · Lote Proveedor · Nº Remito/OC · Observaciones
+    for (const x of filas) {
+      await appendFila('Stock Bolsas PE', [fecha, x.densidad, x.ancho, x.largo, x.gramaje, x.cantidad, x.kg, proveedor, lote, remito, obs]);
+      bolsasPECache.push({
+        'Fecha':fecha,'Densidad':x.densidad,'Ancho (cm)':x.ancho,'Largo (cm)':x.largo,
+        'Gramaje (g/m²)':x.gramaje,'Cantidad':x.cantidad,'Kg':x.kg,'Proveedor':proveedor,
+        'Lote Proveedor':lote,'Nº Remito / OC':remito,'Observaciones':obs,
+      });
+    }
+    cerrarModalRecepcionPE();
+    renderStockBolsasPE();
+    alert(`✓ ${filas.length} fila(s) cargadas en stock.`);
+  } catch (err) {
+    showFormMsg('pe-recep-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
+
+// MODAL Retiro Manual de Bolsas PE
+function abrirModalRetiroPE() {
+  const form = document.getElementById('form-pe-retiro');
+  form.reset();
+  // Poblar dropdown con bolsas que tienen stock > 0
+  const stock = calcularStockBolsasPE();
+  const sel = document.getElementById('pe-retiro-bolsa');
+  sel.innerHTML = '<option value="">— Elegí bolsa del stock —</option>';
+  Object.keys(stock).forEach(k => {
+    const cant = stock[k];
+    if (cant <= 0) return;
+    const [dens, a, l, g] = k.split('|');
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = `${dens} · ${a}×${l}×${g} · ${fmtNum(cant)} disp.`;
+    sel.appendChild(opt);
+  });
+  const msg = document.getElementById('pe-retiro-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
+  document.getElementById('pe-modal-retiro').style.display = 'flex';
+}
+function cerrarModalRetiroPE() { document.getElementById('pe-modal-retiro').style.display = 'none'; }
+document.getElementById('pe-modal-retiro').addEventListener('click', e => {
+  if (e.target.id === 'pe-modal-retiro') cerrarModalRetiroPE();
+});
+
+document.getElementById('form-pe-retiro').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.dataset.guardando === '1') return;
+  const bolsaKey = f.bolsa.value;
+  const cantidad = Number(f.cantidad.value) || 0;
+  const legajo = f.legajo.value.trim();
+  const motivo = f.motivo.value.trim();
+  if (!bolsaKey || !cantidad || !legajo || !motivo) { showFormMsg('pe-retiro-msg', '✗ Faltan datos.', false); return; }
+  const [dens, ancho, largo, gramaje] = bolsaKey.split('|');
+  // Verificar stock disponible
+  const stock = calcularStockBolsasPE();
+  const disponible = stock[bolsaKey] || 0;
+  if (cantidad > disponible) {
+    showFormMsg('pe-retiro-msg', `✗ Solo hay ${fmtNum(disponible)} disponibles, querés retirar ${fmtNum(cantidad)}.`, false);
+    return;
+  }
+  f.dataset.guardando = '1';
+  const btn = f.querySelector('button[type="submit"]');
+  const txt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    const fecha = new Date().toISOString().slice(0,10);
+    await appendFila('Retiros Bolsas PE', [fecha, dens, Number(ancho), Number(largo), Number(gramaje), cantidad, motivo, legajo]);
+    retirosPECache.push({
+      'Fecha':fecha,'Densidad':dens,'Ancho (cm)':Number(ancho),'Largo (cm)':Number(largo),
+      'Gramaje (g/m²)':Number(gramaje),'Cantidad':cantidad,'Motivo / Destino':motivo,'Legajo':legajo,
+    });
+    cerrarModalRetiroPE();
+    renderStockBolsasPE();
+    alert(`✓ Retiro registrado · ${cantidad} bolsas ${dens} ${ancho}×${largo}×${gramaje}.`);
+  } catch (err) {
+    showFormMsg('pe-retiro-msg', '✗ Error: ' + err.message, false);
+  } finally {
+    delete f.dataset.guardando;
+    if (btn) { btn.disabled = false; btn.textContent = txt; }
+  }
+});
+
+// PRINT (placeholder simple)
+function imprimirStockBolsasPE() {
+  const stock = calcularStockBolsasPE();
+  let html = '';
+  ['BAJA','ALTA'].forEach(dens => {
+    const items = Object.keys(stock).filter(k => k.split('|')[0] === dens).sort();
+    if (!items.length) return;
+    html += `<h2>${dens} DENSIDAD</h2>`;
+    html += `<table><thead><tr><th>Ancho (cm)</th><th>Largo (cm)</th><th>Gramaje (g/m²)</th><th class="num">Cantidad</th></tr></thead><tbody>`;
+    items.forEach(k => {
+      const [, a, l, g] = k.split('|');
+      const c = stock[k];
+      html += `<tr><td>${a}</td><td>${l}</td><td>${g}</td><td class="num">${fmtNum(c)}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  });
+  if (!html) html = '<p>No hay stock de bolsas PE.</p>';
+  _abrirVentanaPrint('Stock Bolsas PE', html);
+}
+
 function calcularStockTintas() {
   // 1. Sumar entradas (compras) por Color+Pantone+Categoría.
   // (Franco 2026-05-25): Pantone también a UPPERCASE para evitar que "foto" y "FOTO"
@@ -11766,10 +12163,29 @@ function abrirModalParteEmb(numOF, opts) {
     form.dataset.editRow = String(opts.parte._rowIndex);
     form.legajo.value = opts.parte['Legajo'] || '';
     form.bolsas.value = Number(opts.parte['Cant Bolsas Embutidas']) || '';
-    form.pe_medida.value = opts.parte['Bolsa PE Medida'] || '';
-    form.pe_gramaje.value = Number(opts.parte['Bolsa PE Gramaje (g/m²)']) || '';
     form.pe_lote.value = opts.parte['Lote Proveedor PE'] || '';
     form.obs.value = opts.parte['Observaciones'] || '';
+    // Densidad + Bolsa: precargar dropdown si los datos del parte vienen completos
+    const densHist = String(opts.parte['Densidad PE']||'').trim();
+    form.pe_densidad.value = densHist;
+    poblarBolsasPEModalEmb();
+    const medida = String(opts.parte['Bolsa PE Medida']||'').trim();
+    const gramHist = Number(opts.parte['Bolsa PE Gramaje (g/m²)']) || 0;
+    const m = medida.match(/^(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)/);
+    if (m && densHist && gramHist) {
+      const ancho = Number(m[1].replace(',', '.'));
+      const largo = Number(m[2].replace(',', '.'));
+      const key = `${densHist.toUpperCase()}|${ancho}|${largo}|${gramHist}`;
+      // Si la opción no está (porque ya no tiene stock), la agregamos como "histórica"
+      const sel = document.getElementById('emb-pe-bolsa');
+      if (!Array.from(sel.options).some(o => o.value === key)) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = `${ancho}×${largo}×${gramHist} · (histórico)`;
+        sel.appendChild(opt);
+      }
+      sel.value = key;
+    }
   }
   const msg = document.getElementById('emb-msg');
   if (msg) { msg.textContent = ''; msg.className = 'form-msg'; }
@@ -11785,6 +12201,40 @@ document.getElementById('emb-modal-parte').addEventListener('click', e => {
   if (e.target.id === 'emb-modal-parte') cerrarModalParteEmb();
 });
 
+// Repoblar dropdown de Bolsa PE cuando cambia Densidad (Franco 2026-05-25)
+function poblarBolsasPEModalEmb() {
+  const densEl = document.getElementById('emb-pe-densidad');
+  const bolsaEl = document.getElementById('emb-pe-bolsa');
+  if (!densEl || !bolsaEl) return;
+  const dens = String(densEl.value || '').trim();
+  bolsaEl.innerHTML = '<option value="">—</option>';
+  if (!dens) {
+    bolsaEl.innerHTML = '<option value="">— Elegí densidad primero —</option>';
+    return;
+  }
+  const stock = (typeof calcularStockBolsasPE === 'function') ? calcularStockBolsasPE() : {};
+  // Si no hay caches cargados (entró a Embutido sin pasar por Stock), las pestañas pueden estar vacías.
+  // Las bolsas se filtran por densidad y con stock > 0.
+  const opts = Object.keys(stock)
+    .filter(k => k.split('|')[0] === dens.toUpperCase() && stock[k] > 0)
+    .map(k => {
+      const [, a, l, g] = k.split('|');
+      return { key: k, ancho: Number(a), largo: Number(l), gramaje: Number(g), cant: stock[k] };
+    })
+    .sort((a, b) => a.ancho - b.ancho || a.largo - b.largo || a.gramaje - b.gramaje);
+  if (!opts.length) {
+    bolsaEl.innerHTML = '<option value="">Sin stock disponible para esta densidad</option>';
+    return;
+  }
+  for (const o of opts) {
+    const opt = document.createElement('option');
+    opt.value = o.key;
+    opt.textContent = `${o.ancho}×${o.largo}×${o.gramaje} · ${fmtNum(o.cant)} disp.`;
+    bolsaEl.appendChild(opt);
+  }
+}
+document.getElementById('emb-pe-densidad').addEventListener('change', poblarBolsasPEModalEmb);
+
 // SUBMIT parte
 document.getElementById('form-emb').addEventListener('submit', async e => {
   e.preventDefault();
@@ -11796,11 +12246,19 @@ document.getElementById('form-emb').addEventListener('submit', async e => {
   const horaIn = ahora.toTimeString().slice(0,5);
   const legajo = f.legajo.value.trim();
   const bolsas = Number(f.bolsas.value) || 0;
-  const peMedida = f.pe_medida.value.trim();
-  const peGramaje = Number(f.pe_gramaje.value) || '';
+  const peDensidad = f.pe_densidad.value.trim(); // Baja / Alta
+  const peBolsaKey = f.pe_bolsa.value;            // "BAJA|50|100|40"
   const peLote = f.pe_lote.value.trim();
   const obs = (f.obs.value || '').trim();
   if (!legajo || !bolsas) { showFormMsg('emb-msg', '✗ Faltan datos obligatorios (legajo + bolsas).', false); return; }
+  if (!peDensidad || !peBolsaKey) { showFormMsg('emb-msg', '✗ Elegí Densidad y Bolsa PE.', false); return; }
+
+  // Derivar Ancho/Largo/Gramaje desde la key elegida
+  const [, peAnchoStr, peLargoStr, peGramajeStr] = peBolsaKey.split('|');
+  const peAncho = Number(peAnchoStr) || 0;
+  const peLargo = Number(peLargoStr) || 0;
+  const peGramaje = Number(peGramajeStr) || 0;
+  const peMedida = `${peAncho}x${peLargo}`; // legacy: guarda "AnchoxLargo" en columna Bolsa PE Medida
 
   const editMode = f.dataset.editMode === 'true';
   const editRow = editMode ? Number(f.dataset.editRow) : 0;
@@ -11816,24 +12274,26 @@ document.getElementById('form-emb').addEventListener('submit', async e => {
       await actualizarCeldaEnFila('Embutido', editRow, 'Bolsa PE Medida', peMedida);
       await actualizarCeldaEnFila('Embutido', editRow, 'Bolsa PE Gramaje (g/m²)', peGramaje);
       await actualizarCeldaEnFila('Embutido', editRow, 'Lote Proveedor PE', peLote);
+      await actualizarCeldaEnFila('Embutido', editRow, 'Densidad PE', peDensidad);
       await actualizarCeldaEnFila('Embutido', editRow, 'Observaciones', obs);
       const p = embPartesCache.find(x => x._rowIndex === editRow);
       if (p) {
         p['Legajo']=legajo; p['Cant Bolsas Embutidas']=bolsas;
         p['Bolsa PE Medida']=peMedida; p['Bolsa PE Gramaje (g/m²)']=peGramaje;
-        p['Lote Proveedor PE']=peLote; p['Observaciones']=obs;
+        p['Lote Proveedor PE']=peLote; p['Densidad PE']=peDensidad; p['Observaciones']=obs;
       }
     } else {
-      // 11 columnas: Fecha, Hora Inicio, Hora Fin, Legajo, Nº OF, Cant Bolsas Embutidas,
-      //              Bolsa PE Medida, Bolsa PE Gramaje (g/m²), Lote Proveedor PE,
-      //              Aprobado Supervisor, Observaciones
-      const fila = [fecha, horaIn, '', legajo, numOF, bolsas, peMedida, peGramaje, peLote, 'Pendiente', obs];
+      // 12 columnas (Franco 2026-05-25, agregó Densidad PE entre Aprobado y Observaciones):
+      // Fecha · Hora Inicio · Hora Fin · Legajo · Nº OF · Cant Bolsas Embutidas ·
+      // Bolsa PE Medida · Bolsa PE Gramaje (g/m²) · Lote Proveedor PE · Aprobado Supervisor ·
+      // Densidad PE · Observaciones
+      const fila = [fecha, horaIn, '', legajo, numOF, bolsas, peMedida, peGramaje, peLote, 'Pendiente', peDensidad, obs];
       await appendFila('Embutido', fila);
       embPartesCache.push({
         'Fecha':fecha,'Hora Inicio':horaIn,'Hora Fin':'','Legajo':legajo,'Nº OF':numOF,
         'Cant Bolsas Embutidas':bolsas,'Bolsa PE Medida':peMedida,
         'Bolsa PE Gramaje (g/m²)':peGramaje,'Lote Proveedor PE':peLote,
-        'Aprobado Supervisor':'Pendiente','Observaciones':obs,
+        'Aprobado Supervisor':'Pendiente','Densidad PE':peDensidad,'Observaciones':obs,
       });
     }
     cerrarModalParteEmb();
@@ -11852,13 +12312,54 @@ document.getElementById('form-emb').addEventListener('submit', async e => {
 async function aprobarParteEmb(rowIndex) {
   const p = embPartesCache.find(x => x._rowIndex === rowIndex);
   if (!p) { alert('No encontré el parte.'); return; }
-  if (!confirm(`¿Aprobar parte de OF ${p['Nº OF']}?\n\n· Legajo: ${p['Legajo']}\n· ${fmtNum(p['Cant Bolsas Embutidas'])} bolsas embutidas\n\nLas bolsas se contabilizan para la OF.`)) return;
+
+  // VALIDACIÓN STOCK BOLSAS PE (Franco 2026-05-25)
+  // Si descontar las bolsas dejaría el stock negativo, bloquear y pedir motivo obligatorio.
+  const dens = String(p['Densidad PE']||'').trim().toUpperCase();
+  const gram = Number(p['Bolsa PE Gramaje (g/m²)']) || 0;
+  const medida = String(p['Bolsa PE Medida']||'').trim();
+  const m = medida.match(/^(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)/);
+  const cantDescontar = Number(p['Cant Bolsas Embutidas']) || 0;
+  let motivoStockNeg = '';
+  if (m && dens && gram && cantDescontar && typeof calcularStockBolsasPE === 'function') {
+    const ancho = Number(m[1].replace(',', '.'));
+    const largo = Number(m[2].replace(',', '.'));
+    const stock = calcularStockBolsasPE();
+    const key = `${dens}|${ancho}|${largo}|${gram}`;
+    const stockAct = stock[key] || 0;
+    const stockPost = stockAct - cantDescontar;
+    if (stockPost < 0) {
+      motivoStockNeg = prompt(
+        `⚠️ El stock de esta bolsa PE quedaría NEGATIVO al aprobar:\n\n` +
+        `${dens} · ${ancho}×${largo}×${gram}\n` +
+        `Stock actual: ${fmtNum(stockAct)} bolsas\n` +
+        `Descuento del parte: ${fmtNum(cantDescontar)} bolsas\n` +
+        `Stock post: ${fmtNum(stockPost)} bolsas\n\n` +
+        `Posibles causas:\n` +
+        `· Falta cargar una recepción de bolsas PE (Stock Bolsas PE → + Cargar Recepción)\n` +
+        `· Cant Bolsas Embutidas mal cargada\n\n` +
+        `Si querés aprobar igual, escribí el MOTIVO obligatorio.`
+      );
+      if (!motivoStockNeg || !motivoStockNeg.trim()) {
+        alert('Aprobación cancelada — el stock no puede quedar negativo sin motivo.');
+        return;
+      }
+    }
+  }
+
+  if (!confirm(`¿Aprobar parte de OF ${p['Nº OF']}?\n\n· Legajo: ${p['Legajo']}\n· ${fmtNum(p['Cant Bolsas Embutidas'])} bolsas embutidas\n\nLas bolsas se contabilizan para la OF y se descuentan del stock de bolsas PE.`)) return;
   try {
     const horaFin = new Date().toTimeString().slice(0,5);
     await actualizarCeldaEnFila('Embutido', p._rowIndex, 'Aprobado Supervisor', 'SI');
     await actualizarCeldaEnFila('Embutido', p._rowIndex, 'Hora Fin', horaFin);
     p['Aprobado Supervisor'] = 'SI';
     p['Hora Fin'] = horaFin;
+    // Si hubo motivo de stock negativo, agregarlo a observaciones
+    if (motivoStockNeg) {
+      const obsNuevas = String(p['Observaciones']||'') + ' · ⚠️ Stock PE negativo: ' + motivoStockNeg.trim();
+      await actualizarCeldaEnFila('Embutido', p._rowIndex, 'Observaciones', obsNuevas);
+      p['Observaciones'] = obsNuevas;
+    }
     renderColaEmb();
     renderTablaPartesEmb();
     alert('✓ Parte aprobado.');
