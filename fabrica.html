@@ -932,6 +932,101 @@
     font-family: 'DM Mono', monospace; font-weight: 600;
     color: var(--accent); font-size: 12px;
   }
+  /* N° OF clickeable que abre el visor de PDF (OF + Arte) */
+  .of-pdf {
+    cursor: pointer; text-decoration: underline;
+    text-decoration-style: dotted; text-underline-offset: 2px;
+  }
+  .of-pdf:hover { filter: brightness(1.3); }
+  /* Visor PDF embebido */
+  .pdf-modal-card { max-width: 980px; height: 88vh; max-height: 88vh; }
+  .pdf-sub {
+    font-size: 12px; color: var(--text-3); margin-top: 3px;
+    font-family: 'DM Mono', monospace;
+  }
+  .pdf-tabs {
+    display: flex; gap: 6px; padding: 8px 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .pdf-tab {
+    background: transparent; border: none; border-bottom: 2px solid transparent;
+    color: var(--text-2); font-weight: 600; font-size: 13px;
+    padding: 8px 12px; cursor: pointer; font-family: inherit;
+  }
+  .pdf-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .pdf-tab:disabled { opacity: .4; cursor: not-allowed; }
+  .pdf-body { padding: 0; display: flex; flex-direction: column; }
+  #pdf-frame-wrap { flex: 1; min-height: 0; }
+  #pdf-frame { width: 100%; height: 100%; border: none; background: #525659; }
+  .pdf-empty {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--text-3); font-style: italic; padding: 40px; text-align: center;
+  }
+  .pdf-foot {
+    display: flex; gap: 10px; justify-content: flex-end;
+    padding: 12px 22px; border-top: 1px solid var(--line);
+  }
+  .pdf-foot a {
+    font-size: 12px; color: var(--text-2); text-decoration: none;
+    padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px;
+  }
+  .pdf-foot a:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ===== Hoja de Planta (vista imprimible de la OF) ===== */
+  .hoja-modal-card { max-width: 900px; height: 92vh; max-height: 92vh; background: #2b2d33; }
+  .hoja-head-actions { display: flex; gap: 8px; align-items: center; }
+  .hoja-btn { font-size: 12px; padding: 7px 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-3); color: var(--text); cursor: pointer; font-family: inherit; }
+  .hoja-btn.primary { background: var(--accent); color: #14160c; border-color: var(--accent); font-weight: 700; }
+  .hoja-btn:hover { filter: brightness(1.12); }
+  .hoja-scroll { flex: 1; overflow-y: auto; padding: 18px; display: flex; justify-content: center; background: #1d1e22; }
+  .hoja-paper {
+    background: #fff; color: #1a1a1a; width: 800px; max-width: 100%;
+    padding: 26px 30px 22px; font-family: 'DM Sans', Arial, sans-serif;
+    font-size: 13px; line-height: 1.45; box-shadow: 0 4px 24px rgba(0,0,0,.4);
+    height: max-content;
+  }
+  .hoja-paper * { box-sizing: border-box; }
+  .hoja-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a1a1a; padding-bottom: 12px; }
+  .hoja-brand h1 { margin: 0; font-size: 21px; letter-spacing: 1.5px; font-weight: 800; }
+  .hoja-brand h1 small { font-size: 11px; font-weight: 600; letter-spacing: 1px; }
+  .hoja-brand .sub { color: #666; font-size: 12px; margin-top: 2px; }
+  .hoja-ofh { text-align: right; }
+  .hoja-ofnum { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 800; }
+  .hoja-badge-urg { display: inline-block; background: #e23b2e; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-top: 5px; }
+  .hoja-emis { color: #666; font-size: 11px; margin-top: 5px; }
+  .hoja-row { display: flex; gap: 14px; margin-top: 14px; align-items: stretch; }
+  .hoja-box { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 11px 14px; }
+  .hoja-box h4 { margin: 0 0 7px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #999; }
+  .hoja-box .big { font-size: 15px; font-weight: 700; }
+  .hoja-kv { font-size: 12.5px; margin: 3px 0; }
+  .hoja-kv .k { color: #999; }
+  .hoja-cant { display: flex; gap: 14px; align-items: center; justify-content: space-between; margin-top: 14px; background: #fdf8e7; border: 1.5px solid #e0a82e; border-radius: 10px; padding: 14px 18px; }
+  .hoja-cant h4 { color: #a87413; }
+  .hoja-cant .hoja-cant-left { flex: 1; }
+  .hoja-entregar { flex: 0 0 168px; background: #fff; border: 2px solid #e0a82e; border-radius: 8px; text-align: center; padding: 10px 8px; display: flex; flex-direction: column; justify-content: center; }
+  .hoja-entregar h4 { color: #a87413; }
+  .hoja-entregar .n { font-size: 28px; font-weight: 800; color: #b45309; line-height: 1.1; letter-spacing: 1px; }
+  .hoja-entregar small { color: #b0915a; font-size: 10px; }
+  .hoja-todo { color: #c0392b; font-style: italic; font-size: 11.5px; }
+  .hoja-sech { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #888; margin: 18px 0 8px; font-weight: 700; }
+  .hoja-ruta { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 8px; }
+  .hoja-chip { border: 1.5px solid #1a1a1a; border-radius: 999px; padding: 4px 13px 4px 5px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; }
+  .hoja-chip .i { display: inline-flex; width: 19px; height: 19px; align-items: center; justify-content: center; background: #1a1a1a; color: #fff; border-radius: 50%; font-size: 11px; margin-right: 6px; font-family: 'DM Mono', monospace; }
+  .hoja-arrow { color: #bbb; font-weight: 700; }
+  .hoja-ruta-box { border: 1px solid #e6e8eb; border-radius: 10px; padding: 13px 16px; margin-top: 10px; }
+  .hoja-ruta-box .hoja-sech { margin: 0 0 9px; }
+  .hoja-sec { border: 1px solid #eee; border-left: 4px solid #1a1a1a; border-radius: 6px; padding: 10px 14px; margin-top: 9px; display: flex; justify-content: space-between; gap: 16px; }
+  .hoja-sec .sbody { flex: 1; min-width: 0; }
+  .hoja-sec h5 { margin: 0 0 7px; font-size: 13.5px; display: flex; align-items: center; gap: 7px; }
+  .hoja-sec h5 .i { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; background: #1a1a1a; color: #fff; border-radius: 50%; font-size: 11px; font-family: 'DM Mono', monospace; }
+  .hoja-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 18px; }
+  .hoja-obj { flex: 0 0 128px; border: 1px solid #e0a82e; background: #fdfaef; border-radius: 6px; text-align: center; padding: 7px 6px; height: fit-content; }
+  .hoja-obj small { display: block; font-size: 9px; color: #a87413; text-transform: uppercase; letter-spacing: .5px; }
+  .hoja-obj .n { font-size: 19px; font-weight: 800; color: #b45309; line-height: 1.15; }
+  .hoja-obj .m { font-size: 10px; color: #999; }
+  .hoja-setup { flex: 0 0 128px; border: 1px dashed #999; border-radius: 6px; text-align: center; padding: 7px 6px; height: fit-content; color: #777; font-size: 11px; }
+  .hoja-arte { border: 1px dashed #bbb; border-radius: 6px; min-height: 54px; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 11px; font-style: italic; margin-top: 4px; }
+  .hoja-foot { margin-top: 18px; border-top: 1px solid #ddd; padding-top: 9px; font-size: 10.5px; color: #999; display: flex; justify-content: space-between; }
   .badge-tipo {
     font-size: 10px; font-weight: 700; padding: 3px 8px;
     border-radius: 999px; text-transform: uppercase;
@@ -5232,7 +5327,7 @@ async function cargarContextoUsuario(email) {
   const ctx = { rol: '', sectores: [], email: (email||'').toLowerCase().trim() };
   // Capa A: Permisos
   try {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${PERMISOS_SHEET_ID}/values/Permisos!A1:Z200`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${PERMISOS_SHEET_ID}/values/Permisos!A1:CZ200`;
     const resp = await fetchSheets(url);
     if (resp.ok) {
       const data = await resp.json();
@@ -5257,7 +5352,7 @@ async function cargarContextoUsuario(email) {
   // Capa B: Sectores asignados (Personal del Sheet de Fábrica)
   if (ctx.rol === 'jefe_sector' || ctx.rol === 'operario') {
     try {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('Personal!A1:Z2000')}`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent('Personal!A1:CZ2000')}`;
       const resp = await fetchSheets(url);
       if (resp.ok) {
         const data = await resp.json();
@@ -5459,7 +5554,7 @@ document.addEventListener('click', (e) => {
 const pestanaHeaders = {}; // cache de headers por pestaña
 
 async function leerPestana(nombrePestana) {
-  const range = `${nombrePestana}!A1:AZ5000`;
+  const range = `${nombrePestana}!A1:CZ5000`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueRenderOption=UNFORMATTED_VALUE`;
   const resp = await fetchSheets(url);
   if (!resp.ok) throw new Error(`Error leyendo ${nombrePestana}: ${resp.status}`);
@@ -5681,7 +5776,7 @@ function renderTablaOFProximas() {
     const avancePct = Math.round(avance * 100);
     return `
       <tr>
-        <td><span class="of-num">${o['Nº OF'] || '—'}</span></td>
+        <td>${ofLinkPDF(o)}</td>
         <td>${o['Cliente'] || '—'}</td>
         <td>${o['Nombre Bolsa'] || '—'}${htmlExtrasOF(o)}</td>
         <td>${o['Vendedor'] || '—'}</td>
@@ -5695,7 +5790,10 @@ function renderTablaOFProximas() {
             <span class="progress-num">${avancePct}%</span>
           </div>
         </td>
-        <td class="num"><button class="btn-ir" onclick="irAOF('${o['Nº OF']}')">Ir</button></td>
+        <td class="num" style="white-space:nowrap">
+          <button class="btn-ir" onclick="abrirHojaPlantaOF('${o['Nº OF']}')" title="Ver Hoja para Planta">📋</button>
+          <button class="btn-ir" onclick="irAOF('${o['Nº OF']}')">Ir</button>
+        </td>
       </tr>
     `;
   }).join('');
@@ -5883,7 +5981,7 @@ function renderEstadosOF() {
     const avancePct = Math.round(avance * 100);
     return `
       <tr>
-        <td><span class="of-num">${o['Nº OF'] || '—'}</span></td>
+        <td>${ofLinkPDF(o)}</td>
         <td>${o['Cliente'] || '—'}</td>
         <td>${o['Nombre Bolsa'] || '—'}${htmlExtrasOF(o)}</td>
         <td><span class="badge-tipo">${o['Tipo Bolsa'] || '—'}</span></td>
@@ -5905,6 +6003,105 @@ function renderEstadosOF() {
 function abrirDetalleOF(numOf) {
   alert('Vista detalle de OF — próximamente.\nNº OF: ' + numOf);
 }
+
+// ============================================================
+// VISOR DE PDF DE LA OF (Orden de Fabricación + Arte)
+// Mecanismo: la pestaña OF tiene 2 columnas con el link de Drive
+// ("PDF OF" y "PDF Arte"). El visor embebe ese PDF directo (sin
+// buscar en carpetas). Funciona en cualquier tabla que tenga un
+// N° OF real: se envuelve con ofLinkPDF(o).  (Franco 2026-05-29)
+// ============================================================
+const _pdfRegistry = {};   // Nº OF -> {of, arte, cliente, nombre}
+let _pdfActual = null;
+
+function registrarPDFOF(o) {
+  const num = o && o['Nº OF'];
+  if (!num) return num;
+  _pdfRegistry[num] = {
+    of:      String(o['PDF OF']   || '').trim(),
+    arte:    String(o['PDF Arte'] || '').trim(),
+    cliente: o['Cliente']     || '',
+    nombre:  o['Nombre Bolsa'] || '',
+  };
+  return num;
+}
+
+// Devuelve el N° OF como pill clickeable que abre el visor.
+function ofLinkPDF(o) {
+  const num = registrarPDFOF(o);
+  if (!num) return '<span class="of-num">—</span>';
+  const safe = String(num).replace(/'/g, "\\'");
+  return `<span class="of-num of-pdf" onclick="abrirVisorPDF('${safe}')" title="Ver PDF de la OF / Arte">${num}</span>`;
+}
+
+// Extrae el ID de archivo de un link de Drive (o devuelve el ID si ya lo es).
+function parseDriveId(link) {
+  if (!link) return '';
+  link = String(link).trim();
+  let m = link.match(/\/d\/([A-Za-z0-9_-]{20,})/);      if (m) return m[1];
+  m = link.match(/[?&]id=([A-Za-z0-9_-]{20,})/);        if (m) return m[1];
+  if (/^[A-Za-z0-9_-]{20,}$/.test(link)) return link;
+  return '';
+}
+
+function abrirVisorPDF(numOF) {
+  const data = _pdfRegistry[numOF];
+  if (!data) { alert('No tengo los datos de la OF ' + numOF + '.'); return; }
+  _pdfActual = {
+    num: numOF,
+    of:   parseDriveId(data.of),
+    arte: parseDriveId(data.arte),
+    cliente: data.cliente,
+    nombre: data.nombre,
+  };
+  document.getElementById('pdf-modal-title').textContent =
+    String(numOF).toUpperCase().startsWith('OF') ? numOF : 'OF ' + numOF;
+  document.getElementById('pdf-modal-sub').textContent =
+    [data.cliente, data.nombre].filter(Boolean).join('  ·  ');
+  const tabArte = document.getElementById('pdf-tab-arte');
+  tabArte.disabled = !_pdfActual.arte;
+  document.getElementById('pdf-modal').style.display = 'flex';
+  pdfMostrar('of');
+}
+
+function pdfMostrar(cual) {
+  if (!_pdfActual) return;
+  const id = cual === 'arte' ? _pdfActual.arte : _pdfActual.of;
+  document.getElementById('pdf-tab-of').classList.toggle('active', cual === 'of');
+  document.getElementById('pdf-tab-arte').classList.toggle('active', cual === 'arte');
+  const frame = document.getElementById('pdf-frame');
+  const wrap  = document.getElementById('pdf-frame-wrap');
+  const empty = document.getElementById('pdf-empty');
+  const foot  = document.getElementById('pdf-foot');
+  if (!id) {
+    wrap.style.display = 'none';
+    foot.style.display = 'none';
+    empty.style.display = 'flex';
+    empty.textContent = cual === 'arte'
+      ? 'Esta OF no tiene Arte cargado.'
+      : 'Esta OF no tiene PDF cargado todavía. Pegá el link de Drive en la columna "PDF OF" de la pestaña OF.';
+    frame.src = 'about:blank';
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.style.display  = 'block';
+  foot.style.display  = 'flex';
+  frame.src = 'https://drive.google.com/file/d/' + id + '/preview';
+  document.getElementById('pdf-download').href = 'https://drive.google.com/uc?export=download&id=' + id;
+  document.getElementById('pdf-open').href     = 'https://drive.google.com/file/d/' + id + '/view';
+}
+
+function cerrarVisorPDF() {
+  document.getElementById('pdf-modal').style.display = 'none';
+  document.getElementById('pdf-frame').src = 'about:blank';
+  _pdfActual = null;
+}
+// Cerrar visor con Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('pdf-modal').style.display === 'flex') {
+    cerrarVisorPDF();
+  }
+});
 
 // Listeners de filtros Estados OF
 ['eof-filt-of','eof-filt-cli','eof-filt-tipo','eof-filt-sec'].forEach(id => {
@@ -14945,6 +15142,316 @@ function cantObjetivoPorSector(of, sectorActual) {
   return Math.round(cant);
 }
 
+// ============================================================
+// HOJA DE PLANTA — vista imprimible de la OF (manejada por la cadena)
+// Fiel al modelo de Franco (2026-05-30). UN solo template para todo
+// tipo de bolsa: recorre Cadena Sectores y dibuja el bloque de cada
+// sector con su objetivo (merma) + specs. Campos que aún no existen
+// como columna se muestran "— a cargar".
+// ============================================================
+let _hojaPlantaHTML = '';   // cache del HTML para imprimir
+
+// valor de OF con fallbacks; si no hay → marcador "a cargar"
+function _hv(of, keys, fb) {
+  for (const k of (Array.isArray(keys) ? keys : [keys])) {
+    const v = of[k];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+  }
+  return fb !== undefined ? fb : '<span class="hoja-todo">— a cargar</span>';
+}
+function _kv(k, v) { return `<div class="hoja-kv"><span class="k">${k}:</span> ${v}</div>`; }
+// Dibujo de bolsa abierta con fuelles + cotas (estilo Lovable). Usa medidas reales.
+function _bolsaSVG(of) {
+  const ancho = of && of['Ancho (cm)'] ? of['Ancho (cm)'] : '?';
+  const largo = of && of['Largo (cm)'] ? of['Largo (cm)'] : '?';
+  return `<svg width="150" height="120" viewBox="0 0 150 120" fill="none" stroke="#9aa0a6" stroke-width="1.3" stroke-linejoin="round" style="flex:0 0 auto">
+    <polygon points="52,34 34,26 34,98 52,106" fill="#fbfcfd"/>
+    <polygon points="96,34 114,26 114,98 96,106" fill="#fbfcfd"/>
+    <polygon points="52,34 96,34 96,106 52,106" fill="#ffffff"/>
+    <polyline points="34,26 52,34 96,34 114,26"/>
+    <polyline points="52,34 63,28 107,28 96,34" stroke="#d3d8dd"/>
+    <line x1="52" y1="18" x2="96" y2="18" stroke="#ec4899"/>
+    <line x1="52" y1="15" x2="52" y2="21" stroke="#ec4899"/>
+    <line x1="96" y1="15" x2="96" y2="21" stroke="#ec4899"/>
+    <text x="74" y="14" font-size="9" fill="#ec4899" text-anchor="middle">${ancho}cm</text>
+    <line x1="126" y1="34" x2="126" y2="106" stroke="#ec4899"/>
+    <line x1="123" y1="34" x2="129" y2="34" stroke="#ec4899"/>
+    <line x1="123" y1="106" x2="129" y2="106" stroke="#ec4899"/>
+    <text x="138" y="70" font-size="9" fill="#ec4899" text-anchor="middle" transform="rotate(90 138 70)">${largo}cm</text>
+  </svg>`;
+}
+// Cuenta de capas (de Capa N Tipo o Cantidad Capas)
+function _nCapas(of) {
+  let n = 0;
+  for (let i = 1; i <= 4; i++) if (of['Capa ' + i + ' Tipo'] && String(of['Capa ' + i + ' Tipo']).trim()) n++;
+  return n || Number(of['Cantidad Capas'] || of['Cant Capas']) || 0;
+}
+
+const HOJA_SEC_IC = {
+  'Clisé':'C', 'Impresión':'I', 'Laminadora':'L', 'Tubera Papel':'TP',
+  'Tubera Rafia':'TR', 'Embutido':'E', 'Costura Papel':'CP', 'Costura Rafia':'CR',
+};
+// Color por sector (acento del bloque + número en la ruta). Ajustable.
+const HOJA_SEC_COLOR = {
+  'Clisé':'#7c3aed', 'Impresión':'#2563eb', 'Laminadora':'#06b6d4',
+  'Tubera Papel':'#d97706', 'Tubera Rafia':'#3b82f6', 'Embutido':'#dc2626',
+  'Costura Papel':'#16a34a', 'Costura Rafia':'#16a34a',
+};
+const HOJA_AMBAR = '#b45309';  // objetivo / a entregar / urgente
+
+function _cadenaOF(of) {
+  return String(of['Cadena Sectores'] || '').split('→').map(s => s.trim()).filter(Boolean);
+}
+
+// Capas legibles: usa "Capa N Tipo" o "Cantidad Capas"
+function _capasTxt(of) {
+  const capas = [];
+  for (let i = 1; i <= 4; i++) {
+    const c = of['Capa ' + i + ' Tipo'] || of['Capa' + i + ' Tipo'];
+    if (c && String(c).trim()) capas.push(String(c).trim());
+  }
+  if (capas.length) return capas.join(' / ');
+  return _hv(of, ['Cantidad Capas', 'Cant Capas'], '<span class="hoja-todo">— a cargar</span>');
+}
+
+function _siNo(of, keys) {
+  const v = String(_hv(of, keys, '')).toUpperCase();
+  if (['SI','SÍ','TRUE','1','X'].includes(v)) return 'Sí';
+  if (['NO','FALSE','0'].includes(v)) return 'No';
+  return '<span class="hoja-todo">— a cargar</span>';
+}
+
+// Bloque de detalle por sector (manejado por la cadena)
+function _bloqueSectorHoja(sec, of, n) {
+  const setup = sec === 'Clisé';
+  const ic = HOJA_SEC_IC[sec] || n;
+  const obj = setup ? '' : cantObjetivoPorSector(of, sec);
+  const merma = Number(mermasPorSectorCache[sec]) || 0;
+  const lado = setup
+    ? `<div class="hoja-setup"><strong>SET-UP</strong><br>no produce bolsas</div>`
+    : `<div class="hoja-obj"><small>Objetivo</small><div class="n">${fmtNum(obj)}</div><div class="m">${merma ? 'merma ' + merma + '%' : ''}</div></div>`;
+
+  let campos = '';
+  let extra = '';   // caja a la derecha del detalle (ej. Vista del Arte en Impresión)
+  const sustrato = of['Tipo Bolsa'] || '';
+  switch (sec) {
+    case 'Clisé':
+      campos = _kv('Cant. colores', _hv(of, ['Cant Colores'])) + _kv('Sustrato', _hv(of, ['Tipo Bolsa']));
+      break;
+    case 'Impresión':
+      campos = _kv('Sustrato', sustrato || '<span class="hoja-todo">— a cargar</span>')
+             + _kv('Cant. colores', _hv(of, ['Cant Colores']))
+             + _kv('Ancho bobina', _hv(of, ['Ancho Bobina (cm)','Ancho Bobina']))
+             + _kv('Velocidad sug.', _hv(of, ['Velocidad (m/min)','Velocidad']))
+             + _kv('Colores (% relleno)', '<span class="hoja-todo">— del arte, a cargar en la bolsa</span>')
+             + (of['Coating'] ? _kv('Coating', of['Coating']) : '');
+      extra = `<div class="hoja-arte" style="flex:0 0 150px;align-self:stretch;margin-top:0">Vista del Arte</div>`;
+      break;
+    case 'Laminadora':
+      campos = _kv('Tipo de proceso', of['Coating'] ? 'Coating ' + of['Coating'] : 'Laminado')
+             + _kv('Material', _hv(of, ['Material Principal']));
+      break;
+    case 'Tubera Papel':
+      campos = _kv('Largo corte', _hv(of, ['Largo (cm)']) + ' cm')
+             + _kv('Cant. capas', _capasTxt(of))
+             + _kv('Fuelle a formar', _hv(of, ['Fuelle (cm)','Fuelle']))
+             + _kv('Pegado (solapado)', _hv(of, ['Solapado (cm)','Solapado']))
+             + (of['Coating'] ? _kv('Coating', of['Coating']) : '');
+      break;
+    case 'Tubera Rafia':
+      campos = _kv('Formato tubo', _hv(of, ['Ancho (cm)']) + ' cm')
+             + _kv('Material', _hv(of, ['Material Principal','Tipo Bolsa']));
+      break;
+    case 'Embutido': {
+      campos = _kv('PE medidas', (of['PE Ancho (cm)']||'?') + ' × ' + (of['PE Largo (cm)']||'?') + ' cm')
+             + _kv('PE gramaje', _hv(of, ['PE Gramaje (g/m²)','PE Gramaje']) + ' µ');
+      // "Manga" solo aparece si la bolsa efectivamente lleva manga
+      const mg = String(_hv(of, ['Manga','Lleva Manga'], '')).toUpperCase();
+      if (['SI','SÍ','TRUE','1','X'].includes(mg)) campos += _kv('Manga', 'Sí');
+      break;
+    }
+    case 'Costura Papel':
+    case 'Costura Rafia':
+      campos = _kv('Medidas finales', (of['Largo (cm)']||'?') + ' × ' + (of['Ancho (cm)']||'?') + ' cm'
+                  + (of['Fuelle (cm)'] ? ' · F' + of['Fuelle (cm)'] : ''))
+             + _kv('Disposición', _hv(of, ['Disposición']) + ' /paquete')
+             + _kv('Color Crepé', _hv(of, ['Color Crepé','Color Crepe']))
+             + _kv('Abre Fácil', _siNo(of, ['Abre Facil','Abre Fácil']))
+             + _kv('Tipo de costura', _hv(of, ['Tipo Costura','Lado Costura']))
+             + _kv('Hilo · Aguja', _hv(of, ['Hilo']) + ' · ' + _hv(of, ['Aguja']))
+             + _kv('Tipo de Pallet', _hv(of, ['Tipo Pallet','Tipo de Pallet']))
+             + _kv('Máx por pallet', _hv(of, ['Máx por Pallet','Max Pallet']));
+      break;
+    default:
+      campos = _kv('Detalle', '—');
+  }
+  const col = HOJA_SEC_COLOR[sec] || '#1a1a1a';
+  return `
+    <div class="hoja-sec" style="border-left-color:${col}">
+      <div class="sbody">
+        <h5><span class="i" style="background:${col}">${n}</span>${sec}</h5>
+        <div class="hoja-grid2">${campos}</div>
+      </div>
+      ${extra}
+      ${lado}
+    </div>`;
+}
+
+function _hojaPlantaHTMLInterno(of) {
+  const cadena = _cadenaOF(of);
+  const cantBase = Number(of['Cant Bolsas']) || 0;
+  const exc = Number(of['% Excedente']) || 0;
+  const aEntregar = Math.round(cantBase * (1 + exc / 100));
+  const urgente = ['SI','SÍ','TRUE','1','X'].includes(String(of['Urgente']||'').toUpperCase());
+  const fEmis = excelDateToJs(of['Fecha Creación']);
+  const fEntrega = excelDateToJs(of['Fecha Entrega']);
+
+  const ruta = cadena.map((s, i) => {
+    const c = HOJA_SEC_COLOR[s] || '#1a1a1a';
+    return `<span class="hoja-chip" style="border-color:${c}"><span class="i" style="background:${c}">${i+1}</span>${s}</span>` +
+      (i < cadena.length - 1 ? '<span class="hoja-arrow">→</span>' : '');
+  }).join('');
+
+  const detalle = cadena.map((s, i) => _bloqueSectorHoja(s, of, i + 1)).join('');
+
+  const codBolsa = _hv(of, ['Código Bolsa','Codigo Bolsa'], '<span class="hoja-todo">— a cargar (catálogo)</span>');
+
+  return `
+    <div class="hoja-top">
+      <div class="hoja-brand">
+        <h1>ÁLAMO <small>S.A.I.C.</small></h1>
+        <div class="sub">Orden de Fabricación · Hoja para Planta</div>
+      </div>
+      <div class="hoja-ofh">
+        <div class="hoja-ofnum">${of['Nº OF'] || '—'}</div>
+        ${urgente ? '<div class="hoja-badge-urg">● URGENTE</div>' : ''}
+        <div class="hoja-emis">Emitida ${fEmis ? fmtFechaCorta(fEmis) : '—'} · Compromiso <strong>${fEntrega ? fmtFechaCorta(fEntrega) : '—'}</strong></div>
+      </div>
+    </div>
+
+    <div class="hoja-row">
+      <div class="hoja-box">
+        <h4>Cliente</h4>
+        <div class="big">${of['Cliente'] || '—'}</div>
+        ${_kv('Pedido', _hv(of, ['Pedido','Pedido Cliente','Orden Cliente']))}
+        ${_kv('Vendedor', _hv(of, ['Vendedor']))}
+      </div>
+      <div class="hoja-box">
+        <h4>Producto</h4>
+        <div class="big">${of['Nombre Bolsa'] || '—'}</div>
+        ${_kv('Código Bolsa', codBolsa)}
+        ${_kv('Tipo de Bolsa', _hv(of, ['Tipo Bolsa']))}
+        ${_kv('Capas' + (_nCapas(of) ? ' (' + _nCapas(of) + ')' : ''), _capasTxt(of))}
+        ${of['Coating'] ? _kv('Coating', of['Coating']) : ''}
+      </div>
+    </div>
+
+    <div class="hoja-cant">
+      <div class="hoja-cant-left">
+        <h4>Cantidades</h4>
+        ${_kv('Cliente quiere', '<strong>' + fmtNum(cantBase) + '</strong> bolsas')}
+        ${_kv('Excedente acordado', '<strong>+' + exc + '%</strong>')}
+      </div>
+      <div class="hoja-entregar">
+        <h4>A entregar</h4>
+        <div class="n">${fmtNum(aEntregar)}</div>
+        <small>bolsas</small>
+      </div>
+    </div>
+
+    <div class="hoja-row">
+      <div class="hoja-box">
+        <h4>Medidas y embalaje</h4>
+        <div style="display:flex;gap:18px;align-items:center">
+          ${_bolsaSVG(of)}
+          <div class="hoja-grid2" style="flex:1">
+            ${_kv('Largo', _hv(of, ['Largo (cm)']) + ' cm')}
+            ${_kv('Disposición', _hv(of, ['Disposición']) + ' /paquete')}
+            ${_kv('Ancho', _hv(of, ['Ancho (cm)']) + ' cm')}
+            ${_kv('Tipo paquete', _hv(of, ['Tipo Paquete','Tipo de Paquete']))}
+            ${_kv('Fuelle', _hv(of, ['Fuelle (cm)','Fuelle']))}
+            ${_kv('Tipo de Pallet', _hv(of, ['Tipo Pallet','Tipo de Pallet']))}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hoja-ruta-box">
+      <div class="hoja-sech">Ruta en planta — orden cronológico</div>
+      <div class="hoja-ruta">${ruta || '<span class="hoja-todo">— sin cadena definida</span>'}</div>
+    </div>
+
+    <div class="hoja-sech">Detalle por sector</div>
+    ${detalle}
+
+    <div class="hoja-sech">Observaciones para planta</div>
+    <div class="hoja-box">${of['Observaciones'] ? of['Observaciones'] : '<span style="color:#aaa">Anotar insumos utilizados.</span>'}</div>
+
+    <div class="hoja-foot">
+      <span>⚠ Read-only · Para modificar la OF entrar al módulo Ventas exclusivamente</span>
+      <span>Generada desde el ERP Álamo</span>
+    </div>`;
+}
+
+function mostrarHojaPlanta(of) {
+  if (!of) { alert('No encontré la OF.'); return; }
+  _hojaPlantaHTML = _hojaPlantaHTMLInterno(of);
+  document.getElementById('hoja-paper').innerHTML = _hojaPlantaHTML;
+  document.getElementById('hoja-modal').style.display = 'flex';
+}
+
+function abrirHojaPlantaOF(numOF) {
+  const buscar = arr => (arr || []).find(o => String(o['Nº OF']||'').trim() === String(numOF).trim());
+  const of = buscar(estadosOFCache) || buscar(ofsProximasCache) || buscar(window.cpapOFsCache) || buscar(window.crOFsCache);
+  if (!of) { alert('No encontré los datos de la OF ' + numOF + '. Abrí "Estados OF" primero.'); return; }
+  mostrarHojaPlanta(of);
+}
+
+function cerrarHojaPlanta() {
+  document.getElementById('hoja-modal').style.display = 'none';
+}
+
+function imprimirHojaPlanta() {
+  if (!_hojaPlantaHTML) return;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Hoja para Planta</title>
+    <style>
+      @page { size: A4; margin: 12mm; }
+      body { margin: 0; font-family: 'DM Sans', Arial, sans-serif; color: #1a1a1a; font-size: 13px; line-height: 1.45; }
+      .hoja-paper * { box-sizing: border-box; }
+      .hoja-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1a1a1a; padding-bottom: 12px; }
+      .hoja-brand h1 { margin: 0; font-size: 21px; letter-spacing: 1.5px; font-weight: 800; } .hoja-brand h1 small { font-size: 11px; }
+      .hoja-brand .sub { color: #666; font-size: 12px; } .hoja-ofh { text-align: right; }
+      .hoja-ofnum { font-family: monospace; font-size: 22px; font-weight: 800; }
+      .hoja-badge-urg { display: inline-block; background: #e23b2e; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-top: 5px; }
+      .hoja-emis { color: #666; font-size: 11px; margin-top: 5px; }
+      .hoja-row { display: flex; gap: 14px; margin-top: 14px; }
+      .hoja-box { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 11px 14px; }
+      .hoja-box h4 { margin: 0 0 7px; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #999; }
+      .hoja-box .big { font-size: 15px; font-weight: 700; }
+      .hoja-kv { font-size: 12.5px; margin: 3px 0; } .hoja-kv .k { color: #999; }
+      .hoja-entregar { flex: 0 0 160px; border: 2px solid #c2410c; border-radius: 8px; text-align: center; padding: 10px 8px; }
+      .hoja-entregar h4 { color: #c2410c; } .hoja-entregar .n { font-size: 27px; font-weight: 800; color: #c2410c; } .hoja-entregar small { color: #999; font-size: 10px; }
+      .hoja-todo { color: #c0392b; font-style: italic; font-size: 11.5px; }
+      .hoja-sech { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #888; margin: 18px 0 8px; font-weight: 700; }
+      .hoja-ruta { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+      .hoja-chip { border: 1.5px solid #1a1a1a; border-radius: 999px; padding: 4px 13px 4px 5px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; }
+      .hoja-chip .i { display: inline-flex; width: 19px; height: 19px; align-items: center; justify-content: center; background: #1a1a1a; color: #fff; border-radius: 50%; font-size: 11px; margin-right: 6px; }
+      .hoja-arrow { color: #bbb; font-weight: 700; }
+      .hoja-sec { border: 1px solid #eee; border-left: 4px solid #1a1a1a; border-radius: 6px; padding: 10px 14px; margin-top: 9px; display: flex; justify-content: space-between; gap: 16px; page-break-inside: avoid; }
+      .hoja-sec .sbody { flex: 1; } .hoja-sec h5 { margin: 0 0 7px; font-size: 13.5px; display: flex; align-items: center; gap: 7px; }
+      .hoja-sec h5 .i { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; background: #1a1a1a; color: #fff; border-radius: 50%; font-size: 11px; }
+      .hoja-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 18px; }
+      .hoja-obj { flex: 0 0 128px; border: 1px solid #c2410c; border-radius: 6px; text-align: center; padding: 7px 6px; height: fit-content; }
+      .hoja-obj small { display: block; font-size: 9px; color: #999; text-transform: uppercase; } .hoja-obj .n { font-size: 19px; font-weight: 800; color: #c2410c; } .hoja-obj .m { font-size: 10px; color: #999; }
+      .hoja-setup { flex: 0 0 128px; border: 1px dashed #999; border-radius: 6px; text-align: center; padding: 7px 6px; color: #777; font-size: 11px; }
+      .hoja-arte { border: 1px dashed #bbb; border-radius: 6px; min-height: 54px; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 11px; font-style: italic; margin-top: 4px; }
+      .hoja-foot { margin-top: 18px; border-top: 1px solid #ddd; padding-top: 9px; font-size: 10.5px; color: #999; display: flex; justify-content: space-between; }
+    </style></head><body><div class="hoja-paper">${_hojaPlantaHTML}</div>
+    <script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
 // Primer pallet de una OF (para usar como default de cant y disposición en siguientes)
 function primerPalletDeOF(numOF) {
   const lista = (palletsCache || [])
@@ -19910,5 +20417,45 @@ document.addEventListener('keydown', (e) => {
 })();
 
 </script>
+
+<!-- Visor de PDF de la OF (Orden de Fabricación + Arte) -->
+<div class="modal-overlay" id="pdf-modal" style="display:none;z-index:9500" onclick="if(event.target===this)cerrarVisorPDF()">
+  <div class="modal-card pdf-modal-card">
+    <div class="modal-head">
+      <div>
+        <h3 id="pdf-modal-title">OF</h3>
+        <div class="pdf-sub" id="pdf-modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="cerrarVisorPDF()" title="Cerrar">&times;</button>
+    </div>
+    <div class="pdf-tabs">
+      <button class="pdf-tab active" id="pdf-tab-of" onclick="pdfMostrar('of')">📄 Orden de Fabricación</button>
+      <button class="pdf-tab" id="pdf-tab-arte" onclick="pdfMostrar('arte')">🎨 Arte</button>
+    </div>
+    <div class="modal-body pdf-body">
+      <div id="pdf-frame-wrap"><iframe id="pdf-frame" src="about:blank" allow="autoplay"></iframe></div>
+      <div class="pdf-empty" id="pdf-empty" style="display:none"></div>
+    </div>
+    <div class="pdf-foot" id="pdf-foot">
+      <a id="pdf-download" href="#" target="_blank" rel="noopener">⬇️ Descargar</a>
+      <a id="pdf-open" href="#" target="_blank" rel="noopener">🔗 Abrir en Drive</a>
+    </div>
+  </div>
+</div>
+
+<!-- Hoja de Planta: vista imprimible de la OF (manejada por la cadena de sectores) -->
+<div class="modal-overlay" id="hoja-modal" style="display:none;z-index:9600" onclick="if(event.target===this)cerrarHojaPlanta()">
+  <div class="modal-card hoja-modal-card">
+    <div class="modal-head">
+      <h3>Hoja para Planta</h3>
+      <div class="hoja-head-actions">
+        <button class="hoja-btn primary" onclick="imprimirHojaPlanta()">🖨️ Imprimir / PDF</button>
+        <button class="modal-close" onclick="cerrarHojaPlanta()" title="Cerrar">&times;</button>
+      </div>
+    </div>
+    <div class="hoja-scroll"><div class="hoja-paper" id="hoja-paper"></div></div>
+  </div>
+</div>
+
 </body>
 </html>
